@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "130615476237",
+    "project_id": "cave-vin-jo",
+    "storage_bucket": "cave-vin-jo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130615476237:android:19d712ac3166188625d544",
+        "android_client_info": {
+          "package_name": "com.example.cave_vin_jo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9Ur9IQbyQ8YeOWLZfQQDIINtvQZfbDV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
