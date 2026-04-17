@@ -103,7 +103,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
     });
   }
 
-  Future<void> _pickPhoto(ImageSource source) async {
+  Future<void> _pickPhoto(ImageSource source, {bool analyzeWithGemini = false}) async {
     try {
       final file = await _picker.pickImage(source: source, imageQuality: 85);
       if (file == null) return;
@@ -112,22 +112,23 @@ class _AddWineDialogState extends State<AddWineDialog> {
         _photoBytes = bytes;
         _photoFileName = file.name;
       });
+      if (analyzeWithGemini) {
+        await _analyzePhotoWithGemini(bytes);
+      }
     } catch (e) {
       setState(() => _error = 'Impossible de charger la photo : $e');
     }
   }
 
-  Future<void> _searchWithGemini() async {
+  Future<void> _analyzePhotoWithGemini(Uint8List bytes) async {
     setState(() {
       _aiLoading = true;
       _error = null;
     });
     try {
-      await GeminiService.searchByText(
-        name: _aiName.text.trim(),
-        domaine: _aiDomaine.text.trim(),
-        vintage: _aiVintage.text.trim(),
-      );
+      final result = await GeminiService.searchByPhoto(bytes);
+      if (!mounted) return;
+      _applyGeminiResult(result);
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
@@ -135,15 +136,64 @@ class _AddWineDialogState extends State<AddWineDialog> {
     }
   }
 
+  Future<void> _searchWithGemini() async {
+    if (_aiName.text.trim().isEmpty) {
+      setState(() => _error = 'Entre un nom de vin pour utiliser Gemini.');
+      return;
+    }
+    setState(() {
+      _aiLoading = true;
+      _error = null;
+    });
+    try {
+      final result = await GeminiService.searchByText(
+        name: _aiName.text.trim(),
+        domaine: _aiDomaine.text.trim(),
+        vintage: _aiVintage.text.trim(),
+      );
+      if (!mounted) return;
+      _applyGeminiResult(result);
+      if (_aiVintage.text.isNotEmpty) {
+        setState(() => _vintage.text = _aiVintage.text.trim());
+      }
+    } catch (e) {
+      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _aiLoading = false);
+    }
+  }
+
+  void _applyGeminiResult(GeminiResult result) {
+    setState(() {
+      _name.text = result.name;
+      _producer.text = result.producer;
+      _appellation.text = result.appellation;
+      _country.text = result.country;
+      _region.text = result.region;
+      _climat.text = result.climat;
+      _domaine.text = result.domaine;
+      _village.text = result.village;
+      _domainAddress.text = result.domainAddress;
+      _grapes.text = result.grapes;
+      if (result.alcohol != null) _alcohol.text = result.alcohol.toString();
+      _type = WineType.values.firstWhere(
+        (t) => t.name == result.type,
+        orElse: () => WineType.rouge,
+      );
+      if (result.drinkFrom != null) _drinkFrom.text = result.drinkFrom.toString();
+      if (result.drinkPeak != null) _drinkPeak.text = result.drinkPeak.toString();
+      if (result.drinkTo != null) _drinkTo.text = result.drinkTo.toString();
+      _wineDescription.text = result.wineDescription;
+      _domaineDescription.text = result.domaineDescription;
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final locations = _locations.map((c) => c.text.trim()).toList();
-    if (locations.any((l) => l.isEmpty)) {
-      setState(() => _error = 'Chaque bouteille doit avoir un emplacement.');
-      return;
-    }
-    if (locations.toSet().length != locations.length) {
+    final filledLocations = locations.where((l) => l.isNotEmpty).toList();
+    if (filledLocations.toSet().length != filledLocations.length) {
       setState(() => _error = 'Deux bouteilles ne peuvent pas partager un emplacement.');
       return;
     }
@@ -154,7 +204,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
     });
 
     try {
-      for (final loc in locations) {
+      for (final loc in filledLocations) {
         if (await CaveService.isLocationTaken(loc)) {
           setState(() {
             _saving = false;
@@ -881,9 +931,9 @@ class _AddWineDialogState extends State<AddWineDialog> {
                 onTap: _aiLoading ? null : _searchWithGemini,
               ),
               const SizedBox(width: 8),
-              _aiBtn(label: '📷 Photo', onTap: () => _pickPhoto(ImageSource.camera)),
+              _aiBtn(label: '📷 Photo', onTap: () => _pickPhoto(ImageSource.camera, analyzeWithGemini: true)),
               const SizedBox(width: 8),
-              _aiBtn(label: '🖼 Galerie', onTap: () => _pickPhoto(ImageSource.gallery)),
+              _aiBtn(label: '🖼 Galerie', onTap: () => _pickPhoto(ImageSource.gallery, analyzeWithGemini: true)),
             ],
           ),
         ],

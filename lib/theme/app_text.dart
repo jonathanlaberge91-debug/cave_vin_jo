@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppText {
-  static final _serifBase = GoogleFonts.cormorantGaramond();
-  static final _sansBase = GoogleFonts.dmSans();
-
-  static String get serifFamily => _serifBase.fontFamily!;
-  static String get sansFamily => _sansBase.fontFamily!;
+  static const serifFamily = 'CormorantGaramond';
+  static const sansFamily = 'DMSans';
 
   static const _emojiFallback = [
     'Noto Color Emoji',

@@ -41,6 +41,8 @@ dependencies:
   google_sign_in: ^6.2.1
   google_fonts: ^6.2.1
   image_picker: ^1.1.2
+  http: ^1.2.2
+  shared_preferences: ^2.3.4
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +65,16 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans.ttf
+    - family: CormorantGaramond
+      fonts:
+        - asset: assets/fonts/CormorantGaramond-Regular.ttf
+        - asset: assets/fonts/CormorantGaramond-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:
