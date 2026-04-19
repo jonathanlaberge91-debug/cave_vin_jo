@@ -2,6 +2,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum WineType { rouge, blanc, rose, orange, petillant }
 
+class Critique {
+  final String source;
+  final String score;
+  final String note;
+  final DateTime? date;
+
+  const Critique({
+    required this.source,
+    this.score = '',
+    this.note = '',
+    this.date,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'source': source,
+        'score': score,
+        'note': note,
+        'date': date != null ? Timestamp.fromDate(date!) : null,
+      };
+
+  factory Critique.fromMap(Map<String, dynamic> data) => Critique(
+        source: data['source'] ?? '',
+        score: data['score'] ?? '',
+        note: data['note'] ?? '',
+        date: (data['date'] as Timestamp?)?.toDate(),
+      );
+}
+
 class Wine {
   final String id;
   final String name;
@@ -24,6 +52,7 @@ class Wine {
   final String wineDescription;
   final String domaineDescription;
   final String? photoUrl;
+  final List<Critique> critiques;
   final DateTime createdAt;
 
   Wine({
@@ -48,6 +77,7 @@ class Wine {
     this.wineDescription = '',
     this.domaineDescription = '',
     this.photoUrl,
+    this.critiques = const [],
     required this.createdAt,
   });
 
@@ -72,6 +102,7 @@ class Wine {
         'wineDescription': wineDescription,
         'domaineDescription': domaineDescription,
         'photoUrl': photoUrl,
+        'critiques': critiques.map((c) => c.toMap()).toList(),
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -102,6 +133,10 @@ class Wine {
       wineDescription: data['wineDescription'] ?? '',
       domaineDescription: data['domaineDescription'] ?? '',
       photoUrl: data['photoUrl'],
+      critiques: (data['critiques'] as List?)
+              ?.map((c) => Critique.fromMap(Map<String, dynamic>.from(c)))
+              .toList() ??
+          const [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

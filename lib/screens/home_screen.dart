@@ -5,6 +5,7 @@ import '../models/bottle.dart';
 import '../services/cave_service.dart';
 import 'add_wine_dialog.dart';
 import 'settings_screen.dart';
+import 'wine_detail_screen.dart';
 
 class AppColors {
   static const bg = Color(0xFF0E0C0A);
@@ -344,7 +345,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   .where((b) => b.wineId == wine.id)
                   .toList();
               if (wineBottles.isEmpty) continue;
-              grouped[wine.id] = _WineRow(wine: wine, bottles: wineBottles);
+              final byFormat = <BottleFormat, List<Bottle>>{};
+              for (final b in wineBottles) {
+                byFormat.putIfAbsent(b.format, () => []).add(b);
+              }
+              for (final entry in byFormat.entries) {
+                final key = '${wine.id}::${entry.key.name}';
+                grouped[key] = _WineRow(wine: wine, bottles: entry.value);
+              }
             }
 
             var rows = grouped.values.toList();
@@ -365,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
               }).toList();
             }
 
-            return SingleChildScrollView(
+            return Padding(
               padding: const EdgeInsets.all(20),
               child: Container(
                 decoration: BoxDecoration(
@@ -377,8 +385,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: 18,
+                        vertical: 14,
                       ),
                       decoration: const BoxDecoration(
                         border: Border(
@@ -388,11 +396,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         children: [
                           Text(
-                            'Cave — ${rows.length} vin${rows.length > 1 ? 's' : ''}',
+                            'Cave',
                             style: AppText.serif(
                               color: AppColors.gold2,
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.bg3,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border2),
+                            ),
+                            child: Text(
+                              '${rows.length} vin${rows.length > 1 ? 's' : ''}',
+                              style: AppText.sans(
+                                color: AppColors.text2,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
@@ -416,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     else
-                      _buildTable(rows),
+                      Expanded(child: _buildCaveTable(rows)),
                   ],
                 ),
               ),
@@ -427,183 +453,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTable(List<_WineRow> rows) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: WidgetStateProperty.all(AppColors.bg3),
-        dataRowColor: WidgetStateProperty.all(Colors.transparent),
-        border: const TableBorder(
-          horizontalInside: BorderSide(color: AppColors.border),
-        ),
-        columnSpacing: 20,
-        headingTextStyle: AppText.sans(
-          color: AppColors.text3,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.7,
-        ),
-        columns: const [
-          DataColumn(label: Text('PHOTO')),
-          DataColumn(label: Text('VIN')),
-          DataColumn(label: Text('MILL.')),
-          DataColumn(label: Text('PAYS')),
-          DataColumn(label: Text('RÉGION')),
-          DataColumn(label: Text('GARDE')),
-          DataColumn(label: Text('CÉPAGES')),
-          DataColumn(label: Text('FORMAT')),
-          DataColumn(label: Text('PRIX')),
-          DataColumn(label: Text('QTÉ')),
-        ],
-        rows: rows.map((r) => _buildDataRow(r)).toList(),
-      ),
-    );
-  }
-
-  DataRow _buildDataRow(_WineRow row) {
-    final w = row.wine;
-    final qty = row.bottles.length;
-    final format = row.bottles.first.format.label;
-    final price = row.bottles.first.purchasePrice;
-    final garde = _gardeLabel(w);
-
-    return DataRow(
-      cells: [
-        DataCell(
-          w.photoUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.network(
-                    w.photoUrl!,
-                    width: 36,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _photoPlaceholder(),
-                  ),
-                )
-              : _photoPlaceholder(),
-        ),
-        DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                w.name,
-                style: AppText.serif(
-                  color: AppColors.text,
-                  fontSize: 14,
-                ),
-              ),
-              if (w.producer.isNotEmpty)
-                Text(
-                  w.producer,
-                  style: AppText.sans(
-                    color: AppColors.text3,
-                    fontSize: 11,
-                  ),
-                ),
-            ],
+  Widget _buildCaveTable(List<_WineRow> rows) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: const BoxDecoration(
+            color: AppColors.bg3,
+            border: Border(bottom: BorderSide(color: AppColors.border)),
           ),
-        ),
-        DataCell(
-          w.vintage != null
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0x1FC9A84C),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0x40C9A84C)),
-                  ),
-                  child: Text(
-                    '${w.vintage}',
-                    style: AppText.sans(
-                      color: AppColors.gold2,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                )
-              : Text('—', style: AppText.sans(color: AppColors.text3)),
-        ),
-        DataCell(Text(
-          w.country,
-          style: AppText.sans(color: AppColors.text2, fontSize: 13),
-        )),
-        DataCell(Text(
-          w.region,
-          style: AppText.sans(color: AppColors.text2, fontSize: 13),
-        )),
-        DataCell(
-          garde != null
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: garde.color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    garde.label,
-                    style: AppText.sans(
-                      color: garde.color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              : Text('—', style: AppText.sans(color: AppColors.text3)),
-        ),
-        DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 150),
-            child: Text(
-              w.grapes,
-              style: AppText.sans(color: AppColors.text2, fontSize: 12),
-              overflow: TextOverflow.ellipsis,
+          child: LayoutBuilder(
+            builder: (context, c) => _CaveRowLayout(
+              width: c.maxWidth,
+              child: _buildHeaderCells(c.maxWidth),
             ),
           ),
         ),
-        DataCell(Text(
-          format,
-          style: AppText.sans(color: AppColors.text2, fontSize: 12),
-        )),
-        DataCell(Text(
-          price != null ? '${price.toStringAsFixed(0)} \$' : '—',
-          style: AppText.sans(color: AppColors.text2, fontSize: 12),
-        )),
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.bg3,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border2),
-            ),
-            child: Text(
-              '$qty',
-              style: AppText.sans(
-                color: AppColors.text2,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (context, i) {
+              final row = rows[i];
+              return _CaveDataRow(
+                row: row,
+                onTap: () => _openWineDetail(row),
+                gardeFor: _gardeLabel,
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _photoPlaceholder() {
-    return Container(
-      width: 36,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColors.bg3,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Icon(Icons.wine_bar, color: AppColors.text3, size: 18),
+  void _openWineDetail(_WineRow row) {
+    showWineDetail(context, wine: row.wine, bottles: row.bottles);
+  }
+
+  List<Widget> _buildHeaderCells(double w) {
+    final cols = _CaveColumns.forWidth(w);
+    final headers = <(String, double?, int?)>[
+      ('', cols.photoW, null),
+      ('VIN', null, 4),
+      if (cols.showType) ('TYPE', cols.typeW, null),
+      ('MILL.', cols.vintageW, null),
+      if (cols.showAppellation) ('APPELLATION', null, 3),
+      ('RÉGION', null, 3),
+      if (cols.showDomaine) ('DOMAINE', null, 2),
+      if (cols.showGrapes) ('CÉPAGES', null, 3),
+      if (cols.showRating) ('NOTE', cols.ratingW, null),
+      ('GARDE', cols.gardeW, null),
+      if (cols.showApogee) ('APOGÉE', cols.apogeeW, null),
+      if (cols.showFormat) ('FORMAT', cols.formatW, null),
+      if (cols.showPrice) ('PRIX', cols.priceW, null),
+      if (cols.showValue) ('VALEUR', cols.valueW, null),
+      ('QTÉ', cols.qtyW, null),
+    ];
+    final headerStyle = AppText.sans(
+      color: AppColors.text3,
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.1,
     );
+    return headers.map((h) {
+      final text = Text(h.$1, style: headerStyle);
+      if (h.$2 != null) return SizedBox(width: h.$2, child: text);
+      return Expanded(flex: h.$3 ?? 1, child: text);
+    }).toList();
   }
 
   _GardeInfo? _gardeLabel(Wine w) {
@@ -729,5 +645,497 @@ class _NavItemState extends State<_NavItem> {
         ),
       ),
     );
+  }
+}
+
+class _CaveColumns {
+  final double photoW = 44;
+  final double typeW = 74;
+  final double vintageW = 56;
+  final double ratingW = 50;
+  final double gardeW = 80;
+  final double formatW = 70;
+  final double priceW = 72;
+  final double valueW = 78;
+  final double apogeeW = 60;
+  final double qtyW = 46;
+
+  final bool showType;
+  final bool showAppellation;
+  final bool showGrapes;
+  final bool showRating;
+  final bool showFormat;
+  final bool showPrice;
+  final bool showApogee;
+  final bool showValue;
+  final bool showDomaine;
+
+  _CaveColumns._({
+    required this.showType,
+    required this.showAppellation,
+    required this.showGrapes,
+    required this.showRating,
+    required this.showFormat,
+    required this.showPrice,
+    required this.showApogee,
+    required this.showValue,
+    required this.showDomaine,
+  });
+
+  factory _CaveColumns.forWidth(double w) {
+    return _CaveColumns._(
+      showType: w >= 480,
+      showFormat: w >= 560,
+      showPrice: w >= 640,
+      showRating: w >= 720,
+      showAppellation: w >= 820,
+      showGrapes: w >= 920,
+      showApogee: w >= 1020,
+      showValue: w >= 1120,
+      showDomaine: w >= 1240,
+    );
+  }
+}
+
+class _CaveRowLayout extends StatelessWidget {
+  final double width;
+  final List<Widget> child;
+  const _CaveRowLayout({required this.width, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (var i = 0; i < child.length; i++) ...[
+          child[i],
+          if (i < child.length - 1) const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+}
+
+class _CaveDataRow extends StatefulWidget {
+  final _WineRow row;
+  final VoidCallback onTap;
+  final _GardeInfo? Function(Wine) gardeFor;
+
+  const _CaveDataRow({
+    required this.row,
+    required this.onTap,
+    required this.gardeFor,
+  });
+
+  @override
+  State<_CaveDataRow> createState() => _CaveDataRowState();
+}
+
+class _CaveDataRowState extends State<_CaveDataRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.row.wine;
+    final bottles = widget.row.bottles;
+    final qty = bottles.length;
+    final firstFormat = bottles.first.format.label;
+    final formats = bottles.map((b) => b.format.label).toSet();
+    final mixedFormats = formats.length > 1;
+    final price = bottles.first.purchasePrice;
+    final pricesAll = bottles
+        .map((b) => b.purchasePrice)
+        .whereType<double>()
+        .toList();
+    final mixedPrices = pricesAll.toSet().length > 1;
+    final garde = widget.gardeFor(w);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: _hover ? const Color(0x14C9A84C) : Colors.transparent,
+            border: Border(
+              bottom: const BorderSide(color: AppColors.border),
+              left: BorderSide(
+                color: _hover ? AppColors.gold : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final cols = _CaveColumns.forWidth(c.maxWidth);
+              final totalValue = bottles.fold<double>(
+                0,
+                (s, b) => s + (b.marketValue ?? b.purchasePrice ?? 0),
+              );
+              return _CaveRowLayout(
+                width: c.maxWidth,
+                child: [
+                  SizedBox(width: cols.photoW, child: _photoCell(w)),
+                  Expanded(flex: 4, child: _vinCell(w)),
+                  if (cols.showType)
+                    SizedBox(width: cols.typeW, child: _typeCell(w)),
+                  SizedBox(width: cols.vintageW, child: _vintageCell(w)),
+                  if (cols.showAppellation)
+                    Expanded(flex: 3, child: _textCell(w.appellation)),
+                  Expanded(flex: 3, child: _regionCell(w)),
+                  if (cols.showDomaine)
+                    Expanded(flex: 2, child: _textCell(w.domaine)),
+                  if (cols.showGrapes)
+                    Expanded(flex: 3, child: _textCell(w.grapes)),
+                  if (cols.showRating)
+                    SizedBox(width: cols.ratingW, child: _ratingCell(w)),
+                  SizedBox(width: cols.gardeW, child: _gardeCell(garde)),
+                  if (cols.showApogee)
+                    SizedBox(width: cols.apogeeW, child: _apogeeCell(w)),
+                  if (cols.showFormat)
+                    SizedBox(
+                      width: cols.formatW,
+                      child: _formatCell(firstFormat, mixedFormats),
+                    ),
+                  if (cols.showPrice)
+                    SizedBox(
+                      width: cols.priceW,
+                      child: _priceCell(price, mixedPrices),
+                    ),
+                  if (cols.showValue)
+                    SizedBox(
+                      width: cols.valueW,
+                      child: _valueCell(totalValue),
+                    ),
+                  SizedBox(width: cols.qtyW, child: _qtyCell(qty)),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _photoCell(Wine w) {
+    if (w.photoUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          w.photoUrl!,
+          width: 32,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _ph(),
+        ),
+      );
+    }
+    return _ph();
+  }
+
+  Widget _ph() => Container(
+        width: 32,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Icon(Icons.wine_bar, color: AppColors.text3, size: 16),
+      );
+
+  Widget _vinCell(Wine w) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          w.name,
+          style: AppText.serif(
+            color: AppColors.text,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (w.producer.isNotEmpty)
+          Text(
+            w.producer,
+            style: AppText.sans(color: AppColors.text3, fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
+  }
+
+  Widget _typeCell(Wine w) {
+    final color = _wineTypeColor(w.type);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              _wineTypeLabel(w.type),
+              style: AppText.sans(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _vintageCell(Wine w) {
+    if (w.vintage == null) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0x1FC9A84C),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0x40C9A84C)),
+      ),
+      child: Text(
+        '${w.vintage}',
+        style: AppText.sans(
+          color: AppColors.gold2,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _textCell(String value) {
+    if (value.isEmpty) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Text(
+      value,
+      style: AppText.sans(color: AppColors.text2, fontSize: 12),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _regionCell(Wine w) {
+    final parts = [w.region, w.country].where((s) => s.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          w.region.isNotEmpty ? w.region : w.country,
+          style: AppText.sans(
+            color: AppColors.text,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (w.region.isNotEmpty && w.country.isNotEmpty)
+          Text(
+            w.country,
+            style: AppText.sans(color: AppColors.text3, fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
+  }
+
+  Widget _ratingCell(Wine w) {
+    if (w.rating == null) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star, color: AppColors.gold2, size: 12),
+        const SizedBox(width: 3),
+        Text(
+          '${w.rating}',
+          style: AppText.sans(
+            color: AppColors.gold2,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _apogeeCell(Wine w) {
+    if (w.drinkPeak == null) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Text(
+      '${w.drinkPeak}',
+      style: AppText.sans(
+        color: AppColors.text2,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _valueCell(double total) {
+    if (total <= 0) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Text(
+      '${total.toStringAsFixed(0)} \$',
+      style: AppText.sans(
+        color: AppColors.gold2,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _gardeCell(_GardeInfo? garde) {
+    if (garde == null) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: garde.color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        garde.label,
+        style: AppText.sans(
+          color: garde.color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _formatCell(String label, bool mixed) {
+    return Text(
+      mixed ? 'Mixte' : label,
+      style: AppText.sans(
+        color: mixed ? AppColors.gold2 : AppColors.text2,
+        fontSize: 11,
+        fontWeight: mixed ? FontWeight.w600 : FontWeight.w500,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _priceCell(double? price, bool mixed) {
+    if (price == null) {
+      return Text('—',
+          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+    }
+    return Text(
+      mixed
+          ? '~${price.toStringAsFixed(0)} \$'
+          : '${price.toStringAsFixed(0)} \$',
+      style: AppText.sans(
+        color: AppColors.text,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  Widget _qtyCell(int qty) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border2),
+      ),
+      child: Text(
+        '$qty',
+        style: AppText.sans(
+          color: AppColors.text,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Color _wineTypeColor(WineType t) {
+    switch (t) {
+      case WineType.rouge:
+        return const Color(0xFFB23A48);
+      case WineType.blanc:
+        return const Color(0xFFE6D27A);
+      case WineType.rose:
+        return const Color(0xFFE89DA6);
+      case WineType.orange:
+        return const Color(0xFFE08A3C);
+      case WineType.petillant:
+        return const Color(0xFFB8C9D9);
+    }
+  }
+
+  String _wineTypeLabel(WineType t) {
+    switch (t) {
+      case WineType.rouge:
+        return 'ROUGE';
+      case WineType.blanc:
+        return 'BLANC';
+      case WineType.rose:
+        return 'ROSÉ';
+      case WineType.orange:
+        return 'ORANGE';
+      case WineType.petillant:
+        return 'BULLES';
+    }
   }
 }

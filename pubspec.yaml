@@ -73,7 +73,7 @@ flutter:
     - family: CormorantGaramond
       fonts:
         - asset: assets/fonts/CormorantGaramond-Regular.ttf
-        - asset: assets/fonts/CormorantGaramond-SemiBold.ttf
+        - asset: assets/fonts/CormorantGaramond-Regular.ttf
           weight: 600
 
   # To add assets to your application, add an assets section, like this:

@@ -61,6 +61,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
   int? _rating;
   final _wineDescription = TextEditingController();
   final _domaineDescription = TextEditingController();
+  final List<Critique> _critiques = [];
 
   bool _isGift = false;
   final _giftFrom = TextEditingController();
@@ -103,7 +104,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
     });
   }
 
-  Future<void> _pickPhoto(ImageSource source, {bool analyzeWithGemini = false}) async {
+  Future<void> _pickPhoto(ImageSource source) async {
     try {
       final file = await _picker.pickImage(source: source, imageQuality: 85);
       if (file == null) return;
@@ -111,13 +112,19 @@ class _AddWineDialogState extends State<AddWineDialog> {
       setState(() {
         _photoBytes = bytes;
         _photoFileName = file.name;
+        _error = null;
       });
-      if (analyzeWithGemini) {
-        await _analyzePhotoWithGemini(bytes);
-      }
     } catch (e) {
       setState(() => _error = 'Impossible de charger la photo : $e');
     }
+  }
+
+  Future<void> _analyzeCurrentPhoto() async {
+    if (_photoBytes == null) {
+      setState(() => _error = 'Importe ou prends d\'abord une photo de la bouteille.');
+      return;
+    }
+    await _analyzePhotoWithGemini(_photoBytes!);
   }
 
   Future<void> _analyzePhotoWithGemini(Uint8List bytes) async {
@@ -167,6 +174,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
     setState(() {
       _name.text = result.name;
       _producer.text = result.producer;
+      if (result.vintage != null) _vintage.text = result.vintage.toString();
       _appellation.text = result.appellation;
       _country.text = result.country;
       _region.text = result.region;
@@ -185,6 +193,11 @@ class _AddWineDialogState extends State<AddWineDialog> {
       if (result.drinkTo != null) _drinkTo.text = result.drinkTo.toString();
       _wineDescription.text = result.wineDescription;
       _domaineDescription.text = result.domaineDescription;
+      if (result.critiques.isNotEmpty) {
+        _critiques
+          ..clear()
+          ..addAll(result.critiques);
+      }
     });
   }
 
@@ -245,6 +258,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
         wineDescription: _wineDescription.text.trim(),
         domaineDescription: _domaineDescription.text.trim(),
         photoUrl: photoUrl,
+        critiques: List.unmodifiable(_critiques),
         createdAt: now,
       );
 
@@ -405,8 +419,6 @@ class _AddWineDialogState extends State<AddWineDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _aiBar(),
-        const SizedBox(height: 14),
-        _photoZone(),
         const SizedBox(height: 22),
 
         _section('Identification'),
@@ -471,6 +483,9 @@ class _AddWineDialogState extends State<AddWineDialog> {
         const SizedBox(height: 10),
         _single(_field('🏰 Description du domaine', _domaineDescription,
             maxLines: 4, hint: 'Histoire, philosophie, terroir, réputation…')),
+
+        const SizedBox(height: 22),
+        _critiquesSection(),
 
         const SizedBox(height: 22),
         _section('Cadeau'),
@@ -872,26 +887,106 @@ class _AddWineDialogState extends State<AddWineDialog> {
   }
 
   Widget _aiBar() {
+    final hasPhoto = _photoBytes != null;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.bg3,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'RECHERCHE RAPIDE (IA)',
+            'ANALYSE PAR PHOTO (IA)',
             style: AppText.sans(
-              color: AppColors.text3,
+              color: AppColors.gold2,
               fontSize: 10,
-              letterSpacing: 1.0,
-              fontWeight: FontWeight.w600,
+              letterSpacing: 1.4,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          Text(
+            'Prends ou importe une photo de l\'étiquette, puis analyse avec Gemini.',
+            style: AppText.sans(
+              color: AppColors.text3,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _photoSlot(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _aiBtn(
+                            label: '📸 Prendre photo',
+                            onTap: _aiLoading
+                                ? null
+                                : () => _pickPhoto(ImageSource.camera),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _aiBtn(
+                            label: '🖼 Importer',
+                            onTap: _aiLoading
+                                ? null
+                                : () => _pickPhoto(ImageSource.gallery),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _aiBtn(
+                        label: _aiLoading
+                            ? '⏳ Analyse en cours…'
+                            : (hasPhoto
+                                ? '✶ Analyser la photo avec Gemini'
+                                : '✶ Analyser (importe une photo d\'abord)'),
+                        primary: hasPhoto && !_aiLoading,
+                        muted: !hasPhoto,
+                        onTap: (hasPhoto && !_aiLoading)
+                            ? _analyzeCurrentPhoto
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(child: Divider(color: AppColors.border, height: 1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'OU RECHERCHE PAR NOM',
+                  style: AppText.sans(
+                    color: AppColors.text3,
+                    fontSize: 9,
+                    letterSpacing: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider(color: AppColors.border, height: 1)),
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -920,20 +1015,12 @@ class _AddWineDialogState extends State<AddWineDialog> {
                   decoration: _decoration(hint: '2020'),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
+              const SizedBox(width: 8),
               _aiBtn(
-                label: _aiLoading ? '⏳ Analyse…' : '✶ Gemini',
+                label: _aiLoading ? '⏳' : '✶ Chercher',
                 primary: true,
                 onTap: _aiLoading ? null : _searchWithGemini,
               ),
-              const SizedBox(width: 8),
-              _aiBtn(label: '📷 Photo', onTap: () => _pickPhoto(ImageSource.camera, analyzeWithGemini: true)),
-              const SizedBox(width: 8),
-              _aiBtn(label: '🖼 Galerie', onTap: () => _pickPhoto(ImageSource.gallery, analyzeWithGemini: true)),
             ],
           ),
         ],
@@ -941,25 +1028,101 @@ class _AddWineDialogState extends State<AddWineDialog> {
     );
   }
 
-  Widget _aiBtn({required String label, VoidCallback? onTap, bool primary = false}) {
+  Widget _photoSlot() {
+    if (_photoBytes != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              _photoBytes!,
+              width: 90,
+              height: 110,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: InkWell(
+              onTap: () => setState(() {
+                _photoBytes = null;
+                _photoFileName = null;
+              }),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.65),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 13, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Container(
+      width: 90,
+      height: 110,
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.border2,
+          style: BorderStyle.solid,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.photo_camera_outlined,
+              color: AppColors.text3, size: 26),
+          const SizedBox(height: 6),
+          Text(
+            'Pas de\nphoto',
+            textAlign: TextAlign.center,
+            style: AppText.sans(color: AppColors.text3, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _aiBtn({
+    required String label,
+    VoidCallback? onTap,
+    bool primary = false,
+    bool muted = false,
+  }) {
+    final Color bg = primary ? AppColors.gold : AppColors.bg2;
+    final Color border = primary
+        ? AppColors.gold
+        : (muted ? AppColors.border : AppColors.border2);
+    final Color fg = primary
+        ? const Color(0xFF1A1408)
+        : (muted ? AppColors.text3 : AppColors.text2);
     return Material(
-      color: primary ? AppColors.gold : AppColors.bg2,
+      color: bg,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: primary ? AppColors.gold : AppColors.border2),
+            border: Border.all(color: border),
           ),
           child: Text(
             label,
             style: AppText.sans(
-              color: primary ? const Color(0xFF1A1408) : AppColors.text2,
+              color: fg,
               fontSize: 12,
-              fontWeight: primary ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: primary ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ),
@@ -967,41 +1130,318 @@ class _AddWineDialogState extends State<AddWineDialog> {
     );
   }
 
-  Widget _photoZone() {
-    return InkWell(
-      onTap: () => _pickPhoto(ImageSource.gallery),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.bg3,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border2, width: 2),
-        ),
-        child: _photoBytes == null
-            ? Column(
-                children: [
-                  Text('📸', style: AppText.emoji(fontSize: 32)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Cliquer pour ajouter une photo de l\'étiquette',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 12),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(_photoBytes!, height: 160, fit: BoxFit.contain),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Cliquer pour changer',
-                      style: AppText.sans(color: AppColors.text3, fontSize: 11)),
-                ],
+  Widget _critiquesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _section('Critiques (rempli par Gemini)'),
+        if (_critiques.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.bg3,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+            ),
+            child: Text(
+              'Aucune critique. Utilise ✶ Gemini pour les remplir automatiquement, ou ajoute-les manuellement.',
+              style: AppText.sans(color: AppColors.text3, fontSize: 12),
+            ),
+          )
+        else
+          Column(
+            children: [
+              for (var i = 0; i < _critiques.length; i++) ...[
+                _critiqueRow(_critiques[i], i),
+                if (i < _critiques.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: InkWell(
+            onTap: _addCritiqueDialog,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border2),
               ),
+              child: Text(
+                '+ Ajouter une critique',
+                style: AppText.sans(
+                  color: AppColors.gold2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _critiqueRow(Critique c, int index) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      c.source.isEmpty ? 'Critique' : c.source,
+                      style: AppText.serif(
+                        color: AppColors.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (c.date != null)
+                      Text(
+                        '${c.date!.day.toString().padLeft(2, '0')}/'
+                        '${c.date!.month.toString().padLeft(2, '0')}/'
+                        '${c.date!.year}',
+                        style: AppText.sans(
+                          color: AppColors.text3,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (c.score.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0x29C9A84C),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0x66C9A84C)),
+                  ),
+                  child: Text(
+                    c.score,
+                    style: AppText.serif(
+                      color: AppColors.gold2,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              InkWell(
+                onTap: () => setState(() => _critiques.removeAt(index)),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.close,
+                    size: 14,
+                    color: AppColors.text3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (c.note.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              c.note,
+              style: AppText.serif(
+                color: AppColors.text2,
+                fontSize: 13,
+                height: 1.5,
+              ).copyWith(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
       ),
     );
+  }
+
+  Future<void> _addCritiqueDialog() async {
+    final sourceCtrl = TextEditingController();
+    final scoreCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    DateTime? date;
+
+    final added = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) => Dialog(
+            backgroundColor: AppColors.bg2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.border2),
+            ),
+            child: Container(
+              width: 460,
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ajouter une critique',
+                    style: AppText.serif(
+                      color: AppColors.gold2,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _labeled(
+                    'Source / critique',
+                    TextField(
+                      controller: sourceCtrl,
+                      style: AppText.sans(color: AppColors.text, fontSize: 13),
+                      decoration: _decoration(hint: 'Robert Parker, Decanter, ...'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _labeled(
+                    'Note',
+                    TextField(
+                      controller: scoreCtrl,
+                      style: AppText.sans(color: AppColors.text, fontSize: 13),
+                      decoration: _decoration(hint: '98/100, 19/20, 5/5...'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _labeled(
+                    'Citation / commentaire',
+                    TextField(
+                      controller: noteCtrl,
+                      maxLines: 4,
+                      style: AppText.sans(color: AppColors.text, fontSize: 13),
+                      decoration: _decoration(hint: 'Note de dégustation...'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _labeled(
+                    'Date (optionnelle)',
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: date ?? DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          builder: (c, child) => Theme(
+                            data: Theme.of(c).copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: AppColors.gold,
+                                onPrimary: Color(0xFF1A1408),
+                                surface: AppColors.bg2,
+                                onSurface: AppColors.text,
+                              ),
+                            ),
+                            child: child!,
+                          ),
+                        );
+                        if (picked != null) setLocal(() => date = picked);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg3,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today,
+                                size: 14, color: AppColors.text3),
+                            const SizedBox(width: 10),
+                            Text(
+                              date == null
+                                  ? 'Choisir une date'
+                                  : '${date!.day.toString().padLeft(2, '0')}/'
+                                      '${date!.month.toString().padLeft(2, '0')}/'
+                                      '${date!.year}',
+                              style: AppText.sans(
+                                color: date == null
+                                    ? AppColors.text3
+                                    : AppColors.text,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text('Annuler',
+                            style: AppText.sans(color: AppColors.text2)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (sourceCtrl.text.trim().isEmpty &&
+                              scoreCtrl.text.trim().isEmpty &&
+                              noteCtrl.text.trim().isEmpty) {
+                            return;
+                          }
+                          Navigator.pop(ctx, true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.gold,
+                          foregroundColor: const Color(0xFF1A1408),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 22, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text('Ajouter',
+                            style: AppText.sans(
+                                fontWeight: FontWeight.w600, fontSize: 13)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (added == true) {
+      setState(() {
+        _critiques.add(Critique(
+          source: sourceCtrl.text.trim(),
+          score: scoreCtrl.text.trim(),
+          note: noteCtrl.text.trim(),
+          date: date,
+        ));
+      });
+    }
+
+    sourceCtrl.dispose();
+    scoreCtrl.dispose();
+    noteCtrl.dispose();
   }
 }
