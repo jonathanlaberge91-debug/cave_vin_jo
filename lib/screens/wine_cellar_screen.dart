@@ -11,50 +11,59 @@ const _bridgeUrlKey = 'wine_cellr_bridge_url';
 
 class CellarStatus {
   final String name;
-  final bool zoneHighOn;
-  final int zoneHighTemp;
-  final bool zoneLowOn;
-  final int zoneLowTemp;
-  final double? zoneHighCurrent;
-  final double? zoneLowCurrent;
-  final String ledColor;
-  final String alarm;
-  final String tempUnit;
-  final bool childLock;
-  final bool light;
-  final int doorFault;
+  final bool power;         // DPS 1: cellier ON/OFF
+  final int targetTemp;     // DPS 2: température consigne
+  final String tempUnit;    // DPS 4: 'c' ou 'f'
+  final bool keyLock;       // DPS 5: verrouillage clavier
+  final int currentTemp;    // DPS 6: température actuelle
+  final int dps10;          // DPS 10: inconnu
+  final bool door;          // DPS 101: porte (true=ouverte)
+  final String topLed;      // DPS 102: LEDs haut (red/blue/OFF)
+  final int currentTempF;   // DPS 103: temp actuelle °F
+  final int targetTempF;    // DPS 104: temp consigne °F
+  final int sideLight;      // DPS 106: éclairage latéral (0/25/50/75/100)
+  final bool sideLightColor;// DPS 107: couleur éclairage (false=blanc, true=bleu)
+  final Map<String, dynamic> raw;
 
   CellarStatus({
     required this.name,
-    required this.zoneHighOn,
-    required this.zoneHighTemp,
-    required this.zoneLowOn,
-    required this.zoneLowTemp,
-    this.zoneHighCurrent,
-    this.zoneLowCurrent,
-    this.ledColor = '',
-    this.alarm = 'OFF',
+    this.power = false,
+    this.targetTemp = 0,
     this.tempUnit = 'c',
-    this.childLock = false,
-    this.light = false,
-    this.doorFault = 0,
+    this.keyLock = false,
+    this.currentTemp = 0,
+    this.dps10 = 0,
+    this.door = false,
+    this.topLed = 'OFF',
+    this.currentTempF = 0,
+    this.targetTempF = 0,
+    this.sideLight = 0,
+    this.sideLightColor = false,
+    this.raw = const {},
   });
 
+  static int _toInt(dynamic v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
+
   factory CellarStatus.fromJson(Map<String, dynamic> json) {
+    final rawDps = <String, dynamic>{};
+    if (json['raw'] is Map) {
+      (json['raw'] as Map).forEach((k, v) => rawDps['$k'] = v);
+    }
     return CellarStatus(
       name: json['cellar']?.toString() ?? '',
-      zoneHighOn: json['zoneHighOn'] == true,
-      zoneHighTemp: (json['zoneHighTemp'] as num?)?.toInt() ?? 0,
-      zoneLowOn: json['zoneLowOn'] == true,
-      zoneLowTemp: (json['zoneLowTemp'] as num?)?.toInt() ?? 0,
-      zoneHighCurrent: (json['zoneHighCurrent'] as num?)?.toDouble(),
-      zoneLowCurrent: (json['zoneLowCurrent'] as num?)?.toDouble(),
-      ledColor: json['ledColor']?.toString() ?? '',
-      alarm: json['alarm']?.toString() ?? 'OFF',
+      power: json['power'] == true,
+      targetTemp: _toInt(json['targetTemp']),
       tempUnit: json['tempUnit']?.toString() ?? 'c',
-      childLock: json['dps101'] == true,
-      light: json['dps107'] == true,
-      doorFault: (json['dps10'] as num?)?.toInt() ?? 0,
+      keyLock: json['keyLock'] == true,
+      currentTemp: _toInt(json['currentTemp']),
+      dps10: _toInt(json['dps10']),
+      door: json['door'] == true,
+      topLed: json['topLed']?.toString() ?? 'OFF',
+      currentTempF: _toInt(json['currentTempF']),
+      targetTempF: _toInt(json['targetTempF']),
+      sideLight: _toInt(json['sideLight']),
+      sideLightColor: json['sideLightColor'] == true,
+      raw: rawDps,
     );
   }
 }
@@ -72,7 +81,7 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
   bool _loading = true;
   Timer? _timer;
   String _bridgeUrl = _defaultBridgeUrl;
-  bool _sending = false;
+  final Set<int> _sendingFor = {};
 
   @override
   void initState() {
@@ -119,18 +128,32 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
     }
   }
 
+  Future<void> _rawSend(int cellarIndex, String dps, dynamic value) async {
+    await http.post(
+      Uri.parse('$_bridgeUrl/set/$cellarIndex'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'dps': dps, 'value': value}),
+    ).timeout(const Duration(seconds: 10));
+  }
+
   Future<void> _send(int cellarIndex, String dps, dynamic value) async {
-    if (_sending) return;
-    setState(() => _sending = true);
+    if (_sendingFor.contains(cellarIndex)) return;
+    setState(() => _sendingFor.add(cellarIndex));
     try {
-      await http.post(
-        Uri.parse('$_bridgeUrl/set/$cellarIndex'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'dps': dps, 'value': value}),
-      ).timeout(const Duration(seconds: 12));
-      await _fetch();
+      final needsUnlock = dps == '106' || dps == '107' || dps == '102';
+      final wasLocked = _cellars != null && cellarIndex < _cellars!.length && _cellars![cellarIndex].keyLock;
+      if (needsUnlock && wasLocked) {
+        await _rawSend(cellarIndex, '5', false);
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
+      await _rawSend(cellarIndex, dps, value);
+      if (needsUnlock && wasLocked) {
+        await Future.delayed(const Duration(milliseconds: 1500));
+        await _rawSend(cellarIndex, '5', true);
+      }
     } catch (_) {}
-    if (mounted) setState(() => _sending = false);
+    if (mounted) setState(() => _sendingFor.remove(cellarIndex));
+    _fetch();
   }
 
   void _showBridgeUrlDialog() {
@@ -157,20 +180,10 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
               controller: controller,
               style: AppText.sans(color: AppColors.text, fontSize: 14),
               decoration: InputDecoration(
-                filled: true,
-                fillColor: AppColors.bg3,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.gold),
-                ),
+                filled: true, fillColor: AppColors.bg3,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.gold)),
               ),
             ),
           ],
@@ -208,15 +221,9 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Wine CellR',
-                    style: AppText.serif(color: AppColors.gold2, fontSize: 28, fontWeight: FontWeight.w600),
-                  ),
+                  Text('Wine CellR', style: AppText.serif(color: AppColors.gold2, fontSize: 28, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(
-                    'Contrôle des celliers connectés',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 13),
-                  ),
+                  Text('Contrôle des celliers connectés', style: AppText.sans(color: AppColors.text3, fontSize: 13)),
                 ],
               ),
             ),
@@ -232,20 +239,12 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
             child: CircularProgressIndicator(color: AppColors.gold),
           )),
         if (_error != null)
-          _ErrorCard(
-            message: _error!,
-            bridgeUrl: _bridgeUrl,
+          _ErrorCard(message: _error!, bridgeUrl: _bridgeUrl,
             onRetry: () { setState(() { _loading = true; _error = null; }); _fetch(); },
-            onConfigure: _showBridgeUrlDialog,
-          ),
+            onConfigure: _showBridgeUrlDialog),
         if (_cellars != null)
           for (var i = 0; i < _cellars!.length; i++) ...[
-            _CellarCard(
-              status: _cellars![i],
-              index: i,
-              sending: _sending,
-              onSend: _send,
-            ),
+            _CellarCard(status: _cellars![i], index: i, sending: _sendingFor.contains(i), onSend: _send),
             if (i < _cellars!.length - 1) const SizedBox(height: 20),
           ],
       ],
@@ -258,21 +257,14 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.bg3,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.border2),
-          ),
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: AppColors.bg3, shape: BoxShape.circle, border: Border.all(color: AppColors.border2)),
           child: Icon(icon, size: 16, color: AppColors.text2),
         ),
       ),
     );
   }
 }
-
-// ---------- Error card ----------
 
 class _ErrorCard extends StatelessWidget {
   final String message;
@@ -286,8 +278,7 @@ class _ErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppColors.bg2,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.bg2, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0x40C62828)),
       ),
       child: Column(
@@ -296,32 +287,23 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(message, style: AppText.sans(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Text(
-            'Lancer "node server.js" dans tuya_bridge/\npuis vérifier l\'URL : $bridgeUrl',
-            style: AppText.sans(color: AppColors.text3, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
+          Text('Lancer "node server.js" dans tuya_bridge/\npuis vérifier l\'URL : $bridgeUrl',
+            style: AppText.sans(color: AppColors.text3, fontSize: 12), textAlign: TextAlign.center),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
                 onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
-                  foregroundColor: const Color(0xFF1A1408),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF1A1408),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                 child: Text('Réessayer', style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13)),
               ),
               const SizedBox(width: 12),
               OutlinedButton(
                 onPressed: onConfigure,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.text2,
-                  side: const BorderSide(color: AppColors.border2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.text2, side: const BorderSide(color: AppColors.border2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                 child: Text('Configurer URL', style: AppText.sans(fontSize: 13)),
               ),
             ],
@@ -332,80 +314,31 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
-// ---------- Cellar card ----------
-
 class _CellarCard extends StatelessWidget {
   final CellarStatus status;
   final int index;
   final bool sending;
   final Future<void> Function(int, String, dynamic) onSend;
 
-  const _CellarCard({
-    required this.status,
-    required this.index,
-    required this.sending,
-    required this.onSend,
-  });
+  const _CellarCard({required this.status, required this.index, required this.sending, required this.onSend});
+
+  String get _unit => '°C';
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bg2,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.bg2, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildHeader(),
-          // Zones
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _ZoneWidget(
-                    label: 'Zone haute',
-                    isOn: status.zoneHighOn,
-                    targetTemp: status.zoneHighTemp,
-                    currentTemp: status.zoneHighCurrent,
-                    unit: status.tempUnit,
-                    dpsOn: '1',
-                    dpsTemp: '2',
-                    index: index,
-                    sending: sending,
-                    onSend: onSend,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Container(width: 1, height: 180, color: AppColors.border),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _ZoneWidget(
-                    label: 'Zone basse',
-                    isOn: status.zoneLowOn,
-                    targetTemp: status.zoneLowTemp,
-                    currentTemp: status.zoneLowCurrent,
-                    unit: status.tempUnit,
-                    dpsOn: '5',
-                    dpsTemp: '6',
-                    index: index,
-                    sending: sending,
-                    onSend: onSend,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bottom controls
+          _buildTempSection(),
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
             child: _buildControls(context),
           ),
         ],
@@ -414,35 +347,25 @@ class _CellarCard extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    final online = status.zoneHighOn || status.zoneLowOn;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
       child: Row(
         children: [
           Container(
-            width: 10,
-            height: 10,
+            width: 10, height: 10,
             decoration: BoxDecoration(
-              color: online ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
+              color: status.power ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (online ? const Color(0xFF7CD492) : const Color(0xFFE8667A)).withValues(alpha: 0.5),
-                  blurRadius: 8,
-                ),
-              ],
+              boxShadow: [BoxShadow(color: (status.power ? const Color(0xFF7CD492) : const Color(0xFFE8667A)).withValues(alpha: 0.5), blurRadius: 8)],
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            status.name,
-            style: AppText.serif(color: AppColors.gold2, fontSize: 20, fontWeight: FontWeight.w600),
-          ),
+          Text(status.name, style: AppText.serif(color: AppColors.gold2, fontSize: 20, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 10),
+          _PowerToggle(isOn: status.power, onTap: sending ? null : () => onSend(index, '1', !status.power)),
           const Spacer(),
-          if (status.alarm != 'OFF')
+          if (status.door)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               margin: const EdgeInsets.only(right: 10),
@@ -461,11 +384,66 @@ class _CellarCard extends StatelessWidget {
               ),
             ),
           if (sending)
-            const SizedBox(
-              width: 16, height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
-            ),
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTempSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                Text('${status.currentTemp}$_unit', style: AppText.serif(color: AppColors.text, fontSize: 42, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text('actuelle', style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+              ],
+            ),
+          ),
+          Container(width: 1, height: 80, color: AppColors.border),
+          Expanded(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(color: AppColors.bg3, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _tempButton(Icons.remove, sending ? null : () => onSend(index, '2', status.targetTemp - 1)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Text('${status.targetTemp}$_unit', style: AppText.sans(color: AppColors.gold2, fontSize: 22, fontWeight: FontWeight.w700)),
+                      ),
+                      _tempButton(Icons.add, sending ? null : () => onSend(index, '2', status.targetTemp + 1)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text('consigne', style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tempButton(IconData icon, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34, height: 34,
+        decoration: BoxDecoration(
+          color: onTap != null ? AppColors.gold.withValues(alpha: 0.15) : AppColors.bg2,
+          shape: BoxShape.circle,
+          border: Border.all(color: onTap != null ? AppColors.gold.withValues(alpha: 0.4) : AppColors.border),
+        ),
+        child: Icon(icon, size: 18, color: onTap != null ? AppColors.gold2 : AppColors.text3),
       ),
     );
   }
@@ -475,44 +453,76 @@ class _CellarCard extends StatelessWidget {
       spacing: 10,
       runSpacing: 10,
       children: [
-        // LED color
         _ControlChip(
-          icon: Icons.lightbulb_outline,
-          label: 'LED',
-          value: _ledLabel(status.ledColor),
-          color: _ledColor(status.ledColor),
-          onTap: () => _showLedPicker(context),
+          icon: Icons.brightness_6, label: 'Éclairage',
+          value: _sideLightLabel(status.sideLight),
+          color: status.sideLight > 0 ? const Color(0xFFE8C97A) : AppColors.text3,
+          onTap: () => _showSideLightPicker(context),
         ),
-        // Child lock
         _ControlChip(
-          icon: status.childLock ? Icons.lock_outline : Icons.lock_open_outlined,
-          label: 'Verrou',
-          value: status.childLock ? 'ON' : 'OFF',
-          color: status.childLock ? const Color(0xFFE8667A) : const Color(0xFF7CD492),
-          onTap: () => onSend(index, '101', !status.childLock),
+          icon: Icons.color_lens_outlined, label: 'Couleur écl.',
+          value: status.sideLightColor ? 'Bleu' : 'Blanc',
+          color: status.sideLightColor ? const Color(0xFF70B8E8) : const Color(0xFFE8E0D0),
+          onTap: () => onSend(index, '107', !status.sideLightColor),
         ),
-        // Temp unit
         _ControlChip(
-          icon: Icons.thermostat_outlined,
-          label: 'Unité',
+          icon: Icons.lightbulb_outline, label: 'LEDs haut',
+          value: _topLedLabel(status.topLed),
+          color: _topLedColor(status.topLed),
+          onTap: () => _showTopLedPicker(context),
+        ),
+        _ControlChip(
+          icon: status.keyLock ? Icons.lock_outline : Icons.lock_open_outlined,
+          label: 'Clavier',
+          value: status.keyLock ? 'Verrouillé' : 'Libre',
+          color: status.keyLock ? const Color(0xFFE8667A) : const Color(0xFF7CD492),
+          onTap: () => onSend(index, '5', !status.keyLock),
+        ),
+        _ControlChip(
+          icon: Icons.thermostat_outlined, label: 'Unité',
           value: status.tempUnit == 'c' ? '°C' : '°F',
           color: AppColors.gold2,
           onTap: () => onSend(index, '4', status.tempUnit == 'c' ? 'f' : 'c'),
-        ),
-        // Interior light
-        _ControlChip(
-          icon: status.light ? Icons.wb_incandescent : Icons.wb_incandescent_outlined,
-          label: 'Lumière',
-          value: status.light ? 'ON' : 'OFF',
-          color: status.light ? const Color(0xFFE8C97A) : AppColors.text3,
-          onTap: () => onSend(index, '107', !status.light),
         ),
       ],
     );
   }
 
-  void _showLedPicker(BuildContext context) {
-    final colors = [
+  String _sideLightLabel(int v) => switch (v) {
+    0 => 'OFF', 25 => '25%', 50 => '50%', 75 => '75%', 100 => '100%', _ => '$v',
+  };
+
+  void _showSideLightPicker(BuildContext context) {
+    final options = [
+      ('OFF', 'OFF', AppColors.text3),
+      ('25', '25%', const Color(0xFFE8C97A).withValues(alpha: 0.4)),
+      ('50', '50%', const Color(0xFFE8C97A).withValues(alpha: 0.6)),
+      ('75', '75%', const Color(0xFFE8C97A).withValues(alpha: 0.8)),
+      ('100', '100%', const Color(0xFFE8C97A)),
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: AppColors.border)),
+        title: Text('Éclairage latéral', style: AppText.serif(color: AppColors.gold2, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final o in options)
+              _pickerOption(ctx, '106', o.$1, o.$2, o.$3, '${status.sideLight}' == o.$1 || (status.sideLight == 0 && o.$1 == 'OFF')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _topLedLabel(String v) => switch (v) { 'red' => 'Rouge', 'blue' => 'Bleu', _ => 'OFF' };
+
+  Color _topLedColor(String v) => switch (v) { 'red' => const Color(0xFFE8667A), 'blue' => const Color(0xFF70B8E8), _ => AppColors.text3 };
+
+  void _showTopLedPicker(BuildContext context) {
+    final options = [
       ('red', 'Rouge', const Color(0xFFE8667A)),
       ('blue', 'Bleu', const Color(0xFF70B8E8)),
       ('OFF', 'Éteinte', AppColors.text3),
@@ -521,29 +531,22 @@ class _CellarCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bg2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        title: Text('Couleur LED', style: AppText.serif(color: AppColors.gold2, fontSize: 18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: AppColors.border)),
+        title: Text('LEDs du haut', style: AppText.serif(color: AppColors.gold2, fontSize: 18)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final c in colors)
-              _ledOption(ctx, c.$1, c.$2, c.$3),
+            for (final o in options)
+              _pickerOption(ctx, '102', o.$1, o.$2, o.$3, status.topLed == o.$1),
           ],
         ),
       ),
     );
   }
 
-  Widget _ledOption(BuildContext ctx, String value, String label, Color color) {
-    final selected = status.ledColor == value;
+  Widget _pickerOption(BuildContext ctx, String dps, dynamic value, String label, Color color, bool selected) {
     return GestureDetector(
-      onTap: () {
-        onSend(index, '102', value);
-        Navigator.pop(ctx);
-      },
+      onTap: () { onSend(index, dps, value); Navigator.pop(ctx); },
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -554,14 +557,7 @@ class _CellarCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 14, height: 14,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
-              ),
-            ),
+            Container(width: 14, height: 14, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
             const SizedBox(width: 12),
             Text(label, style: AppText.sans(color: selected ? color : AppColors.text2, fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
             const Spacer(),
@@ -571,25 +567,7 @@ class _CellarCard extends StatelessWidget {
       ),
     );
   }
-
-  String _ledLabel(String color) => switch (color) {
-    'red' => 'Rouge',
-    'green' => 'Vert',
-    'blue' => 'Bleu',
-    'white' => 'Blanc',
-    _ => color,
-  };
-
-  Color _ledColor(String color) => switch (color) {
-    'red' => const Color(0xFFE8667A),
-    'green' => const Color(0xFF7CD492),
-    'blue' => const Color(0xFF70B8E8),
-    'white' => const Color(0xFFE8E0D0),
-    _ => AppColors.text3,
-  };
 }
-
-// ---------- Control chip ----------
 
 class _ControlChip extends StatefulWidget {
   final IconData icon;
@@ -597,14 +575,7 @@ class _ControlChip extends StatefulWidget {
   final String value;
   final Color color;
   final VoidCallback onTap;
-
-  const _ControlChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.onTap,
-  });
+  const _ControlChip({required this.icon, required this.label, required this.value, required this.color, required this.onTap});
 
   @override
   State<_ControlChip> createState() => _ControlChipState();
@@ -644,152 +615,6 @@ class _ControlChipState extends State<_ControlChip> {
   }
 }
 
-// ---------- Zone widget ----------
-
-class _ZoneWidget extends StatelessWidget {
-  final String label;
-  final bool isOn;
-  final int targetTemp;
-  final double? currentTemp;
-  final String unit;
-  final String dpsOn;
-  final String dpsTemp;
-  final int index;
-  final bool sending;
-  final Future<void> Function(int, String, dynamic) onSend;
-
-  const _ZoneWidget({
-    required this.label,
-    required this.isOn,
-    required this.targetTemp,
-    required this.currentTemp,
-    required this.unit,
-    required this.dpsOn,
-    required this.dpsTemp,
-    required this.index,
-    required this.sending,
-    required this.onSend,
-  });
-
-  String get _unitSymbol => unit == 'f' ? '°F' : '°C';
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Zone header + power toggle
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label.toUpperCase(),
-              style: AppText.sans(color: AppColors.text3, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w700),
-            ),
-            _PowerToggle(isOn: isOn, onTap: sending ? null : () => onSend(index, dpsOn, !isOn)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Current temp
-        Text(
-          currentTemp != null ? '${currentTemp!.toStringAsFixed(1)}$_unitSymbol' : '--',
-          style: AppText.serif(color: AppColors.text, fontSize: 36, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 2),
-        Text('actuelle', style: AppText.sans(color: AppColors.text3, fontSize: 11)),
-        // Delta indicator
-        if (currentTemp != null) _buildDelta(),
-        const SizedBox(height: 16),
-        // Target temp controls
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.bg3,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _tempButton(Icons.remove, sending ? null : () => onSend(index, dpsTemp, targetTemp - 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    Text(
-                      '$targetTemp$_unitSymbol',
-                      style: AppText.sans(color: AppColors.gold2, fontSize: 20, fontWeight: FontWeight.w700),
-                    ),
-                    Text('consigne', style: AppText.sans(color: AppColors.text3, fontSize: 9)),
-                  ],
-                ),
-              ),
-              _tempButton(Icons.add, sending ? null : () => onSend(index, dpsTemp, targetTemp + 1)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDelta() {
-    final delta = currentTemp! - targetTemp;
-    if (delta.abs() < 0.5) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFF7CD492).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text('Stable', style: AppText.sans(color: const Color(0xFF7CD492), fontSize: 10, fontWeight: FontWeight.w600)),
-        ),
-      );
-    }
-    final warming = delta > 0;
-    final c = warming ? const Color(0xFFE8A04C) : const Color(0xFF70B8E8);
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: c.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(warming ? Icons.arrow_upward : Icons.arrow_downward, size: 10, color: c),
-            const SizedBox(width: 3),
-            Text(
-              '${delta.abs().toStringAsFixed(1)}°',
-              style: AppText.sans(color: c, fontSize: 10, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _tempButton(IconData icon, VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: onTap != null ? AppColors.gold.withValues(alpha: 0.15) : AppColors.bg2,
-          shape: BoxShape.circle,
-          border: Border.all(color: onTap != null ? AppColors.gold.withValues(alpha: 0.4) : AppColors.border),
-        ),
-        child: Icon(icon, size: 18, color: onTap != null ? AppColors.gold2 : AppColors.text3),
-      ),
-    );
-  }
-}
-
-// ---------- Power toggle ----------
-
 class _PowerToggle extends StatefulWidget {
   final bool isOn;
   final VoidCallback? onTap;
@@ -823,10 +648,7 @@ class _PowerToggleState extends State<_PowerToggle> {
             children: [
               Icon(Icons.power_settings_new, size: 12, color: c),
               const SizedBox(width: 4),
-              Text(
-                widget.isOn ? 'ON' : 'OFF',
-                style: AppText.sans(color: c, fontSize: 11, fontWeight: FontWeight.w700),
-              ),
+              Text(widget.isOn ? 'ON' : 'OFF', style: AppText.sans(color: c, fontSize: 11, fontWeight: FontWeight.w700)),
             ],
           ),
         ),

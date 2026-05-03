@@ -1,0 +1,3 @@
+- [Mot magique gogit](feedback_deploy_mot_magique.md) — `gogit` = git add/commit/push + flutter build web --release + firebase deploy --only hosting, sans confirmation
+- [Pas de cacheWidth sur previews](feedback_no_cachewidth_web.md) — Ne jamais utiliser cacheWidth/cacheHeight sur les previews web, ça détruit la qualité
+- [Poser des questions quand incertain](feedback_ask_when_unsure.md) — Clarifier le scope/emplacement d'un changement AVANT d'agir quand pas certain à 100%

@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cave à Vin — 8 Designs de Fiche Vin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0d0d0d;
+  color: #e8e0d4;
+  font-family: 'Inter', sans-serif;
+  padding: 40px 20px;
+}
+
+h1 {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  color: #c9a84c;
+  font-size: 32px;
+  margin-bottom: 60px;
+  letter-spacing: 2px;
+}
+
+.example-label {
+  text-align: center;
+  color: #c9a84c;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  margin-top: 100px;
+}
+.example-label span {
+  background: #1a1a1a;
+  padding: 8px 24px;
+  border: 1px solid #2a2418;
+  border-radius: 30px;
+}
+
+.card {
+  max-width: 920px;
+  margin: 0 auto 60px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.serif { font-family: 'Playfair Display', serif; }
+.sans { font-family: 'Inter', sans-serif; }
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.chip-red { background: rgba(180,40,40,0.2); border: 1px solid rgba(180,40,40,0.5); color: #e06060; }
+.chip-gold { background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.4); color: #d4b65a; }
+.chip-outline { background: transparent; border: 1px solid #3a3228; color: #a09080; }
+
+/* Shared components */
+.stat-box {
+  background: #1a1610;
+  border: 1px solid #2a2418;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.stat-box .label { font-size: 9px; letter-spacing: 1.1px; color: #706050; text-transform: uppercase; font-weight: 600; }
+.stat-box .value { font-family: 'Playfair Display', serif; font-size: 20px; color: #d4b65a; margin-top: 5px; }
+.stat-box .suffix { font-size: 11px; color: #706050; }
+
+.section-title {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.section-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: #c9a84c;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.section-title span {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  font-weight: 700;
+  color: #d4b65a;
+  text-transform: uppercase;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 36px;
+}
+.detail-row {
+  display: flex;
+  padding: 9px 0;
+  border-bottom: 1px solid #1e1c18;
+}
+.detail-row .dlabel {
+  width: 110px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #706050;
+  text-transform: uppercase;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.detail-row .dvalue {
+  font-family: 'Playfair Display', serif;
+  color: #e8e0d4;
+  font-size: 14px;
+}
+
+/* Garde timeline */
+.garde-bar {
+  background: #1a1610;
+  border: 1px solid #2a2418;
+  border-radius: 10px;
+  padding: 22px 24px;
+  position: relative;
+}
+.garde-track {
+  height: 4px;
+  background: #2a2418;
+  border-radius: 2px;
+  position: relative;
+  margin: 30px 0 40px;
+}
+.garde-track .fill {
+  position: absolute;
+  top: 0; height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #2E7D32, #F5D060, #C62828);
+  left: 15%; width: 60%;
+}
+.garde-track .marker {
+  position: absolute;
+  top: -6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid #1a1610;
+  transform: translateX(-50%);
+}
+.garde-track .marker.green { background: #2E7D32; left: 15%; }
+.garde-track .marker.yellow { background: #F5D060; left: 45%; }
+.garde-track .marker.red { background: #C62828; left: 75%; }
+.garde-track .marker.now { background: #c9a84c; left: 35%; width: 3px; height: 20px; border-radius: 2px; top: -8px; border: none; box-shadow: 0 0 8px rgba(201,168,76,0.5); }
+.garde-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #706050;
+}
+.garde-labels .lbl { text-align: center; }
+.garde-labels .lbl .year { font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.garde-labels .lbl.green .year { color: #2E7D32; }
+.garde-labels .lbl.yellow .year { color: #F5D060; }
+.garde-labels .lbl.red .year { color: #C62828; }
+.garde-labels .lbl.now .year { color: #c9a84c; }
+
+/* Description */
+.desc-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  color: #b0a898;
+  line-height: 1.7;
+}
+
+/* Critique card */
+.critique-card {
+  background: #1a1610;
+  border: 1px solid #2a2418;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.critique-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.critique-header .quote-icon { color: #c9a84c; font-size: 18px; }
+.critique-header .source { font-family: 'Playfair Display', serif; color: #e8e0d4; font-size: 15px; font-weight: 600; }
+.critique-header .date { font-size: 10px; color: #706050; letter-spacing: 0.5px; }
+.critique-header .score-badge {
+  margin-left: auto;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-family: 'Playfair Display', serif;
+  color: #d4b65a;
+  font-size: 15px;
+  font-weight: 600;
+}
+.critique-note {
+  margin-top: 10px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: #a09888;
+  line-height: 1.6;
+}
+
+/* Bottle card */
+.bottle-card {
+  background: #1a1610;
+  border: 1px solid #2a2418;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.bottle-card .num {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #0d0b08;
+  border: 1px solid #2a2418;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', serif;
+  color: #d4b65a;
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.bottle-card .bottle-info { flex: 1; }
+.bottle-card .bottle-info .loc { font-size: 13px; font-weight: 600; color: #e8e0d4; }
+.bottle-card .bottle-info .meta { font-size: 11px; color: #706050; margin-top: 3px; }
+.bottle-card .bottle-info .gift-tag {
+  display: inline-block;
+  margin-top: 5px;
+  background: rgba(201,168,76,0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  letter-spacing: 0.7px;
+  font-weight: 700;
+  color: #d4b65a;
+}
+.bottle-card .price {
+  text-align: right;
+  flex-shrink: 0;
+}
+.bottle-card .price .amount { font-family: 'Playfair Display', serif; color: #d4b65a; font-size: 17px; font-weight: 600; }
+.bottle-card .price .market { font-size: 10px; color: #706050; }
+.bottle-card .actions {
+  display: flex; gap: 6px; flex-shrink: 0;
+}
+.bottle-card .actions .act-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #0d0b08;
+  border: 1px solid #2a2418;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #706050;
+  font-size: 14px;
+  cursor: pointer;
+}
+.bottle-card .actions .act-btn:hover { border-color: #c9a84c; color: #d4b65a; }
+
+.add-bottle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  background: #1a1610;
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 10px;
+  color: #d4b65a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.section-block { margin-top: 28px; }
+
+/* ============================================ */
+/* EXAMPLE 1 — Hero photo en haut + overlay */
+/* ============================================ */
+.card1 { background: #141210; border: 1px solid #2a2418; }
+.card1 .hero { position: relative; height: 480px; overflow: hidden; }
+.card1 .hero img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.6); }
+.card1 .hero-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 80px 40px 36px;
+  background: linear-gradient(transparent, rgba(20,18,16,0.97) 75%);
+}
+.card1 .hero-overlay h2 { font-family: 'Playfair Display', serif; font-size: 40px; color: #fff; font-weight: 500; line-height: 1.1; }
+.card1 .hero-overlay .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 17px; margin-top: 5px; }
+.card1 .hero-overlay .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card1 .body { padding: 30px 40px 40px; }
+.card1 .body .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+
+/* ============================================ */
+/* EXAMPLE 2 — Magazine (grande photo gauche) */
+/* ============================================ */
+.card2 { background: #141210; border: 1px solid #2a2418; display: grid; grid-template-columns: 360px 1fr; }
+.card2 .photo-col { position: relative; overflow: hidden; }
+.card2 .photo-col img { width: 100%; height: 100%; object-fit: cover; min-height: 700px; }
+.card2 .photo-col .rating-badge {
+  position: absolute; top: 20px; right: 20px;
+  width: 56px; height: 56px; background: rgba(201,168,76,0.9); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+}
+.card2 .photo-col .rating-badge .score { font-family: 'Playfair Display', serif; font-size: 20px; color: #1a1408; font-weight: 700; line-height: 1; }
+.card2 .photo-col .rating-badge .out-of { font-size: 8px; color: #3a2e10; font-weight: 600; }
+.card2 .info-col { padding: 36px 32px; overflow-y: auto; max-height: 900px; }
+.card2 .info-col h2 { font-family: 'Playfair Display', serif; font-size: 32px; color: #fff; font-weight: 500; line-height: 1.1; }
+.card2 .info-col .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 15px; margin-top: 4px; }
+.card2 .info-col .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card2 .info-col .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+
+/* ============================================ */
+/* EXAMPLE 3 — Glassmorphism */
+/* ============================================ */
+.card3 { position: relative; min-height: 700px; border: 1px solid #2a2418; }
+.card3 .bg-photo { position: absolute; inset: 0; overflow: hidden; border-radius: 16px; }
+.card3 .bg-photo img { width: 100%; height: 100%; object-fit: cover; filter: blur(12px) brightness(0.25); transform: scale(1.15); }
+.card3 .content { position: relative; z-index: 2; padding: 44px 36px; display: flex; gap: 32px; align-items: flex-start; }
+.card3 .bottle-img { width: 280px; height: 420px; border-radius: 12px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.7); flex-shrink: 0; }
+.card3 .bottle-img img { width: 100%; height: 100%; object-fit: cover; }
+.card3 .glass-panel {
+  flex: 1; background: rgba(20,18,16,0.8); backdrop-filter: blur(20px);
+  border: 1px solid rgba(201,168,76,0.15); border-radius: 16px; padding: 32px;
+}
+.card3 .glass-panel h2 { font-family: 'Playfair Display', serif; font-size: 30px; color: #fff; font-weight: 500; }
+.card3 .glass-panel .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 15px; margin-top: 4px; }
+.card3 .glass-panel .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card3 .glass-panel .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+
+/* ============================================ */
+/* EXAMPLE 4 — Split 50/50 bouteille flottante */
+/* ============================================ */
+.card4 { display: grid; grid-template-columns: 1fr 1fr; min-height: 650px; border: 1px solid #2a2418; background: #141210; }
+.card4 .left {
+  position: relative; background: linear-gradient(135deg, #1a0a0a 0%, #2a1010 50%, #1a0808 100%);
+  display: flex; align-items: center; justify-content: center; padding: 40px;
+}
+.card4 .left img { max-width: 100%; max-height: 550px; object-fit: contain; filter: drop-shadow(0 25px 50px rgba(0,0,0,0.8)); }
+.card4 .left .vintage-watermark {
+  position: absolute; bottom: 20px; left: 24px;
+  font-family: 'Playfair Display', serif; font-size: 110px; color: rgba(201,168,76,0.05); font-weight: 700;
+}
+.card4 .right { padding: 36px 32px; overflow-y: auto; max-height: 900px; }
+.card4 .right h2 { font-family: 'Playfair Display', serif; font-size: 28px; color: #fff; font-weight: 500; line-height: 1.15; }
+.card4 .right .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 15px; margin-top: 4px; }
+.card4 .right .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card4 .right .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+
+/* ============================================ */
+/* EXAMPLE 5 — Photo centrée en haut */
+/* ============================================ */
+.card5 { background: #141210; border: 1px solid #2a2418; }
+.card5 .photo-section {
+  padding: 50px 40px 20px; text-align: center;
+  background: radial-gradient(ellipse at center, #2a1810 0%, #141210 70%);
+}
+.card5 .photo-section img { height: 360px; object-fit: contain; filter: drop-shadow(0 30px 50px rgba(0,0,0,0.7)); }
+.card5 .gold-line { width: 60px; height: 2px; background: linear-gradient(90deg, transparent, #c9a84c, transparent); margin: 20px auto; }
+.card5 .info-section { padding: 0 40px 40px; text-align: center; }
+.card5 .info-section h2 { font-family: 'Playfair Display', serif; font-size: 34px; color: #fff; font-weight: 500; }
+.card5 .info-section .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 16px; margin-top: 4px; }
+.card5 .info-section .chips { margin-top: 12px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.card5 .info-section .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 24px; }
+.card5 .info-section .section-block { text-align: left; }
+
+/* ============================================ */
+/* EXAMPLE 6 — Cadre doré */
+/* ============================================ */
+.card6 { background: #141210; border: 1px solid #2a2418; padding: 36px; }
+.card6 .top-layout { display: flex; gap: 32px; align-items: flex-start; }
+.card6 .photo-frame {
+  flex-shrink: 0; width: 280px; height: 400px; position: relative;
+  padding: 10px; background: linear-gradient(135deg, #c9a84c 0%, #8a6a2a 50%, #c9a84c 100%); border-radius: 4px;
+}
+.card6 .photo-frame .inner { width: 100%; height: 100%; overflow: hidden; border-radius: 2px; }
+.card6 .photo-frame .inner img { width: 100%; height: 100%; object-fit: cover; }
+.card6 .info-side { flex: 1; }
+.card6 .info-side h2 { font-family: 'Playfair Display', serif; font-size: 30px; color: #fff; font-weight: 500; line-height: 1.1; }
+.card6 .info-side .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 15px; margin-top: 4px; }
+.card6 .info-side .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card6 .info-side .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+.card6 .below-sections { margin-top: 30px; }
+
+/* ============================================ */
+/* EXAMPLE 7 — Full bleed photo + fiche en bas */
+/* ============================================ */
+.card7 { position: relative; border: 1px solid #2a2418; overflow: hidden; }
+.card7 .fullbleed-photo { height: 420px; position: relative; overflow: hidden; }
+.card7 .fullbleed-photo img { width: 100%; height: 100%; object-fit: cover; }
+.card7 .fullbleed-photo .vignette {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(20,18,16,0.95) 90%, #141210 100%);
+}
+.card7 .sheet { background: #141210; padding: 36px 40px 40px; margin-top: -60px; position: relative; }
+.card7 .sheet h2 { font-family: 'Playfair Display', serif; font-size: 36px; color: #fff; font-weight: 500; }
+.card7 .sheet .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 16px; margin-top: 4px; }
+.card7 .sheet .chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card7 .sheet .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+
+/* ============================================ */
+/* EXAMPLE 8 — Minimal élégant */
+/* ============================================ */
+.card8 { background: #141210; border: 1px solid #2a2418; }
+.card8 .photo-top {
+  height: 380px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #1e1410 0%, #0d0a08 100%);
+}
+.card8 .photo-top img { height: 340px; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6)); }
+.card8 .photo-top .glow {
+  position: absolute; width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.card8 .info-bottom { padding: 36px 40px 40px; border-top: 1px solid #2a2418; }
+.card8 .info-bottom .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.card8 .info-bottom h2 { font-family: 'Playfair Display', serif; font-size: 30px; color: #fff; font-weight: 500; line-height: 1.1; }
+.card8 .info-bottom .producer { font-family: 'Playfair Display', serif; color: #c9a84c; font-size: 15px; margin-top: 4px; }
+.card8 .info-bottom .rating-circle {
+  width: 60px; height: 60px; border-radius: 50%; border: 2px solid #c9a84c;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; flex-shrink: 0;
+}
+.card8 .info-bottom .rating-circle .score { font-family: 'Playfair Display', serif; font-size: 20px; color: #d4b65a; font-weight: 600; line-height: 1; }
+.card8 .info-bottom .rating-circle .out-of { font-size: 9px; color: #706050; margin-top: 2px; }
+.card8 .info-bottom .chips { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card8 .info-bottom .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+.card8 .divider { height: 1px; background: linear-gradient(90deg, #2a2418, #c9a84c33, #2a2418); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<h1>Fiche Vin — 8 Designs complets</h1>
+
+<!-- ===== EXAMPLE 1 — Hero photo + overlay ===== -->
+<div class="example-label"><span>1 — Hero Photo + Overlay</span></div>
+<div class="card card1">
+  <div class="hero">
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+    <div class="hero-overlay">
+      <h2>Château Margaux 2015</h2>
+      <div class="producer">Château Margaux</div>
+      <div class="chips">
+        <span class="chip chip-red">Rouge</span>
+        <span class="chip chip-gold">2015</span>
+        <span class="chip chip-outline">Margaux</span>
+        <span class="chip chip-outline">750 ML</span>
+      </div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-grid">
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cabernet Sauvignon, Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle. Premier Grand Cru Classé, le Château Margaux 2015 est un millésime historique qui combine puissance et finesse.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Situé dans l'appellation Margaux, le domaine s'étend sur 262 hectares dont 87 de vignoble. Dirigé par la famille Mentzelopoulos depuis 1977.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div>
+            <div class="source">Robert Parker</div>
+            <div class="date">15 mars 2018</div>
+          </div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables. Les tanins sont soyeux et la finale dure plusieurs minutes.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div>
+            <div class="source">James Suckling</div>
+            <div class="date">8 juin 2018</div>
+          </div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit. Un vin qui défie les superlatifs.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C1-B3</div>
+          <div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div>
+        </div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions">
+          <div class="act-btn">&#127863;</div>
+          <div class="act-btn">&#9998;</div>
+          <div class="act-btn">&#128465;</div>
+        </div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C1-D5</div>
+          <div class="meta">Importation privée · achetée en 2021 · ajoutée le 3 mars 2024</div>
+        </div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions">
+          <div class="act-btn">&#127863;</div>
+          <div class="act-btn">&#9998;</div>
+          <div class="act-btn">&#128465;</div>
+        </div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C2-A1</div>
+          <div class="meta">ajoutée le 15 avr. 2024</div>
+          <div class="gift-tag">CADEAU · de Pierre · Anniversaire · 10 juin 2023</div>
+        </div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions">
+          <div class="act-btn">&#127863;</div>
+          <div class="act-btn">&#9998;</div>
+          <div class="act-btn">&#128465;</div>
+        </div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 2 — Magazine ===== -->
+<div class="example-label"><span>2 — Magazine (Photo gauche)</span></div>
+<div class="card card2">
+  <div class="photo-col">
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+    <div class="rating-badge">
+      <div class="score">97</div>
+      <div class="out-of">/100</div>
+    </div>
+  </div>
+  <div class="info-col">
+    <h2>Château Margaux 2015</h2>
+    <div class="producer">Château Margaux</div>
+    <div class="chips">
+      <span class="chip chip-red">Rouge</span>
+      <span class="chip chip-gold">2015</span>
+      <span class="chip chip-outline">Margaux</span>
+      <span class="chip chip-outline">750 ML</span>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Apogée</div><div class="value">2035</div></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+      <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+      <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+      <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Situé dans l'appellation Margaux, le domaine s'étend sur 262 hectares.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C1-B3</div>
+          <div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div>
+        </div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C1-D5</div>
+          <div class="meta">Importation privée · achetée en 2021 · ajoutée le 3 mars 2024</div>
+        </div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info">
+          <div class="loc">Emplacement C2-A1</div>
+          <div class="meta">ajoutée le 15 avr. 2024</div>
+          <div class="gift-tag">CADEAU · de Pierre · Anniversaire · 10 juin 2023</div>
+        </div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 3 — Glassmorphism ===== -->
+<div class="example-label"><span>3 — Glassmorphism</span></div>
+<div class="card card3">
+  <div class="bg-photo"><img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine"></div>
+  <div class="content">
+    <div class="bottle-img"><img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine"></div>
+    <div class="glass-panel">
+      <h2>Château Margaux 2015</h2>
+      <div class="producer">Château Margaux</div>
+      <div class="chips">
+        <span class="chip chip-red">Rouge</span>
+        <span class="chip chip-gold">2015</span>
+        <span class="chip chip-outline">Margaux</span>
+        <span class="chip chip-outline">750 ML</span>
+      </div>
+      <div class="stats">
+        <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+        <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+        <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+        <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>Origine</span></div>
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>Période de garde</span></div>
+        <div class="garde-bar">
+          <div class="garde-track">
+            <div class="fill"></div>
+            <div class="marker green"></div>
+            <div class="marker yellow"></div>
+            <div class="marker red"></div>
+            <div class="marker now"></div>
+          </div>
+          <div class="garde-labels">
+            <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+            <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+            <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+            <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>À propos de ce vin</span></div>
+        <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle.</p>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>Critiques (2)</span></div>
+        <div class="critique-card">
+          <div class="critique-header">
+            <span class="quote-icon">"</span>
+            <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+            <div class="score-badge">97/100</div>
+          </div>
+          <div class="critique-note">Un Margaux absolument magnifique, d'une complexité remarquable.</div>
+        </div>
+        <div class="critique-card">
+          <div class="critique-header">
+            <span class="quote-icon">"</span>
+            <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+            <div class="score-badge">98/100</div>
+          </div>
+          <div class="critique-note">Extraordinaire concentration et pureté de fruit.</div>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+        <div class="bottle-card">
+          <div class="num">1</div>
+          <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+          <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        </div>
+        <div class="bottle-card">
+          <div class="num">2</div>
+          <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021</div></div>
+          <div class="price"><div class="amount">890 $</div></div>
+        </div>
+        <div class="bottle-card">
+          <div class="num">3</div>
+          <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire</div></div>
+          <div class="price"><div class="amount">850 $</div></div>
+        </div>
+        <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 4 — Split 50/50 ===== -->
+<div class="example-label"><span>4 — Split 50/50</span></div>
+<div class="card card4">
+  <div class="left">
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+    <div class="vintage-watermark">2015</div>
+  </div>
+  <div class="right">
+    <h2>Château Margaux 2015</h2>
+    <div class="producer">Château Margaux</div>
+    <div class="chips">
+      <span class="chip chip-red">Rouge</span>
+      <span class="chip chip-gold">2015</span>
+      <span class="chip chip-outline">Margaux</span>
+      <span class="chip chip-outline">750 ML</span>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+      <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+      <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+      <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+      <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Le domaine s'étend sur 262 hectares dont 87 de vignoble.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021</div></div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire</div></div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 5 — Photo centrée ===== -->
+<div class="example-label"><span>5 — Photo centrée + carte en-dessous</span></div>
+<div class="card card5">
+  <div class="photo-section">
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+  </div>
+  <div class="gold-line"></div>
+  <div class="info-section">
+    <h2>Château Margaux 2015</h2>
+    <div class="producer">Château Margaux</div>
+    <div class="chips">
+      <span class="chip chip-red">Rouge</span>
+      <span class="chip chip-gold">2015</span>
+      <span class="chip chip-outline">Margaux</span>
+      <span class="chip chip-outline">750 ML</span>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-grid">
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle. Premier Grand Cru Classé, le Château Margaux 2015 est un millésime historique.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Situé dans l'appellation Margaux, le domaine s'étend sur 262 hectares dont 87 de vignoble.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables. Les tanins sont soyeux et la finale dure plusieurs minutes.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit. Un vin qui défie les superlatifs.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021</div></div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire · 10 juin 2023</div></div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 6 — Cadre doré ===== -->
+<div class="example-label"><span>6 — Cadre doré artistique</span></div>
+<div class="card card6">
+  <div class="top-layout">
+    <div class="photo-frame">
+      <div class="inner"><img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine"></div>
+    </div>
+    <div class="info-side">
+      <h2>Château Margaux 2015</h2>
+      <div class="producer">Château Margaux</div>
+      <div class="chips">
+        <span class="chip chip-red">Rouge</span>
+        <span class="chip chip-gold">2015</span>
+        <span class="chip chip-outline">Margaux</span>
+        <span class="chip chip-outline">750 ML</span>
+      </div>
+      <div class="stats">
+        <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+        <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+        <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+        <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+      </div>
+      <div class="section-block">
+        <div class="section-title"><span>Origine</span></div>
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="below-sections">
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle. Premier Grand Cru Classé historique.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Le domaine s'étend sur 262 hectares dont 87 de vignoble.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021</div></div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire</div></div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 7 — Full bleed + fiche bas ===== -->
+<div class="example-label"><span>7 — Photo plein écran + fiche bas</span></div>
+<div class="card card7">
+  <div class="fullbleed-photo">
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+    <div class="vignette"></div>
+  </div>
+  <div class="sheet">
+    <h2>Château Margaux 2015</h2>
+    <div class="producer">Château Margaux</div>
+    <div class="chips">
+      <span class="chip chip-red">Rouge</span>
+      <span class="chip chip-gold">2015</span>
+      <span class="chip chip-outline">Margaux</span>
+      <span class="chip chip-outline">750 ML</span>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-grid">
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Le domaine s'étend sur 262 hectares dont 87 de vignoble.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021</div></div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire</div></div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXAMPLE 8 — Minimal élégant ===== -->
+<div class="example-label"><span>8 — Minimal élégant</span></div>
+<div class="card card8">
+  <div class="photo-top">
+    <div class="glow"></div>
+    <img src="https://images.vivino.com/thumbs/ApnIiTpjS5Jaee8SOXM6xA_375x500.jpg" alt="wine">
+  </div>
+  <div class="info-bottom">
+    <div class="header-row">
+      <div>
+        <h2>Château Margaux 2015</h2>
+        <div class="producer">Château Margaux</div>
+      </div>
+      <div class="rating-circle">
+        <div class="score">97</div>
+        <div class="out-of">/100</div>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip chip-red">Rouge</span>
+      <span class="chip chip-gold">2015</span>
+      <span class="chip chip-outline">Margaux</span>
+      <span class="chip chip-outline">750 ML</span>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="label">Bouteilles</div><div class="value">3</div></div>
+      <div class="stat-box"><div class="label">Note</div><div class="value">97<span class="suffix">/100</span></div></div>
+      <div class="stat-box"><div class="label">Prix moyen</div><div class="value">850<span class="suffix"> $</span></div></div>
+      <div class="stat-box"><div class="label">Valeur</div><div class="value">2 550<span class="suffix"> $</span></div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-block">
+      <div class="section-title"><span>Origine</span></div>
+      <div class="detail-grid">
+        <div class="detail-row"><span class="dlabel">Pays</span><span class="dvalue">France</span></div>
+        <div class="detail-row"><span class="dlabel">Région</span><span class="dvalue">Bordeaux</span></div>
+        <div class="detail-row"><span class="dlabel">Appellation</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Village</span><span class="dvalue">Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Domaine</span><span class="dvalue">Château Margaux</span></div>
+        <div class="detail-row"><span class="dlabel">Cépages</span><span class="dvalue">Cab. Sauv., Merlot, Petit Verdot</span></div>
+        <div class="detail-row"><span class="dlabel">Alcool</span><span class="dvalue">13.5 %</span></div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Période de garde</span></div>
+      <div class="garde-bar">
+        <div class="garde-track">
+          <div class="fill"></div>
+          <div class="marker green"></div>
+          <div class="marker yellow"></div>
+          <div class="marker red"></div>
+          <div class="marker now"></div>
+        </div>
+        <div class="garde-labels">
+          <div class="lbl green"><div class="year">2025</div><div>À boire dès</div></div>
+          <div class="lbl now"><div class="year">2026</div><div>Aujourd'hui</div></div>
+          <div class="lbl yellow"><div class="year">2035</div><div>Apogée</div></div>
+          <div class="lbl red"><div class="year">2060</div><div>Avant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>À propos de ce vin</span></div>
+      <p class="desc-text">Un vin d'une élégance rare, aux arômes de cassis, de violette et de cèdre. Bouche soyeuse avec des tanins fins et une longueur exceptionnelle. Premier Grand Cru Classé, le Château Margaux 2015 est un millésime historique.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Le domaine</span></div>
+      <p class="desc-text">Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de 1855. Situé dans l'appellation Margaux, le domaine s'étend sur 262 hectares dont 87 de vignoble.</p>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Critiques (2)</span></div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">Robert Parker</div><div class="date">15 mars 2018</div></div>
+          <div class="score-badge">97/100</div>
+        </div>
+        <div class="critique-note">Un Margaux absolument magnifique, d'une complexité et d'une profondeur remarquables. Les tanins sont soyeux et la finale dure plusieurs minutes.</div>
+      </div>
+      <div class="critique-card">
+        <div class="critique-header">
+          <span class="quote-icon">"</span>
+          <div><div class="source">James Suckling</div><div class="date">8 juin 2018</div></div>
+          <div class="score-badge">98/100</div>
+        </div>
+        <div class="critique-note">Extraordinaire concentration et pureté de fruit. Un vin qui défie les superlatifs.</div>
+      </div>
+    </div>
+    <div class="section-block">
+      <div class="section-title"><span>Bouteilles (3) — Format 750 ML</span></div>
+      <div class="bottle-card">
+        <div class="num">1</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-B3</div><div class="meta">SAQ · achetée en 2020 · ajoutée le 12 janv. 2024</div></div>
+        <div class="price"><div class="amount">850 $</div><div class="market">val. 920 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">2</div>
+        <div class="bottle-info"><div class="loc">Emplacement C1-D5</div><div class="meta">Importation privée · achetée en 2021 · ajoutée le 3 mars 2024</div></div>
+        <div class="price"><div class="amount">890 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="bottle-card">
+        <div class="num">3</div>
+        <div class="bottle-info"><div class="loc">Emplacement C2-A1</div><div class="meta">ajoutée le 15 avr. 2024</div><div class="gift-tag">CADEAU · de Pierre · Anniversaire · 10 juin 2023</div></div>
+        <div class="price"><div class="amount">850 $</div></div>
+        <div class="actions"><div class="act-btn">&#127863;</div><div class="act-btn">&#9998;</div><div class="act-btn">&#128465;</div></div>
+      </div>
+      <div class="add-bottle-btn">+ Ajouter une bouteille</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

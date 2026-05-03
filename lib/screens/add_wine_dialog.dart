@@ -1,13 +1,20 @@
+import 'dart:developer' as developer;
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:async';
+import '../utils/platform_image.dart' as platform_img;
 import '../models/wine.dart';
 import '../models/bottle.dart';
 import '../services/cave_service.dart';
 import '../services/storage_service.dart';
 import '../services/gemini_service.dart';
 import '../theme/app_text.dart';
-import 'home_screen.dart' show AppColors;
+import '../theme/app_colors.dart';
+import '../widgets/native_image.dart';
+import '../dialogs/photo_crop_dialog.dart';
+import 'slot_picker.dart';
 
 Future<void> showAddWineDialog(BuildContext context) {
   return showDialog(
@@ -17,8 +24,17 @@ Future<void> showAddWineDialog(BuildContext context) {
   );
 }
 
+Future<void> showEditWineDialog(BuildContext context, Wine wine) {
+  return showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.6),
+    builder: (_) => AddWineDialog(wine: wine),
+  );
+}
+
 class AddWineDialog extends StatefulWidget {
-  const AddWineDialog({super.key});
+  final Wine? wine;
+  const AddWineDialog({super.key, this.wine});
 
   @override
   State<AddWineDialog> createState() => _AddWineDialogState();
@@ -52,7 +68,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
   final _marketValue = TextEditingController();
   final _purchaseYear = TextEditingController();
   BottleSource? _source;
-  final List<TextEditingController> _locations = [TextEditingController()];
+  final List<SlotSelection?> _slots = [null];
 
   final _drinkFrom = TextEditingController();
   final _drinkPeak = TextEditingController();
@@ -70,12 +86,55 @@ class _AddWineDialogState extends State<AddWineDialog> {
 
   Uint8List? _photoBytes;
   String? _photoFileName;
+  String? _existingPhotoUrl;
+  String? _photoBlobUrl;
+  int _photoViewId = 0;
   bool _saving = false;
   bool _aiLoading = false;
   String? _error;
 
+  bool get _editing => widget.wine != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final w = widget.wine;
+    if (w == null) return;
+    _name.text = w.name;
+    if (w.vintage != null) _vintage.text = w.vintage.toString();
+    _producer.text = w.producer;
+    _appellation.text = w.appellation;
+    _country.text = w.country;
+    _region.text = w.region;
+    _climat.text = w.climat;
+    _domaine.text = w.domaine;
+    _village.text = w.village;
+    _domainAddress.text = w.domainAddress;
+    _grapes.text = w.grapes;
+    if (w.alcohol != null) _alcohol.text = w.alcohol.toString();
+    _type = w.type;
+    if (w.drinkFrom != null) _drinkFrom.text = w.drinkFrom.toString();
+    if (w.drinkPeak != null) _drinkPeak.text = w.drinkPeak.toString();
+    if (w.drinkTo != null) _drinkTo.text = w.drinkTo.toString();
+    _rating = w.rating;
+    _wineDescription.text = w.wineDescription;
+    _domaineDescription.text = w.domaineDescription;
+    _critiques.addAll(w.critiques);
+    _existingPhotoUrl = w.photoUrl;
+  }
+
+  void _updateBlobUrl(Uint8List? bytes) {
+    platform_img.revokeBlobUrl(_photoBlobUrl);
+    _photoBlobUrl = null;
+    if (bytes != null) {
+      _photoBlobUrl = platform_img.createBlobUrl(bytes);
+      _photoViewId++;
+    }
+  }
+
   @override
   void dispose() {
+    platform_img.revokeBlobUrl(_photoBlobUrl);
     for (final c in [
       _aiName, _aiDomaine, _aiVintage,
       _name, _vintage, _producer, _appellation,
@@ -85,7 +144,6 @@ class _AddWineDialogState extends State<AddWineDialog> {
       _drinkFrom, _drinkPeak, _drinkTo,
       _wineDescription, _domaineDescription,
       _giftFrom, _giftOccasion,
-      ..._locations,
     ]) {
       c.dispose();
     }
@@ -95,29 +153,63 @@ class _AddWineDialogState extends State<AddWineDialog> {
   void _syncLocations(int qty) {
     setState(() {
       _quantity = qty;
-      while (_locations.length < qty) {
-        _locations.add(TextEditingController());
+      while (_slots.length < qty) {
+        _slots.add(null);
       }
-      while (_locations.length > qty) {
-        _locations.removeLast().dispose();
+      while (_slots.length > qty) {
+        _slots.removeLast();
       }
     });
   }
 
+  Future<void> _pickSlotFor(int index) async {
+    final reserved = <String>{};
+    for (var i = 0; i < _slots.length; i++) {
+      if (i == index) continue;
+      final s = _slots[i];
+      if (s != null) reserved.add(s.slotKey);
+    }
+    final result = await pickSlot(
+      context,
+      reservedKeys: reserved,
+      initial: _slots[index],
+    );
+    if (result != null) {
+      setState(() => _slots[index] = result);
+    }
+  }
+
   Future<void> _pickPhoto(ImageSource source) async {
     try {
-      final file = await _picker.pickImage(source: source, imageQuality: 85);
+      Uint8List? rawBytes;
+      String? fileName;
+
+      final file = await _picker.pickImage(source: source);
       if (file == null) return;
-      final bytes = await file.readAsBytes();
+      rawBytes = await file.readAsBytes();
+      fileName = file.name;
+
+      if (rawBytes == null || rawBytes.isEmpty) {
+        setState(() => _error = 'La photo est vide.');
+        return;
+      }
+      if (!mounted) return;
+
+      final cropped = await showPhotoCropDialog(context, rawBytes);
+      if (cropped == null || !mounted) return;
+
+      _updateBlobUrl(cropped);
       setState(() {
-        _photoBytes = bytes;
-        _photoFileName = file.name;
-        _error = null;
+        _photoBytes = cropped;
+        _photoFileName = fileName;
+        _existingPhotoUrl = null;
+        _error = 'Photo cadrée : ${(cropped.length / 1024).toStringAsFixed(0)} Ko';
       });
     } catch (e) {
       setState(() => _error = 'Impossible de charger la photo : $e');
     }
   }
+
 
   Future<void> _analyzeCurrentPhoto() async {
     if (_photoBytes == null) {
@@ -170,6 +262,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
     }
   }
 
+
   void _applyGeminiResult(GeminiResult result) {
     setState(() {
       _name.text = result.name;
@@ -191,6 +284,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
       if (result.drinkFrom != null) _drinkFrom.text = result.drinkFrom.toString();
       if (result.drinkPeak != null) _drinkPeak.text = result.drinkPeak.toString();
       if (result.drinkTo != null) _drinkTo.text = result.drinkTo.toString();
+      if (result.marketValue != null) _marketValue.text = result.marketValue!.toStringAsFixed(0);
       _wineDescription.text = result.wineDescription;
       _domaineDescription.text = result.domaineDescription;
       if (result.critiques.isNotEmpty) {
@@ -204,11 +298,19 @@ class _AddWineDialogState extends State<AddWineDialog> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final locations = _locations.map((c) => c.text.trim()).toList();
-    final filledLocations = locations.where((l) => l.isNotEmpty).toList();
-    if (filledLocations.toSet().length != filledLocations.length) {
-      setState(() => _error = 'Deux bouteilles ne peuvent pas partager un emplacement.');
+    if (_editing) {
+      await _saveEdit();
       return;
+    }
+
+    final keys = <String>{};
+    for (final s in _slots) {
+      if (s == null) continue;
+      if (!keys.add(s.slotKey)) {
+        setState(() =>
+            _error = 'Deux bouteilles ne peuvent pas partager une case.');
+        return;
+      }
     }
 
     setState(() {
@@ -217,22 +319,42 @@ class _AddWineDialogState extends State<AddWineDialog> {
     });
 
     try {
-      for (final loc in filledLocations) {
-        if (await CaveService.isLocationTaken(loc)) {
+      for (final s in _slots) {
+        if (s == null) continue;
+        final taken = await CaveService.isSlotTaken(
+          cellarId: s.cellarId,
+          slotCol: s.col,
+          slotRow: s.row,
+        );
+        if (taken) {
           setState(() {
             _saving = false;
-            _error = 'L\'emplacement "$loc" est déjà occupé.';
+            _error = 'La case ${s.label} est déjà occupée.';
           });
           return;
         }
       }
 
+      developer.log(
+        '[Save] _photoBytes=${_photoBytes?.length ?? "null"} _photoFileName=$_photoFileName',
+        name: 'cave_vin_jo',
+      );
+
       String? photoUrl;
+      String? photoUploadError;
       if (_photoBytes != null) {
-        photoUrl = await StorageService.uploadWinePhoto(
-          bytes: _photoBytes!,
-          fileName: _photoFileName ?? 'wine.jpg',
-        );
+        try {
+          photoUrl = await StorageService.uploadWinePhoto(
+            bytes: _photoBytes!,
+            fileName: _photoFileName ?? 'wine.jpg',
+          );
+          developer.log('[Save] photoUrl=$photoUrl', name: 'cave_vin_jo');
+        } catch (e) {
+          photoUploadError = e.toString().replaceAll('Exception: ', '');
+          developer.log('[Save] upload FAILED: $photoUploadError', name: 'cave_vin_jo');
+        }
+      } else {
+        developer.log('[Save] no photoBytes — skipping upload', name: 'cave_vin_jo');
       }
 
       final now = DateTime.now();
@@ -266,10 +388,13 @@ class _AddWineDialogState extends State<AddWineDialog> {
       final market = double.tryParse(_marketValue.text.replaceAll(',', '.'));
       final year = int.tryParse(_purchaseYear.text);
 
-      final bottles = locations.map((loc) => Bottle(
+      final bottles = _slots.map((s) => Bottle(
             id: '',
             wineId: '',
-            location: loc,
+            location: s?.label ?? '',
+            cellarId: s?.cellarId,
+            slotCol: s?.col,
+            slotRow: s?.row,
             format: _format,
             purchasePrice: price,
             marketValue: market,
@@ -285,13 +410,103 @@ class _AddWineDialogState extends State<AddWineDialog> {
       await CaveService.addWineWithBottles(wine: wine, bottles: bottles);
 
       if (!mounted) return;
+
+      final String photoStatus;
+      if (_photoBytes == null) {
+        photoStatus = ' (sans photo)';
+      } else if (photoUrl != null) {
+        photoStatus = ' ✓ avec photo';
+      } else {
+        photoStatus = ' ⚠ PHOTO ÉCHOUÉE — ${photoUploadError ?? "raison inconnue"}';
+      }
+
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.gold,
+          backgroundColor: photoUploadError != null
+              ? const Color(0xFFB23A48)
+              : AppColors.gold,
+          duration: Duration(seconds: photoUploadError != null ? 12 : 4),
           content: Text(
-            '${wine.name} ajouté ($_quantity bouteille${_quantity > 1 ? 's' : ''})',
-            style: const TextStyle(color: Color(0xFF1A1408)),
+            '${wine.name} ajouté ($_quantity bouteille${_quantity > 1 ? 's' : ''})$photoStatus',
+            style: TextStyle(
+              color: photoUploadError != null
+                  ? Colors.white
+                  : const Color(0xFF1A1408),
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _saving = false;
+        _error = 'Erreur : $e';
+      });
+    }
+  }
+
+  Future<void> _saveEdit() async {
+    final w = widget.wine!;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      String? photoUrl = _existingPhotoUrl;
+      String? photoUploadError;
+      if (_photoBytes != null) {
+        try {
+          photoUrl = await StorageService.uploadWinePhoto(
+            bytes: _photoBytes!,
+            fileName: _photoFileName ?? 'wine.jpg',
+          );
+        } catch (e) {
+          photoUrl = _existingPhotoUrl;
+          photoUploadError = e.toString().replaceAll('Exception: ', '');
+        }
+      }
+
+      await CaveService.updateWine(w.id, {
+        'name': _name.text.trim(),
+        'vintage': int.tryParse(_vintage.text),
+        'producer': _producer.text.trim(),
+        'appellation': _appellation.text.trim(),
+        'country': _country.text.trim(),
+        'region': _region.text.trim(),
+        'climat': _climat.text.trim(),
+        'domaine': _domaine.text.trim(),
+        'village': _village.text.trim(),
+        'domainAddress': _domainAddress.text.trim(),
+        'grapes': _grapes.text.trim(),
+        'alcohol': double.tryParse(_alcohol.text.replaceAll(',', '.')),
+        'type': _type.name,
+        'drinkFrom': int.tryParse(_drinkFrom.text),
+        'drinkPeak': int.tryParse(_drinkPeak.text),
+        'drinkTo': int.tryParse(_drinkTo.text),
+        'rating': _rating,
+        'wineDescription': _wineDescription.text.trim(),
+        'domaineDescription': _domaineDescription.text.trim(),
+        'photoUrl': photoUrl,
+        'critiques': _critiques.map((c) => c.toMap()).toList(),
+      });
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: photoUploadError != null
+              ? const Color(0xFFB23A48)
+              : AppColors.gold,
+          duration: Duration(seconds: photoUploadError != null ? 12 : 4),
+          content: Text(
+            photoUploadError != null
+                ? '${_name.text.trim()} mis à jour ⚠ PHOTO ÉCHOUÉE — $photoUploadError'
+                : '${_name.text.trim()} mis à jour',
+            style: TextStyle(
+              color: photoUploadError != null
+                  ? Colors.white
+                  : const Color(0xFF1A1408),
+            ),
           ),
         ),
       );
@@ -353,7 +568,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
       child: Row(
         children: [
           Text(
-            'Ajouter un vin',
+            _editing ? 'Modifier le vin' : 'Ajouter un vin',
             style: AppText.serif(
               color: AppColors.gold2,
               fontSize: 22,
@@ -406,8 +621,10 @@ class _AddWineDialogState extends State<AddWineDialog> {
                     child: CircularProgressIndicator(
                       strokeWidth: 2, color: Color(0xFF1A1408)),
                   )
-                : Text('Enregistrer',
-                    style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13)),
+                : Text(
+                    _editing ? 'Enregistrer les modifications' : 'Enregistrer',
+                    style: AppText.sans(
+                        fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ],
       ),
@@ -449,22 +666,24 @@ class _AddWineDialogState extends State<AddWineDialog> {
           _field('Alcool (%)', _alcohol, number: true),
         ]),
 
-        const SizedBox(height: 22),
-        _section('Stock & Achat'),
-        _grid2([
-          _buildFormatDropdown(),
-          _buildQuantityField(),
-        ]),
-        _grid2([
-          _field('Prix achat (\$)', _price, number: true),
-          _field('Valeur marché (\$)', _marketValue, number: true),
-        ]),
-        _grid2([
-          _field('Année achat', _purchaseYear, number: true),
-          _buildSourceDropdown(),
-        ]),
-        const SizedBox(height: 10),
-        _buildLocationsList(),
+        if (!_editing) ...[
+          const SizedBox(height: 22),
+          _section('Stock & Achat'),
+          _grid2([
+            _buildFormatDropdown(),
+            _buildQuantityField(),
+          ]),
+          _grid2([
+            _field('Prix achat (\$)', _price, number: true),
+            _field('Valeur marché (\$)', _marketValue, number: true),
+          ]),
+          _grid2([
+            _field('Année achat', _purchaseYear, number: true),
+            _buildSourceDropdown(),
+          ]),
+          const SizedBox(height: 10),
+          _buildLocationsList(),
+        ],
 
         const SizedBox(height: 22),
         _section('Fenêtre de dégustation'),
@@ -478,25 +697,27 @@ class _AddWineDialogState extends State<AddWineDialog> {
         _section('Notes & Évaluation'),
         _single(_buildRatingSlider()),
         const SizedBox(height: 10),
-        _single(_field('🍷 Description du vin', _wineDescription,
+        _single(_field('Description du vin', _wineDescription,
             maxLines: 5, hint: 'Robe, arômes, bouche, structure, finale…')),
         const SizedBox(height: 10),
-        _single(_field('🏰 Description du domaine', _domaineDescription,
+        _single(_field('Description du domaine', _domaineDescription,
             maxLines: 4, hint: 'Histoire, philosophie, terroir, réputation…')),
 
         const SizedBox(height: 22),
         _critiquesSection(),
 
-        const SizedBox(height: 22),
-        _section('Cadeau'),
-        _buildGiftCheckbox(),
-        if (_isGift) ...[
-          const SizedBox(height: 12),
-          _grid2([
-            _field('De qui', _giftFrom),
-            _field('Occasion', _giftOccasion, hint: 'Noël, anniversaire…'),
-          ]),
-          _single(_buildGiftDatePicker()),
+        if (!_editing) ...[
+          const SizedBox(height: 22),
+          _section('Cadeau'),
+          _buildGiftCheckbox(),
+          if (_isGift) ...[
+            const SizedBox(height: 12),
+            _grid2([
+              _field('De qui', _giftFrom),
+              _field('Occasion', _giftOccasion, hint: 'Noël, anniversaire…'),
+            ]),
+            _single(_buildGiftDatePicker()),
+          ],
         ],
       ],
     );
@@ -751,17 +972,61 @@ class _AddWineDialogState extends State<AddWineDialog> {
 
   Widget _buildLocationsList() {
     return _labeled(
-      'Emplacements cave (un par bouteille, ex: 1-A3)',
+      'Emplacements cave (une case par bouteille)',
       Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: List.generate(_locations.length, (i) {
-          return SizedBox(
-            width: 120,
-            child: TextField(
-              controller: _locations[i],
-              style: AppText.sans(color: AppColors.text, fontSize: 13),
-              decoration: _decoration(hint: 'Bout. ${i + 1}'),
+        children: List.generate(_slots.length, (i) {
+          final slot = _slots[i];
+          final hasSlot = slot != null;
+          return InkWell(
+            onTap: () => _pickSlotFor(i),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 150,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: hasSlot ? AppColors.gold : AppColors.border,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Bout. ${i + 1}',
+                    style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      hasSlot ? slot.label : 'Choisir…',
+                      style: AppText.sans(
+                        color: hasSlot ? AppColors.gold2 : AppColors.text3,
+                        fontSize: 13,
+                        fontWeight:
+                            hasSlot ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (hasSlot)
+                    InkWell(
+                      onTap: () => setState(() => _slots[i] = null),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(2),
+                        child: Icon(Icons.close,
+                            size: 14, color: AppColors.text3),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.grid_view,
+                        size: 14, color: AppColors.text3),
+                ],
+              ),
             ),
           );
         }),
@@ -825,7 +1090,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
               side: const BorderSide(color: AppColors.border2),
             ),
             const SizedBox(width: 4),
-            Text('🎁 Ce vin est un cadeau',
+            Text('Ce vin est un cadeau',
                 style: AppText.sans(color: AppColors.text, fontSize: 13)),
           ],
         ),
@@ -899,7 +1164,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ANALYSE PAR PHOTO (IA)',
+            'PHOTO DU VIN + ANALYSE IA',
             style: AppText.sans(
               color: AppColors.gold2,
               fontSize: 10,
@@ -909,63 +1174,51 @@ class _AddWineDialogState extends State<AddWineDialog> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Prends ou importe une photo de l\'étiquette, puis analyse avec Gemini.',
+            'La photo sera enregistrée sur la fiche. Clique sur « Analyser avec Gemini » pour remplir les champs.',
             style: AppText.sans(
               color: AppColors.text3,
               fontSize: 11,
             ),
           ),
           const SizedBox(height: 12),
+          if (hasPhoto || _existingPhotoUrl != null) ...[
+            Center(child: _bigPhotoPreview()),
+            const SizedBox(height: 12),
+          ],
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _photoSlot(),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _aiBtn(
-                            label: '📸 Prendre photo',
-                            onTap: _aiLoading
-                                ? null
-                                : () => _pickPhoto(ImageSource.camera),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _aiBtn(
-                            label: '🖼 Importer',
-                            onTap: _aiLoading
-                                ? null
-                                : () => _pickPhoto(ImageSource.gallery),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: _aiBtn(
-                        label: _aiLoading
-                            ? '⏳ Analyse en cours…'
-                            : (hasPhoto
-                                ? '✶ Analyser la photo avec Gemini'
-                                : '✶ Analyser (importe une photo d\'abord)'),
-                        primary: hasPhoto && !_aiLoading,
-                        muted: !hasPhoto,
-                        onTap: (hasPhoto && !_aiLoading)
-                            ? _analyzeCurrentPhoto
-                            : null,
-                      ),
-                    ),
-                  ],
+                child: _aiBtn(
+                  label: 'Prendre photo',
+                  onTap: _aiLoading
+                      ? null
+                      : () => _pickPhoto(ImageSource.camera),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _aiBtn(
+                  label: '🖼 Importer',
+                  onTap: _aiLoading
+                      ? null
+                      : () => _pickPhoto(ImageSource.gallery),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: _aiBtn(
+              label: _aiLoading
+                  ? '⏳ Analyse en cours…'
+                  : (hasPhoto
+                      ? '✶ Analyser avec Gemini'
+                      : '✶ Importe une photo pour analyser'),
+              primary: hasPhoto && !_aiLoading,
+              muted: !hasPhoto,
+              onTap: (hasPhoto && !_aiLoading) ? _analyzeCurrentPhoto : null,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1015,11 +1268,17 @@ class _AddWineDialogState extends State<AddWineDialog> {
                   decoration: _decoration(hint: '2020'),
                 ),
               ),
-              const SizedBox(width: 8),
-              _aiBtn(
-                label: _aiLoading ? '⏳' : '✶ Chercher',
-                primary: true,
-                onTap: _aiLoading ? null : _searchWithGemini,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _aiBtn(
+                  label: _aiLoading ? '⏳' : '✶ Chercher',
+                  primary: true,
+                  onTap: _aiLoading ? null : _searchWithGemini,
+                ),
               ),
             ],
           ),
@@ -1028,68 +1287,88 @@ class _AddWineDialogState extends State<AddWineDialog> {
     );
   }
 
-  Widget _photoSlot() {
-    if (_photoBytes != null) {
-      return Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.memory(
-              _photoBytes!,
-              width: 90,
-              height: 110,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Positioned(
-            top: 4,
-            right: 4,
-            child: InkWell(
-              onTap: () => setState(() {
-                _photoBytes = null;
-                _photoFileName = null;
-              }),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  shape: BoxShape.circle,
+  Widget _bigPhotoPreview() {
+    final hasNew = _photoBytes != null;
+    final hasExisting = !hasNew && _existingPhotoUrl != null;
+    return Column(
+      children: [
+        Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.55), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: SizedBox(
+                  width: 240,
+                  height: 320,
+                  child: hasNew && _photoBytes != null
+                      ? (kIsWeb && _photoBlobUrl != null
+                          ? platform_img.buildBlobPreview(_photoBlobUrl!)
+                          : Image.memory(_photoBytes!, fit: BoxFit.cover))
+                      : NativeNetworkImage(
+                          url: _existingPhotoUrl!,
+                          width: 240,
+                          height: 320,
+                          fit: BoxFit.contain,
+                        ),
                 ),
-                child: const Icon(Icons.close, size: 13, color: Colors.white),
               ),
             ),
-          ),
-        ],
-      );
-    }
-    return Container(
-      width: 90,
-      height: 110,
-      decoration: BoxDecoration(
-        color: AppColors.bg2,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.border2,
-          style: BorderStyle.solid,
+            Positioned(
+              top: 6,
+              right: 6,
+              child: InkWell(
+                onTap: () {
+                  if (hasNew) {
+                    _updateBlobUrl(null);
+                    setState(() {
+                      _photoBytes = null;
+                      _photoFileName = null;
+                    });
+                  } else if (hasExisting) {
+                    setState(() => _existingPhotoUrl = null);
+                  }
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, size: 16, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.photo_camera_outlined,
-              color: AppColors.text3, size: 26),
-          const SizedBox(height: 6),
-          Text(
-            'Pas de\nphoto',
-            textAlign: TextAlign.center,
-            style: AppText.sans(color: AppColors.text3, fontSize: 10),
+        const SizedBox(height: 8),
+        Text(
+          hasNew
+              ? '✓ PHOTO PRÊTE — ENREGISTRÉE SUR LA FICHE'
+              : '✓ PHOTO ACTUELLE DE LA FICHE',
+          style: AppText.sans(
+            color: AppColors.gold2,
+            fontSize: 9,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
 
   Widget _aiBtn({
     required String label,

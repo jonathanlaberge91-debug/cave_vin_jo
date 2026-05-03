@@ -43,6 +43,10 @@ dependencies:
   image_picker: ^1.1.2
   http: ^1.2.2
   shared_preferences: ^2.3.4
+  web: ^1.1.0
+  file_picker: ^11.0.2
+  fl_chart: ^0.70.2
+  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:
@@ -76,10 +80,8 @@ flutter:
         - asset: assets/fonts/CormorantGaramond-Regular.ttf
           weight: 600
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

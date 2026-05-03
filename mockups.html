@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wine CellR — Mockups v3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0E0C0A; color: #E8E0D0; font-family: 'Segoe UI', system-ui, sans-serif; padding: 30px; }
+  h1 { color: #C9A84C; font-family: Georgia, serif; margin-bottom: 8px; }
+  .subtitle { color: #6A5A40; font-size: 13px; margin-bottom: 40px; }
+  .mockup-label { color: #C9A84C; font-family: Georgia, serif; font-size: 20px; margin: 60px 0 10px; padding-bottom: 8px; border-bottom: 1px solid #1E1A16; }
+  .mockup-desc { color: #6A5A40; font-size: 12px; margin-bottom: 12px; font-style: italic; }
+
+  .cell {
+    width: 18px; height: 18px;
+    background: #1E1A16;
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 800;
+  }
+  .cell.rouge { background: rgba(178,58,72,0.30); border-color: rgba(178,58,72,0.65); color: #B23A48; }
+  .cell.blanc { background: rgba(230,210,122,0.30); border-color: rgba(230,210,122,0.65); color: #E6D27A; }
+  .cell.rose { background: rgba(232,157,166,0.30); border-color: rgba(232,157,166,0.65); color: #E89DA6; }
+  .cell.petillant { background: rgba(184,201,217,0.30); border-color: rgba(184,201,217,0.65); color: #B8C9D9; }
+  .row-lbl { width: 22px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: #6A5A40; }
+  .col-hdr { height: 14px; display: flex; align-items: center; justify-content: center; font-size: 7px; color: #6A5A40; }
+
+  .strip-click { cursor: pointer; transition: opacity 0.2s; }
+  .strip-click:hover { opacity: 0.75; }
+  .led-click { cursor: pointer; transition: opacity 0.2s; }
+  .led-click:hover { opacity: 0.75; }
+
+  /* Each cellar wrapper uses inline-block so it shrinks to grid width */
+  .cellar-wrap { display: inline-block; }
+  .cellar-header { border: 1px solid #26221a; border-bottom: none; padding: 10px 12px; }
+  .cellar-body { display: flex; border: 1px solid #26221a; border-top: none; overflow: hidden; }
+  .cellar-center { flex: 1; display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+
+<h1>Wine CellR — Mockups v3</h1>
+<p class="subtitle">5 designs — header meme largeur que le cellier, bandes flush, clic sur bandes = toggle</p>
+
+<script>
+const ROWS = 15, COLS = 13;
+const LETTERS = 'ABCDEFGHIJKLMNO';
+const TYPES = ['rouge','blanc','rose','petillant'];
+const BOTTLES = {};
+for (let i = 0; i < 45; i++) {
+  const r = Math.floor(Math.random()*ROWS);
+  const c = Math.floor(Math.random()*COLS);
+  if (!BOTTLES[r+','+c]) {
+    BOTTLES[r+','+c] = { t: TYPES[Math.floor(Math.random()*TYPES.length)], y: 18 + Math.floor(Math.random()*8) };
+  }
+}
+
+function makeGrid(containerId) {
+  const el = document.getElementById(containerId);
+  const g = document.createElement('div');
+  g.style.display = 'inline-grid';
+  g.style.gridTemplateColumns = '22px repeat(13, 18px)';
+  g.style.gap = '1px';
+  const e = document.createElement('div');
+  e.className = 'col-hdr'; g.appendChild(e);
+  for (let c = 0; c < COLS; c++) {
+    const h = document.createElement('div');
+    h.className = 'col-hdr'; h.textContent = c+1; g.appendChild(h);
+  }
+  for (let r = 0; r < ROWS; r++) {
+    const lbl = document.createElement('div');
+    lbl.className = 'row-lbl'; lbl.textContent = LETTERS[r]; g.appendChild(lbl);
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const b = BOTTLES[r+','+c];
+      if (b) { cell.classList.add(b.t); cell.textContent = b.y; }
+      g.appendChild(cell);
+    }
+  }
+  el.appendChild(g);
+}
+</script>
+
+<!-- ==================== MOCKUP 1 ==================== -->
+<div class="mockup-label">1 — Bandeau sobre, bandes fines 4px</div>
+<p class="mockup-desc">Header compact une zone. Bandes bleues flush 4px. LED rouge.</p>
+<div class="cellar-wrap">
+  <div class="cellar-header" style="background: #161310; border-radius: 12px 12px 0 0;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #7CD492; box-shadow: 0 0 6px #7CD49280;"></div>
+      <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 15px; font-weight: 600; flex: 1;">Wine CellR G</span>
+      <span style="padding: 3px 10px; border-radius: 16px; border: 1px solid #7CD49244; background: #7CD49218; color: #7CD492; font-size: 10px; font-weight: 700; cursor: pointer;">ON</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-family: Georgia, serif; font-size: 26px; font-weight: 600;">12°C</span>
+      <span style="color: #6A5A40; font-size: 9px;">act.</span>
+      <div style="width: 1px; height: 24px; background: #26221a;"></div>
+      <button style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">−</button>
+      <span style="color: #C9A84C; font-size: 16px; font-weight: 700;">13°C</span>
+      <button style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">+</button>
+      <span style="color: #6A5A40; font-size: 9px;">cons.</span>
+      <div style="flex: 1;"></div>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #6A5A40; cursor: pointer;">🔒 <span style="font-weight:700;color:#7CD492;">Libre</span></span>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #C9A84C; cursor: pointer; font-weight: 700;">°C</span>
+    </div>
+  </div>
+  <div class="cellar-body" style="background: #0E0C0A; border-radius: 0 0 12px 12px;">
+    <div class="strip-click" style="width: 4px; background: #70B8E8; box-shadow: 0 0 10px #70B8E844;"></div>
+    <div class="cellar-center">
+      <div class="led-click" style="width: 60px; height: 4px; background: #E8667A; box-shadow: 0 2px 10px #E8667A55; border-radius: 0 0 3px 3px;"></div>
+      <div id="g1" style="padding: 1px 0 2px;"></div>
+    </div>
+    <div class="strip-click" style="width: 4px; background: #70B8E8; box-shadow: 0 0 10px #70B8E844;"></div>
+  </div>
+</div>
+<script>makeGrid('g1');</script>
+
+
+<!-- ==================== MOCKUP 2 ==================== -->
+<div class="mockup-label">2 — Header deux lignes + badge porte + bandes gradient 6px</div>
+<p class="mockup-desc">Nom et power en haut, temperatures en bas. Bandes gradient bleu 6px. LED rouge large.</p>
+<div class="cellar-wrap">
+  <div class="cellar-header" style="background: #131110; border-radius: 14px 14px 0 0;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #7CD492; box-shadow: 0 0 6px #7CD49280;"></div>
+      <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 15px; font-weight: 600; flex: 1;">Wine CellR G</span>
+      <span style="padding: 3px 8px; border-radius: 12px; background: #E8667A18; border: 1px solid #E8667A44; color: #E8667A; font-size: 9px; font-weight: 700;">🚪 OUVERTE</span>
+      <span style="padding: 3px 10px; border-radius: 16px; border: 1px solid #7CD49244; background: #7CD49218; color: #7CD492; font-size: 10px; font-weight: 700; cursor: pointer;">ON</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="text-align: center;">
+        <div style="font-family: Georgia, serif; font-size: 28px; font-weight: 600;">12°C</div>
+        <div style="color: #6A5A40; font-size: 8px;">actuelle</div>
+      </div>
+      <div style="width: 1px; height: 32px; background: #26221a;"></div>
+      <button style="width: 26px; height: 26px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 13px; cursor: pointer;">−</button>
+      <div style="text-align: center;">
+        <div style="color: #C9A84C; font-size: 18px; font-weight: 700;">13°C</div>
+        <div style="color: #6A5A40; font-size: 8px;">consigne</div>
+      </div>
+      <button style="width: 26px; height: 26px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 13px; cursor: pointer;">+</button>
+      <div style="flex: 1;"></div>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #6A5A40; cursor: pointer;">🔒 <span style="font-weight:700;color:#E8667A;">Barré</span></span>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #C9A84C; cursor: pointer; font-weight: 700;">°C</span>
+    </div>
+  </div>
+  <div class="cellar-body" style="background: #0E0C0A; border-radius: 0 0 14px 14px;">
+    <div class="strip-click" style="width: 6px; background: linear-gradient(to bottom, #70B8E800, #70B8E8 8%, #70B8E8 92%, #70B8E800); box-shadow: 0 0 18px #70B8E833;"></div>
+    <div class="cellar-center">
+      <div class="led-click" style="width: 80px; height: 5px; background: #E8667A; box-shadow: 0 2px 14px #E8667A55; border-radius: 0 0 4px 4px;"></div>
+      <div id="g2" style="padding: 1px 0 2px;"></div>
+    </div>
+    <div class="strip-click" style="width: 6px; background: linear-gradient(to bottom, #70B8E800, #70B8E8 8%, #70B8E8 92%, #70B8E800); box-shadow: 0 0 18px #70B8E833;"></div>
+  </div>
+</div>
+<script>makeGrid('g2');</script>
+
+
+<!-- ==================== MOCKUP 3 ==================== -->
+<div class="mockup-label">3 — Ultra-minimaliste une ligne, bandes blanches 3px</div>
+<p class="mockup-desc">Tout sur une seule ligne. Bandes blanches ultra-fines. LED bleue discrete.</p>
+<div class="cellar-wrap">
+  <div class="cellar-header" style="background: #161310; border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+    <div style="width: 7px; height: 7px; border-radius: 50%; background: #7CD492; box-shadow: 0 0 5px #7CD49280;"></div>
+    <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 14px; font-weight: 600;">Wine CellR G</span>
+    <span style="color: #26221a;">|</span>
+    <span style="font-family: Georgia, serif; font-size: 20px; font-weight: 600;">12°C</span>
+    <span style="color: #6A5A40; font-size: 8px;">act.</span>
+    <button style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 11px; cursor: pointer;">−</button>
+    <span style="color: #C9A84C; font-size: 15px; font-weight: 700;">13</span>
+    <button style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 11px; cursor: pointer;">+</button>
+    <span style="color: #6A5A40; font-size: 8px;">cons.</span>
+    <div style="flex: 1;"></div>
+    <span style="padding: 2px 6px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 8px; color: #6A5A40; cursor: pointer;">🔒</span>
+    <span style="padding: 2px 6px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 8px; color: #C9A84C; cursor: pointer; font-weight: 700;">°C</span>
+    <span style="padding: 3px 8px; border-radius: 14px; border: 1px solid #7CD49244; background: #7CD49218; color: #7CD492; font-size: 9px; font-weight: 700; cursor: pointer;">ON</span>
+  </div>
+  <div class="cellar-body" style="background: #0E0C0A; border-radius: 0 0 10px 10px;">
+    <div class="strip-click" style="width: 3px; background: #E8E0D0; box-shadow: 0 0 8px #E8E0D044;"></div>
+    <div class="cellar-center">
+      <div class="led-click" style="width: 50px; height: 3px; background: #70B8E8; box-shadow: 0 2px 8px #70B8E855; border-radius: 0 0 2px 2px;"></div>
+      <div id="g3" style="padding: 1px 0 2px;"></div>
+    </div>
+    <div class="strip-click" style="width: 3px; background: #E8E0D0; box-shadow: 0 0 8px #E8E0D044;"></div>
+  </div>
+</div>
+<script>makeGrid('g3');</script>
+
+
+<!-- ==================== MOCKUP 4 ==================== -->
+<div class="mockup-label">4 — Header fleche + bandes gradient 5px</div>
+<p class="mockup-desc">Temperature actuelle → consigne avec fleche. Bandes gradient bleu 5px. LED rouge.</p>
+<div class="cellar-wrap">
+  <div class="cellar-header" style="background: #141210; border-radius: 12px 12px 0 0;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #7CD492; box-shadow: 0 0 6px #7CD49280;"></div>
+      <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 15px; font-weight: 600; flex: 1;">Wine CellR G</span>
+      <span style="padding: 3px 10px; border-radius: 16px; border: 1px solid #7CD49244; background: #7CD49218; color: #7CD492; font-size: 10px; font-weight: 700; cursor: pointer;">ON</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <div style="display: flex; align-items: baseline; gap: 3px;">
+        <span style="font-family: Georgia, serif; font-size: 28px; font-weight: 600;">12</span>
+        <span style="color: #6A5A40; font-size: 11px;">°C</span>
+      </div>
+      <span style="color: #C9A84C44; font-size: 18px;">→</span>
+      <button style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">−</button>
+      <span style="color: #C9A84C; font-size: 20px; font-weight: 700;">13°C</span>
+      <button style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">+</button>
+      <div style="flex: 1;"></div>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #6A5A40; cursor: pointer;">🔒 <span style="font-weight:700;color:#7CD492;">Libre</span></span>
+      <span style="padding: 3px 7px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 9px; color: #C9A84C; cursor: pointer; font-weight: 700;">°C</span>
+    </div>
+  </div>
+  <div class="cellar-body" style="background: #0E0C0A; border-radius: 0 0 12px 12px;">
+    <div class="strip-click" style="width: 5px; background: linear-gradient(to bottom, transparent, #70B8E8 10%, #70B8E8 90%, transparent); box-shadow: 0 0 14px #70B8E833;"></div>
+    <div class="cellar-center">
+      <div class="led-click" style="width: 70px; height: 5px; background: #E8667A; box-shadow: 0 3px 14px #E8667A55; border-radius: 0 0 4px 4px;"></div>
+      <div id="g4" style="padding: 1px 0 2px;"></div>
+    </div>
+    <div class="strip-click" style="width: 5px; background: linear-gradient(to bottom, transparent, #70B8E8 10%, #70B8E8 90%, transparent); box-shadow: 0 0 14px #70B8E833;"></div>
+  </div>
+</div>
+<script>makeGrid('g4');</script>
+
+
+<!-- ==================== MOCKUP 5 ==================== -->
+<div class="mockup-label">5 — Header cards temp + bandes neon 4px</div>
+<p class="mockup-desc">Mini-cards pour actuelle et consigne cote a cote. Bandes neon bleu vif 4px. LED bleue.</p>
+<div class="cellar-wrap">
+  <div class="cellar-header" style="background: #151311; border-radius: 14px 14px 0 0;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #7CD492; box-shadow: 0 0 6px #7CD49280;"></div>
+      <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 15px; font-weight: 600; flex: 1;">Wine CellR G</span>
+      <span style="padding: 3px 10px; border-radius: 16px; border: 1px solid #7CD49244; background: #7CD49218; color: #7CD492; font-size: 10px; font-weight: 700; cursor: pointer;">ON</span>
+    </div>
+    <div style="display: flex; gap: 6px; align-items: stretch;">
+      <div style="flex: 1; background: #0E0C0A; border: 1px solid #26221a; border-radius: 8px; padding: 8px; text-align: center;">
+        <div style="color: #6A5A40; font-size: 8px; margin-bottom: 2px;">actuelle</div>
+        <div style="font-family: Georgia, serif; font-size: 24px; font-weight: 600;">12°C</div>
+      </div>
+      <div style="flex: 1; background: #0E0C0A; border: 1px solid #C9A84C33; border-radius: 8px; padding: 8px; text-align: center;">
+        <div style="color: #6A5A40; font-size: 8px; margin-bottom: 2px;">consigne</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <button style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">−</button>
+          <span style="color: #C9A84C; font-family: Georgia, serif; font-size: 20px; font-weight: 700;">13°C</span>
+          <button style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #C9A84C44; background: #C9A84C15; color: #C9A84C; font-size: 12px; cursor: pointer;">+</button>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; justify-content: center;">
+        <span style="padding: 4px 6px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 8px; color: #6A5A40; cursor: pointer; text-align: center;">🔒 <span style="font-weight:700;color:#7CD492;">Libre</span></span>
+        <span style="padding: 4px 6px; border-radius: 6px; background: #0E0C0A; border: 1px solid #26221a; font-size: 8px; color: #C9A84C; cursor: pointer; text-align: center; font-weight: 700;">°C</span>
+      </div>
+    </div>
+  </div>
+  <div class="cellar-body" style="background: #0E0C0A; border-radius: 0 0 14px 14px;">
+    <div class="strip-click" style="width: 4px; background: #70B8E8; box-shadow: 0 0 12px #70B8E866, 0 0 24px #70B8E822;"></div>
+    <div class="cellar-center">
+      <div class="led-click" style="width: 60px; height: 4px; background: #70B8E8; box-shadow: 0 2px 12px #70B8E866; border-radius: 0 0 3px 3px;"></div>
+      <div id="g5" style="padding: 1px 0 2px;"></div>
+    </div>
+    <div class="strip-click" style="width: 4px; background: #70B8E8; box-shadow: 0 0 12px #70B8E866, 0 0 24px #70B8E822;"></div>
+  </div>
+</div>
+<script>makeGrid('g5');</script>
+
+</body>
+</html>

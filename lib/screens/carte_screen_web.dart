@@ -1,0 +1,643 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+import 'dart:ui_web' as ui_web;
+import 'package:flutter/material.dart';
+import 'package:web/web.dart' as web;
+import '../models/wine.dart';
+import '../models/bottle.dart';
+import '../services/cave_service.dart';
+import '../services/maps_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text.dart';
+import 'wine_detail_screen.dart';
+
+class _DomainPin {
+  final GeoCoord coord;
+  final String address;
+  final String domaine;
+  final List<Wine> wines;
+  final Map<String, int> bottleCountByWine;
+  final int totalBottles;
+
+  _DomainPin({
+    required this.coord,
+    required this.address,
+    required this.domaine,
+    required this.wines,
+    required this.bottleCountByWine,
+    required this.totalBottles,
+  });
+}
+
+class CarteScreen extends StatefulWidget {
+  const CarteScreen({super.key});
+  @override
+  State<CarteScreen> createState() => _CarteScreenState();
+}
+
+class _CarteScreenState extends State<CarteScreen> {
+  static const _viewType = 'cave-google-map';
+  static int _viewCounter = 0;
+  static bool _viewRegistered = false;
+
+  bool _loading = true;
+  bool _apiKeyMissing = false;
+  String? _error;
+  String _loadingStatus = 'Chargement des vins…';
+  List<_DomainPin> _pins = [];
+  Map<String, Wine> _winesById = {};
+  late final String _mapDivId;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapDivId = 'cave-map-${_viewCounter++}';
+    _registerView();
+    _init();
+  }
+
+  void _registerView() {
+    if (_viewRegistered) return;
+    final divId = _mapDivId;
+    ui_web.platformViewRegistry.registerViewFactory(
+      _viewType,
+      (int viewId) {
+        final div = web.document.createElement('div') as web.HTMLDivElement;
+        div.id = divId;
+        div.style.setProperty('width', '100%');
+        div.style.setProperty('height', '100%');
+        div.style.setProperty('min-height', '400px');
+        div.style.setProperty('background-color', '#1a1510');
+        return div;
+      },
+    );
+    _viewRegistered = true;
+  }
+
+  void _registerWineCallback() {
+    globalContext['_caveOpenWine'] = ((JSAny? wineId) {
+      if (wineId == null) return;
+      final id = (wineId as JSString).toDart;
+      _openWineDetail(id);
+    }).toJS;
+  }
+
+  void _disableMapInteraction() {
+    _evalJs('''
+(function(){
+  if(window._caveMap){
+    window._caveMap.setOptions({scrollwheel:false,gestureHandling:'none'});
+  }
+})();
+''');
+  }
+
+  void _enableMapInteraction() {
+    _evalJs('''
+(function(){
+  if(window._caveMap){
+    window._caveMap.setOptions({scrollwheel:true,gestureHandling:'auto'});
+  }
+})();
+''');
+  }
+
+  void _openWineDetail(String wineId) async {
+    final wine = _winesById[wineId];
+    if (wine == null || !mounted) return;
+    final bottles = await CaveService.bottlesByWine(wineId).first;
+    if (!mounted) return;
+    _disableMapInteraction();
+    await showWineDetail(context, wine: wine, bottles: bottles);
+    if (mounted) _enableMapInteraction();
+  }
+
+  Future<void> _init() async {
+    try {
+      final apiKey = MapsService.apiKey;
+      if (apiKey == null || apiKey.isEmpty) {
+        setState(() {
+          _apiKeyMissing = true;
+          _loading = false;
+        });
+        return;
+      }
+
+      setState(() => _loadingStatus = 'Chargement des vins…');
+      final wines = await CaveService.wines().first;
+      final bottles = await CaveService.bottlesInCave().first;
+
+      _winesById = {for (final w in wines) w.id: w};
+
+      final addressGroups = <String, List<Wine>>{};
+      for (final w in wines) {
+        if (w.domainAddress.isEmpty) continue;
+        addressGroups.putIfAbsent(w.domainAddress, () => []).add(w);
+      }
+
+      if (addressGroups.isEmpty) {
+        setState(() {
+          _loading = false;
+          _error = 'Aucun vin avec une adresse de domaine dans ta cave.';
+        });
+        return;
+      }
+
+      final pins = <_DomainPin>[];
+      int i = 0;
+      for (final entry in addressGroups.entries) {
+        i++;
+        if (mounted) {
+          setState(() =>
+              _loadingStatus = 'Géolocalisation $i/${addressGroups.length}…');
+        }
+        final coord = await MapsService.geocode(entry.key);
+        if (coord != null) {
+          final countByWine = <String, int>{};
+          int total = 0;
+          final winesWithBottles = <Wine>[];
+          for (final w in entry.value) {
+            final c = bottles.where((b) => b.wineId == w.id).length;
+            if (c > 0) {
+              countByWine[w.id] = c;
+              total += c;
+              winesWithBottles.add(w);
+            }
+          }
+          if (winesWithBottles.isEmpty) continue;
+          pins.add(_DomainPin(
+            coord: coord,
+            address: entry.key,
+            domaine: winesWithBottles.first.domaine.isNotEmpty
+                ? winesWithBottles.first.domaine
+                : winesWithBottles.first.name,
+            wines: winesWithBottles,
+            bottleCountByWine: countByWine,
+            totalBottles: total,
+          ));
+        }
+      }
+
+      if (pins.isEmpty) {
+        setState(() {
+          _loading = false;
+          _error =
+              'Aucune adresse n\'a pu être géolocalisée.\nVérifie ta clé API Google Maps et les adresses des domaines.';
+        });
+        return;
+      }
+
+      _pins = pins;
+
+      if (mounted) {
+        setState(() => _loadingStatus = 'Chargement de Google Maps…');
+      }
+      await _ensureMapsApiLoaded(apiKey);
+
+      _registerWineCallback();
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) _initializeMap();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Erreur : $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _ensureMapsApiLoaded(String apiKey) async {
+    if (_hasMapsApi()) return;
+
+    final script =
+        web.document.createElement('script') as web.HTMLScriptElement;
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=$apiKey';
+    web.document.head!.append(script);
+
+    for (int i = 0; i < 60; i++) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (_hasMapsApi()) return;
+    }
+
+    throw Exception(
+        'Google Maps n\'a pas pu charger (15s). Vérifie ta clé API.');
+  }
+
+  bool _hasMapsApi() {
+    try {
+      if (!globalContext.has('google')) return false;
+      final google = globalContext['google'];
+      if (google == null) return false;
+      return (google as JSObject).has('maps');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static const _typeColors = {
+    'rouge': '#B23A48',
+    'blanc': '#E6D27A',
+    'rose': '#E89DA6',
+    'orange': '#E08A3C',
+    'petillant': '#B8C9D9',
+  };
+
+  static const _typeLabels = {
+    'rouge': 'ROUGE',
+    'blanc': 'BLANC',
+    'rose': 'ROSÉ',
+    'orange': 'ORANGE',
+    'petillant': 'PÉTILLANT',
+  };
+
+  void _initializeMap() {
+    final markersJson = _pins.map((p) {
+      final wineItems = p.wines.map((w) {
+        final vintage = w.vintage != null ? ' ${w.vintage}' : '';
+        final tc = _typeColors[w.type.name] ?? '#C9A84C';
+        final tl = _typeLabels[w.type.name] ?? '';
+        final bc = p.bottleCountByWine[w.id] ?? 0;
+        return {
+          'id': w.id,
+          'name': _esc(w.name),
+          'vintage': vintage,
+          'typeColor': tc,
+          'typeLabel': tl,
+          'bottles': bc,
+        };
+      }).toList();
+
+      return {
+        'lat': p.coord.lat,
+        'lng': p.coord.lng,
+        'domaine': _esc(p.domaine),
+        'address': _esc(p.address),
+        'totalBottles': p.totalBottles,
+        'wines': wineItems,
+      };
+    }).toList();
+
+    final json = jsonEncode(markersJson).replaceAll('</', '<\\/');
+
+    final mapStyle = jsonEncode([
+      {"elementType": "geometry", "stylers": [{"color": "#1a1510"}]},
+      {"elementType": "labels.text.fill", "stylers": [{"color": "#8a7a5a"}]},
+      {"elementType": "labels.text.stroke", "stylers": [{"color": "#0E0C0A"}]},
+      {"featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{"color": "#3a3020"}]},
+      {"featureType": "administrative.land_parcel", "stylers": [{"visibility": "off"}]},
+      {"featureType": "landscape", "elementType": "geometry", "stylers": [{"color": "#1a1510"}]},
+      {"featureType": "poi", "stylers": [{"visibility": "off"}]},
+      {"featureType": "road", "elementType": "geometry", "stylers": [{"color": "#2a2418"}]},
+      {"featureType": "road", "elementType": "geometry.stroke", "stylers": [{"color": "#1a1408"}]},
+      {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#6a5a3a"}]},
+      {"featureType": "road.highway", "elementType": "geometry", "stylers": [{"color": "#352e1e"}]},
+      {"featureType": "transit", "stylers": [{"visibility": "off"}]},
+      {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#0d0a06"}]},
+      {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#3a3020"}]},
+    ]);
+
+    _evalJs('''
+(function initCaveMap(attempt) {
+  var el = document.getElementById('$_mapDivId');
+  if (!el) {
+    var all = document.querySelectorAll('div[id^="cave-map"]');
+    if (all.length > 0) el = all[all.length - 1];
+  }
+  if (!el) {
+    var pvs = document.querySelectorAll('flt-platform-view div[id^="cave-map"]');
+    if (pvs.length > 0) el = pvs[pvs.length - 1];
+  }
+  if (!el) {
+    if (attempt < 25) { setTimeout(function(){ initCaveMap(attempt+1); }, 300); }
+    return;
+  }
+  if (typeof google === 'undefined' || !google.maps) return;
+
+  if (el.offsetHeight < 100) el.style.minHeight = '500px';
+
+  var data = $json;
+  var center = data.length === 1
+    ? {lat: data[0].lat, lng: data[0].lng}
+    : {lat: 46.6, lng: 2.3};
+
+  var map = new google.maps.Map(el, {
+    zoom: data.length === 1 ? 12 : 4,
+    center: center,
+    styles: $mapStyle,
+    disableDefaultUI: false,
+    zoomControl: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    backgroundColor: '#1a1510',
+  });
+  window._caveMap = map;
+
+  // Gold pin SVG
+  var pinSvg = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="44" viewBox="0 0 32 44">' +
+    '<defs><filter id="s" x="-20%" y="-10%" width="140%" height="130%">' +
+    '<feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>' +
+    '</filter></defs>' +
+    '<path d="M16 0C7.2 0 0 7.2 0 16c0 11.2 16 28 16 28s16-16.8 16-28C32 7.2 24.8 0 16 0z" fill="#C9A84C" stroke="#E8C97A" stroke-width="1" filter="url(%23s)"/>' +
+    '<circle cx="16" cy="16" r="7" fill="#1a1510"/>' +
+    '<text x="16" y="20" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="700" fill="#E8C97A">' +
+    '&#127863;</text>' +
+    '</svg>'
+  );
+
+  var pinIcon = {
+    url: pinSvg,
+    scaledSize: new google.maps.Size(32, 44),
+    anchor: new google.maps.Point(16, 44),
+  };
+
+  var bounds = new google.maps.LatLngBounds();
+  var openIW = null;
+  var closeTimer = null;
+  var pinnedIW = null;
+
+  function buildBubble(m) {
+    var html = '<div style="font-family:-apple-system,BlinkMacSystemFont,\\'Segoe UI\\',sans-serif;' +
+      'background:#1a1510;color:#E8E0D0;border-radius:12px;padding:16px 18px;min-width:220px;max-width:300px;' +
+      'box-shadow:0 8px 32px rgba(0,0,0,0.6);border:1px solid #3a3020">' +
+
+      '<div style="font-size:16px;font-weight:700;color:#C9A84C;margin-bottom:2px">' + m.domaine + '</div>' +
+      '<div style="font-size:10px;color:#8a7a5a;margin-bottom:10px;letter-spacing:0.3px">' + m.address + '</div>' +
+
+      '<div style="border-top:1px solid #2a2418;padding-top:8px">';
+
+    m.wines.forEach(function(w) {
+      html += '<div onclick="window._caveOpenWine(\\'' + w.id + '\\')" ' +
+        'style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px -8px;border-radius:8px;cursor:pointer;transition:background 0.15s" ' +
+        'onmouseover="this.style.background=\\'#2a2418\\'" onmouseout="this.style.background=\\'transparent\\'">' +
+
+        '<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:0.5px;' +
+        'color:' + w.typeColor + ';background:' + w.typeColor + '22;border:1px solid ' + w.typeColor + '44">' + w.typeLabel + '</span>' +
+
+        '<span style="flex:1;font-size:13px;font-weight:500;color:#E8E0D0">' + w.name + w.vintage + '</span>' +
+
+        '<span style="font-size:10px;color:#8a7a5a;white-space:nowrap">' + w.bottles + ' bout.</span>' +
+
+        '</div>';
+    });
+
+    html += '</div>' +
+
+      '<div style="border-top:1px solid #2a2418;margin-top:8px;padding-top:8px;display:flex;align-items:center;gap:6px">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+      '<span style="font-size:11px;color:#C9A84C;font-weight:600">' + m.totalBottles + ' bouteille' + (m.totalBottles > 1 ? 's' : '') + ' en cave</span>' +
+      '</div>' +
+
+      '</div>';
+
+    return html;
+  }
+
+  // Style the InfoWindow to remove default chrome
+  var iwStyle = document.createElement('style');
+  iwStyle.textContent = '.gm-style-iw-c{padding:0!important;background:transparent!important;border-radius:12px!important;box-shadow:none!important;overflow:visible!important}' +
+    '.gm-style-iw-d{overflow:visible!important;max-height:none!important}' +
+    '.gm-style-iw-tc{display:none!important}' +
+    '.gm-ui-hover-effect{top:4px!important;right:4px!important;width:24px!important;height:24px!important;background:#2a2418!important;border-radius:50%!important;border:1px solid #3a3020!important}' +
+    '.gm-ui-hover-effect>span{background-color:#C9A84C!important;width:12px!important;height:12px!important;margin:5px!important}' +
+    '.gm-style-iw-chr{position:absolute;top:8px;right:8px;z-index:1}';
+  document.head.appendChild(iwStyle);
+
+  data.forEach(function(m) {
+    var pos = new google.maps.LatLng(m.lat, m.lng);
+    var mk = new google.maps.Marker({
+      position: pos,
+      map: map,
+      title: m.domaine,
+      icon: pinIcon,
+      optimized: false,
+    });
+
+    var iw = new google.maps.InfoWindow({
+      content: buildBubble(m),
+      disableAutoPan: false,
+      maxWidth: 320,
+    });
+
+    mk.addListener('mouseover', function() {
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+      if (pinnedIW && pinnedIW !== iw) return;
+      if (openIW && openIW !== iw) openIW.close();
+      iw.open(map, mk);
+      openIW = iw;
+    });
+
+    mk.addListener('mouseout', function() {
+      if (pinnedIW === iw) return;
+      closeTimer = setTimeout(function() {
+        if (pinnedIW === iw) return;
+        iw.close();
+        if (openIW === iw) openIW = null;
+      }, 400);
+    });
+
+    google.maps.event.addListener(iw, 'domready', function() {
+      var iwEl = document.querySelector('.gm-style-iw-c');
+      if (iwEl) {
+        iwEl.addEventListener('mouseenter', function() {
+          if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+        });
+        iwEl.addEventListener('mouseleave', function() {
+          if (pinnedIW === iw) return;
+          closeTimer = setTimeout(function() {
+            if (pinnedIW === iw) return;
+            iw.close();
+            if (openIW === iw) openIW = null;
+          }, 300);
+        });
+      }
+    });
+
+    mk.addListener('click', function() {
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+      if (pinnedIW === iw) {
+        pinnedIW = null;
+        iw.close();
+        openIW = null;
+        return;
+      }
+      if (pinnedIW) { pinnedIW.close(); }
+      if (openIW && openIW !== iw) openIW.close();
+      iw.open(map, mk);
+      openIW = iw;
+      pinnedIW = iw;
+    });
+
+    google.maps.event.addListener(iw, 'closeclick', function() {
+      if (pinnedIW === iw) pinnedIW = null;
+      openIW = null;
+    });
+
+    bounds.extend(pos);
+  });
+
+  if (data.length > 1) {
+    map.fitBounds(bounds, 60);
+  }
+})(1);
+''');
+  }
+
+  String _esc(String text) {
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+  }
+
+  void _evalJs(String code) {
+    final script =
+        web.document.createElement('script') as web.HTMLScriptElement;
+    script.textContent = code;
+    web.document.body!.append(script);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppColors.gold),
+            const SizedBox(height: 16),
+            Text(
+              _loadingStatus,
+              style: AppText.sans(color: AppColors.text2, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_apiKeyMissing) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.vpn_key_outlined,
+                size: 48, color: AppColors.text3),
+            const SizedBox(height: 14),
+            Text(
+              'Clé API Google Maps requise',
+              style: AppText.serif(color: AppColors.text2, fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Configure ta clé dans Paramètres → Clés API',
+              style: AppText.sans(color: AppColors.text3, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'APIs requises : Maps JavaScript API + Geocoding API',
+              style: AppText.sans(color: AppColors.text3, fontSize: 11),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.map_outlined,
+                size: 48, color: AppColors.text3),
+            const SizedBox(height: 14),
+            Text(
+              'Carte des domaines',
+              style: AppText.serif(color: AppColors.text2, fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: AppText.sans(color: AppColors.text3, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final totalWines = _pins.fold<int>(0, (s, p) => s + p.wines.length);
+    final totalBottles = _pins.fold<int>(0, (s, p) => s + p.totalBottles);
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: HtmlElementView(viewType: _viewType),
+        ),
+        Positioned(
+          bottom: 16,
+          left: 16,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.bg2.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.place, size: 16, color: AppColors.gold),
+                const SizedBox(width: 8),
+                Text(
+                  '${_pins.length} domaine${_pins.length > 1 ? 's' : ''}',
+                  style: AppText.sans(
+                    color: AppColors.gold2,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                _sep(),
+                Text(
+                  '$totalWines vin${totalWines > 1 ? 's' : ''}',
+                  style:
+                      AppText.sans(color: AppColors.text2, fontSize: 12),
+                ),
+                _sep(),
+                Text(
+                  '$totalBottles bouteille${totalBottles > 1 ? 's' : ''}',
+                  style:
+                      AppText.sans(color: AppColors.text3, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sep() => Container(
+        width: 1,
+        height: 14,
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        color: AppColors.border,
+      );
+}

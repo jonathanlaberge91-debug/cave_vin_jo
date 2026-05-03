@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fiche PDF Art Déco – Design 9 retravaillé</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #2a2a2a; font-family: system-ui; display: flex; flex-direction: column; align-items: center; gap: 60px; padding: 40px; }
+.label { color: #ccc; font-size: 18px; margin-bottom: 8px; text-align: center; }
+.page { width: 794px; height: 1123px; background: #fff; overflow: hidden; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+
+<script>
+const wine = {
+  name: "Château Margaux",
+  vintage: "2015",
+  producer: "Château Margaux",
+  type: "Rouge",
+  format: "750 ML",
+  country: "France",
+  region: "Bordeaux",
+  appellation: "Margaux",
+  village: "Margaux",
+  climat: "Les Gondats",
+  domaine: "Château Margaux",
+  grapes: [
+    { name: "Cabernet Sauvignon", pct: 75 },
+    { name: "Merlot", pct: 20 },
+    { name: "Petit Verdot", pct: 5 }
+  ],
+  alcohol: "13.5%",
+  address: "33 Avenue Georges V, 33460 Margaux-Cantenac, France",
+  drinkFrom: 2025,
+  drinkPeak: 2035,
+  drinkTo: 2060,
+  rating: 99,
+  wineDescription: "Le Château Margaux 2015 est un vin d'exception qui incarne la quintessence de l'appellation Margaux. Le nez dévoile un bouquet complexe et envoûtant de cassis mûr, de violette, de cèdre noble et de subtiles notes de graphite et d'épices douces. En bouche, l'attaque est soyeuse et caressante, avec une texture d'une finesse remarquable. Les tanins sont d'un grain exceptionnel — à la fois présents et fondus — offrant une structure élégante sans jamais dominer. La palette aromatique se déploie avec des couches successives de fruits noirs, de réglisse, de tabac fin et une minéralité qui ancre le vin dans son terroir. La finale est d'une longueur prodigieuse, dépassant aisément la minute, avec une persistance aromatique qui mêle fraîcheur florale et profondeur terreuse. Ce millésime 2015, considéré comme l'un des plus grands de la propriété, allie la puissance d'une année solaire à la grâce aérienne caractéristique de Margaux.",
+  domaineDescription: "Le Château Margaux est l'un des cinq Premiers Grands Crus Classés du mythique classement de 1855, et le seul à porter le même nom que son appellation. Le domaine s'étend sur 262 hectares au cœur du Médoc, dont 87 hectares sont consacrés à la vigne — 82 hectares en rouge et 5 en blanc. Le vignoble repose sur une croupe de graves günziennes profondes, un terroir d'exception qui confère aux vins leur finesse et leur complexité légendaires. Dirigé depuis 1977 par la famille Mentzelopoulos, sous l'impulsion de Corinne Mentzelopoulos, le château a connu une renaissance qualitative spectaculaire. Paul Pontallier, directeur technique pendant plus de 30 ans, puis Aurélien Valance qui lui a succédé, ont porté le vin à des sommets d'excellence. Le chai, conçu par l'architecte Norman Foster, est un chef-d'œuvre architectural qui allie tradition bordelaise et modernité. Le Château Margaux produit trois vins : le Grand Vin, le Pavillon Rouge (second vin rouge) et le Pavillon Blanc (100% Sauvignon Blanc).",
+  critiques: [
+    { critic: "Robert Parker", score: "99/100" },
+    { critic: "James Suckling", score: "99/100" },
+    { critic: "Jancis Robinson", score: "19/20" },
+    { critic: "Jane Anson", score: "98/100" }
+  ],
+  photo: "https://images.vivino.com/thumbs/ApnOiGjkT5Kc33OHgNb9dA_375x500.jpg"
+};
+
+function donutSVG(size, thickness, segments) {
+  const cx = size/2, cy = size/2, r = size/2 - 4, innerR = r - thickness;
+  const colors = ['#8b6914', '#c9a96e', '#e8d5a3'];
+  let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+  let startAngle = -90;
+  segments.forEach((seg, i) => {
+    const angle = (seg.pct / 100) * 360;
+    const endAngle = startAngle + angle;
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad), y2 = cy + r * Math.sin(endRad);
+    const x3 = cx + innerR * Math.cos(endRad), y3 = cy + innerR * Math.sin(endRad);
+    const x4 = cx + innerR * Math.cos(startRad), y4 = cy + innerR * Math.sin(startRad);
+    const la = angle > 180 ? 1 : 0;
+    svg += `<path d="M${x1} ${y1} A${r} ${r} 0 ${la} 1 ${x2} ${y2} L${x3} ${y3} A${innerR} ${innerR} 0 ${la} 0 ${x4} ${y4}Z" fill="${colors[i]}"/>`;
+    startAngle = endAngle;
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function render() {
+  const c = document.body;
+
+  c.innerHTML += `
+  <div class="label">Design 9 — retravaillé</div>
+  <div class="page" style="font-family: 'Didot', 'Bodoni MT', Georgia, serif; color: #1a1a1a; background: #fffdf5; padding: 40px 48px; position:relative; display:flex; flex-direction:column;">
+    <!-- Double border -->
+    <div style="position:absolute;top:18px;left:18px;right:18px;bottom:18px;border:1px solid #c9a96e;pointer-events:none;"></div>
+    <div style="position:absolute;top:22px;left:22px;right:22px;bottom:22px;border:1px solid #8b6914;pointer-events:none;"></div>
+
+    <!-- Top label -->
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="display:inline-flex; align-items:center; gap:20px;">
+        <div style="height:1.5px; width:80px; background:#8b6914;"></div>
+        <div style="font-size:9px; letter-spacing:5px; color:#8b6914;">FICHE DE COLLECTION</div>
+        <div style="height:1.5px; width:80px; background:#8b6914;"></div>
+      </div>
+    </div>
+
+    <!-- Header: photo + titre + note -->
+    <div style="display:flex; align-items:center; gap:28px; margin-bottom:18px;">
+      <img src="${wine.photo}" style="width:120px; height:180px; object-fit:contain;">
+      <div style="flex:1;">
+        <div style="font-size:40px; font-weight:bold; line-height:1.1;">${wine.name}</div>
+        <div style="font-size:28px; font-weight:bold; color:#8b6914; margin-top:4px;">${wine.vintage}</div>
+        <div style="font-size:14px; color:#666; margin-top:6px;">${wine.producer} · ${wine.type} · ${wine.format}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:52px; font-weight:bold; color:#8b6914; line-height:1;">${wine.rating}</div>
+        <div style="font-size:10px; color:#999; letter-spacing:2px;">/100</div>
+      </div>
+    </div>
+
+    <div style="height:2px; background:#8b6914; margin-bottom:16px;"></div>
+
+    <!-- Info row: Origine + Cépages + Dégustation -->
+    <div style="display:flex; align-items:center; gap:28px; margin-bottom:18px;">
+      <div style="flex:1;">
+        <div style="font-size:10px; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">ORIGINE</div>
+        <div style="display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:11px;">
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Pays</span><span style="color:#333;">${wine.country}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Région</span><span style="color:#333;">${wine.region}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Appellation</span><span style="color:#333;">${wine.appellation}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Village</span><span style="color:#333;">${wine.village}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Climat</span><span style="color:#333;">${wine.climat}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Domaine</span><span style="color:#333;">${wine.domaine}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Alcool</span><span style="color:#333;">${wine.alcohol}</span>
+          <span style="color:#8b6914; font-size:9px; letter-spacing:1px;">Adresse</span><span style="color:#333; font-size:10px;">${wine.address}</span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:6px;">CÉPAGES</div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          ${donutSVG(90, 20, wine.grapes)}
+          <div style="text-align:left;">
+            ${wine.grapes.map((g, i) => {
+              const colors = ['#8b6914', '#c9a96e', '#e8d5a3'];
+              return `<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                <div style="width:10px;height:10px;border-radius:2px;background:${colors[i]};"></div>
+                <span style="font-size:10px;">${g.name} ${g.pct}%</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fenêtre de dégustation pleine largeur -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:10px; text-align:center;">FENÊTRE DE DÉGUSTATION</div>
+      <div style="position:relative; height:36px; margin:0 30px;">
+        <div style="position:absolute; top:16px; left:0; right:0; height:3px; background:linear-gradient(to right, #e8d5a3, #8b6914 ${((wine.drinkPeak-wine.drinkFrom)/(wine.drinkTo-wine.drinkFrom))*100}%, #e8d5a3); border-radius:2px;"></div>
+        <div style="position:absolute; top:8px; left:0; text-align:center;">
+          <div style="width:18px;height:18px;border-radius:50%;background:#8b6914;margin:0 auto;"></div>
+          <div style="font-size:12px; font-weight:bold; color:#8b6914; margin-top:6px;">${wine.drinkFrom}</div>
+          <div style="font-size:8px; color:#999;">Dès</div>
+        </div>
+        <div style="position:absolute; top:4px; left:calc(${((wine.drinkPeak-wine.drinkFrom)/(wine.drinkTo-wine.drinkFrom))*100}% - 14px); text-align:center;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#c9a96e;border:3px solid #8b6914;margin:0 auto;"></div>
+          <div style="font-size:14px; font-weight:bold; color:#8b6914; margin-top:6px;">${wine.drinkPeak}</div>
+          <div style="font-size:8px; color:#999;">Apogée</div>
+        </div>
+        <div style="position:absolute; top:8px; right:0; text-align:center;">
+          <div style="width:18px;height:18px;border-radius:50%;background:#8b6914;margin:0 auto;"></div>
+          <div style="font-size:12px; font-weight:bold; color:#8b6914; margin-top:6px;">${wine.drinkTo}</div>
+          <div style="font-size:8px; color:#999;">Avant</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1.5px; background:linear-gradient(to right, #8b6914, transparent, #8b6914); margin-bottom:16px; margin-top:24px;"></div>
+
+    <!-- Descriptions -->
+    <div style="display:flex; gap:28px; flex:1; margin-bottom:16px;">
+      <div style="flex:1;">
+        <div style="font-size:10px; font-weight:bold; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">NOTES DE DÉGUSTATION</div>
+        <p style="font-size:11.5px; line-height:1.6; text-align:justify;">${wine.wineDescription}</p>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:10px; font-weight:bold; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">LE DOMAINE</div>
+        <p style="font-size:11.5px; line-height:1.6; text-align:justify;">${wine.domaineDescription}</p>
+      </div>
+    </div>
+
+    <!-- Critiques en bas -->
+    <div style="border-top:2px solid #8b6914; padding-top:14px;">
+      <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:10px; text-align:center;">CRITIQUES</div>
+      <div style="display:flex; gap:10px;">
+        ${wine.critiques.map(cr => `
+          <div style="flex:1; border:1.5px solid #8b6914; padding:10px; text-align:center;">
+            <div style="font-size:11px; color:#555;">${cr.critic}</div>
+            <div style="font-size:20px; font-weight:bold; color:#8b6914; margin-top:4px;">${cr.score}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
