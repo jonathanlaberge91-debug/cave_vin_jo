@@ -72,7 +72,18 @@
       "PowerShell(npm list *)",
       "PowerShell(Remove-Item *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Fix mobile wine detail: responsive padding, single-column origin, smaller title *)"
+      "Bash(git commit -m 'Fix mobile wine detail: responsive padding, single-column origin, smaller title *)",
+      "Bash(git push *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(gh *)",
+      "PowerShell(winget install *)",
+      "PowerShell(gh auth *)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); where.exe gcloud 2>$null)",
+      "PowerShell(gcloud auth list *)",
+      "PowerShell(gcloud iam service-accounts list *)",
+      "PowerShell(gcloud iam service-accounts create *)",
+      "PowerShell(gcloud projects add-iam-policy-binding cave-vin-jo *)",
+      "PowerShell(gh secret *)"
     ]
   }
 }
