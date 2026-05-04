@@ -27,6 +27,9 @@ String _buildHtml(Wine wine, List<Bottle> bottles) {
   final legend = _buildLegend(grapeParts);
   final timeline = _buildTimeline(wine.drinkFrom, wine.drinkPeak, wine.drinkTo);
 
+  final nameLen = wine.name.length;
+  final nameFontSize = nameLen > 30 ? 28 : nameLen > 20 ? 34 : 40;
+
   final critiquesHtml = wine.critiques.map((c) => '''
     <div style="flex:1; border:1.5px solid #8b6914; padding:10px; text-align:center;">
       <div style="font-size:11px; color:#555;">${_esc(c.source)}</div>
@@ -45,7 +48,7 @@ String _buildHtml(Wine wine, List<Bottle> bottles) {
 @page { size: A4; margin: 0; }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, serif; color:#1a1a1a; background:#fffdf5; }
-.page { width:210mm; height:297mm; padding:40px 48px; position:relative; display:flex; flex-direction:column; }
+.page { width:210mm; height:297mm; padding:40px 48px; position:relative; display:flex; flex-direction:column; overflow:hidden; }
 .border1 { position:absolute;top:18px;left:18px;right:18px;bottom:18px;border:1px solid #c9a96e;pointer-events:none; }
 .border2 { position:absolute;top:22px;left:22px;right:22px;bottom:22px;border:1px solid #8b6914;pointer-events:none; }
 @media print {
@@ -69,7 +72,7 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
   <div style="display:flex; align-items:center; gap:28px; margin-bottom:18px;">
     ${wine.photoUrl != null ? '<img src="${_esc(wine.photoUrl!)}" style="width:120px; height:180px; object-fit:contain;" crossorigin="anonymous">' : '<div style="width:120px;height:180px;background:#f0ead8;display:flex;align-items:center;justify-content:center;font-size:40px;color:#c9a96e;">🍷</div>'}
     <div style="flex:1;">
-      <div style="font-size:40px; font-weight:bold; line-height:1.1;">${_esc(wine.name)}</div>
+      <div style="font-size:${nameFontSize}px; font-weight:bold; line-height:1.1;">${_esc(wine.name)}</div>
       <div style="font-size:28px; font-weight:bold; color:#8b6914; margin-top:4px;">$vintage</div>
       <div style="font-size:14px; color:#666; margin-top:6px;">${_esc(wine.producer)} · $type · $format</div>
     </div>
@@ -97,21 +100,21 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
 
   $timeline
 
-  <div style="height:1.5px; background:linear-gradient(to right, #8b6914, transparent, #8b6914); margin-bottom:16px; margin-top:24px;"></div>
+  <div style="height:1.5px; background:linear-gradient(to right, #8b6914, transparent, #8b6914); margin-bottom:14px; margin-top:18px;"></div>
 
-  <div style="display:flex; gap:28px; flex:1; margin-bottom:16px;">
-    <div style="flex:1;">
+  <div style="display:flex; gap:28px; flex:1; min-height:0; margin-bottom:16px;">
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <div style="font-size:10px; font-weight:bold; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">NOTES DE DÉGUSTATION</div>
-      <p style="font-size:11.5px; line-height:1.6; text-align:justify;">${_esc(wine.wineDescription)}</p>
+      <p style="font-size:11px; line-height:1.55; text-align:justify; overflow:hidden; flex:1; min-height:0;">${_esc(wine.wineDescription)}</p>
     </div>
-    <div style="flex:1;">
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <div style="font-size:10px; font-weight:bold; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">LE DOMAINE</div>
-      <p style="font-size:11.5px; line-height:1.6; text-align:justify;">${_esc(wine.domaineDescription)}</p>
+      <p style="font-size:11px; line-height:1.55; text-align:justify; overflow:hidden; flex:1; min-height:0;">${_esc(wine.domaineDescription)}</p>
     </div>
   </div>
 
-  <div style="border-top:2px solid #8b6914; padding-top:14px;">
-    <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:10px; text-align:center;">CRITIQUES</div>
+  <div style="border-top:2px solid #8b6914; padding-top:10px; flex-shrink:0;">
+    <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:8px; text-align:center;">CRITIQUES</div>
     <div style="display:flex; gap:10px;">
       $critiquesHtml
     </div>
