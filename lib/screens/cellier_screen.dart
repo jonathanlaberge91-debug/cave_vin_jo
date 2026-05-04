@@ -29,9 +29,11 @@ class CellierScreen extends StatefulWidget {
 }
 
 class _CellierScreenState extends State<CellierScreen> {
+  static const _cloudUrl = 'https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy';
   final _isDragging = ValueNotifier<bool>(false);
   List<CellarStatus>? _physical;
   String _bridgeUrl = 'http://localhost:8765';
+  bool _useCloud = false;
   Timer? _bridgeTimer;
   final Set<int> _sending = {};
 
@@ -56,14 +58,28 @@ class _CellierScreenState extends State<CellierScreen> {
     _bridgeTimer = Timer.periodic(const Duration(seconds: 30), (_) => _fetchBridge());
   }
 
+  String get _activeUrl => _useCloud ? _cloudUrl : _bridgeUrl;
+
   Future<void> _fetchBridge() async {
+    if (!_useCloud) {
+      try {
+        final res = await http.get(Uri.parse('$_bridgeUrl/status-all')).timeout(const Duration(seconds: 5));
+        if (res.statusCode == 200) {
+          final list = (jsonDecode(res.body) as List)
+              .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
+              .toList();
+          if (mounted) setState(() { _physical = list; _useCloud = false; });
+          return;
+        }
+      } catch (_) {}
+    }
     try {
-      final res = await http.get(Uri.parse('$_bridgeUrl/status-all')).timeout(const Duration(seconds: 15));
+      final res = await http.get(Uri.parse('$_cloudUrl/status-all')).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
         final list = (jsonDecode(res.body) as List)
             .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
             .toList();
-        if (mounted) setState(() => _physical = list);
+        if (mounted) setState(() { _physical = list; _useCloud = true; });
       }
     } catch (_) {}
   }
@@ -83,10 +99,10 @@ class _CellierScreenState extends State<CellierScreen> {
     setState(() => _sending.add(idx));
     try {
       await http.post(
-        Uri.parse('$_bridgeUrl/set/$idx'),
+        Uri.parse('$_activeUrl/set/$idx'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'dps': dps, 'value': value}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
     } catch (_) {}
     if (mounted) setState(() => _sending.remove(idx));
     _fetchBridge();

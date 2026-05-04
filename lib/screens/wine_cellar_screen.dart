@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 
 const _defaultBridgeUrl = 'http://localhost:8765';
+const _cloudUrl = 'https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy';
 const _bridgeUrlKey = 'wine_cellr_bridge_url';
 
 class CellarStatus {
@@ -79,6 +80,7 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
   List<CellarStatus>? _cellars;
   String? _error;
   bool _loading = true;
+  bool _useCloud = false;
   Timer? _timer;
   String _bridgeUrl = _defaultBridgeUrl;
   final Set<int> _sendingFor = {};
@@ -110,30 +112,44 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
     _fetch();
   }
 
+  String get _activeUrl => _useCloud ? _cloudUrl : _bridgeUrl;
+
   Future<void> _fetch() async {
+    // Try local bridge first, then cloud fallback
+    if (!_useCloud) {
+      try {
+        final res = await http.get(Uri.parse('$_bridgeUrl/status-all')).timeout(const Duration(seconds: 5));
+        if (res.statusCode == 200) {
+          final list = (jsonDecode(res.body) as List)
+              .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
+              .toList();
+          if (mounted) setState(() { _cellars = list; _error = null; _loading = false; _useCloud = false; });
+          return;
+        }
+      } catch (_) {}
+    }
+    // Cloud fallback
     try {
-      final res = await http.get(Uri.parse('$_bridgeUrl/status-all')).timeout(const Duration(seconds: 15));
+      final res = await http.get(Uri.parse('$_cloudUrl/status-all')).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
         final list = (jsonDecode(res.body) as List)
             .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
             .toList();
-        if (mounted) setState(() { _cellars = list; _error = null; _loading = false; });
+        if (mounted) setState(() { _cellars = list; _error = null; _loading = false; _useCloud = true; });
       } else {
         if (mounted) setState(() { _error = 'Erreur ${res.statusCode}'; _loading = false; });
       }
-    } on http.ClientException {
-      if (mounted) setState(() { _error = 'Pont non connecté'; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() { _error = 'Erreur: ${e.runtimeType}'; _loading = false; });
+      if (mounted) setState(() { _error = 'Impossible de joindre les celliers'; _loading = false; });
     }
   }
 
   Future<void> _rawSend(int cellarIndex, String dps, dynamic value) async {
     await http.post(
-      Uri.parse('$_bridgeUrl/set/$cellarIndex'),
+      Uri.parse('$_activeUrl/set/$cellarIndex'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'dps': dps, 'value': value}),
-    ).timeout(const Duration(seconds: 10));
+    ).timeout(const Duration(seconds: 15));
   }
 
   Future<void> _send(int cellarIndex, String dps, dynamic value) async {
