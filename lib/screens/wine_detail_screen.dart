@@ -254,8 +254,11 @@ class _DialogBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _HeroPhoto(wine: wine),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(40, 28, 40, 32),
+        LayoutBuilder(builder: (context, constraints) {
+        final compact = constraints.maxWidth < 500;
+        final hPad = compact ? 20.0 : 40.0;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(hPad, 28, hPad, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -263,7 +266,7 @@ class _DialogBody extends StatelessWidget {
                 wine.name,
                 style: AppText.serif(
                   color: AppColors.text,
-                  fontSize: 36,
+                  fontSize: compact ? 26 : 36,
                   fontWeight: FontWeight.w500,
                   height: 1.1,
                 ),
@@ -321,7 +324,8 @@ class _DialogBody extends StatelessWidget {
               _BottlesSection(wine: wine, bottles: bottles),
             ],
           ),
-        ),
+        );
+        }),
       ],
     );
   }
@@ -618,31 +622,38 @@ class _OriginSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return _Section(
-      title: 'Origine',
-      child: Column(
-        children: [
-          for (var i = 0; i < entries.length; i += 2)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _KvLine(label: entries[i].$1, value: entries[i].$2)),
-                const SizedBox(width: 36),
-                Expanded(
-                  child: i + 1 < entries.length
-                      ? _KvLine(
-                          label: entries[i + 1].$1,
-                          value: entries[i + 1].$2,
-                        )
-                      : const SizedBox.shrink(),
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 420;
+      return _Section(
+        title: 'Origine',
+        child: Column(
+          children: [
+            if (compact)
+              for (final e in entries)
+                _KvLine(label: e.$1, value: e.$2, compactLabel: true)
+            else
+              for (var i = 0; i < entries.length; i += 2)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _KvLine(label: entries[i].$1, value: entries[i].$2)),
+                    const SizedBox(width: 36),
+                    Expanded(
+                      child: i + 1 < entries.length
+                          ? _KvLine(
+                              label: entries[i + 1].$1,
+                              value: entries[i + 1].$2,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          if (wine.domainAddress.isNotEmpty)
-            _KvLine(label: 'Adresse', value: wine.domainAddress, fullWidth: true),
-        ],
-      ),
-    );
+            if (wine.domainAddress.isNotEmpty)
+              _KvLine(label: 'Adresse', value: wine.domainAddress, fullWidth: true, compactLabel: compact),
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -650,10 +661,12 @@ class _KvLine extends StatelessWidget {
   final String label;
   final String value;
   final bool fullWidth;
+  final bool compactLabel;
   const _KvLine({
     required this.label,
     required this.value,
     this.fullWidth = false,
+    this.compactLabel = false,
   });
 
   @override
@@ -670,7 +683,7 @@ class _KvLine extends StatelessWidget {
         textBaseline: TextBaseline.alphabetic,
         children: [
           SizedBox(
-            width: 110,
+            width: compactLabel ? 80 : 110,
             child: Text(
               label.toUpperCase(),
               style: AppText.sans(

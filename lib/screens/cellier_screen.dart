@@ -68,6 +68,16 @@ class _CellierScreenState extends State<CellierScreen> {
     } catch (_) {}
   }
 
+  int? _findPhysicalIndex(Cellar c) {
+    if (_physical == null) return null;
+    final vName = (c.name.isEmpty ? 'Cellier ${c.number}' : c.name).toUpperCase();
+    for (var i = 0; i < _physical!.length; i++) {
+      final key = _physical![i].name.trim().split(RegExp(r'\s+')).last.toUpperCase();
+      if (key.length <= 2 && vName.contains(key)) return i;
+    }
+    return null;
+  }
+
   Future<void> _sendDps(int idx, String dps, dynamic value) async {
     if (_sending.contains(idx)) return;
     setState(() => _sending.add(idx));
@@ -160,27 +170,21 @@ class _CellierScreenState extends State<CellierScreen> {
   }
 
   Widget _buildMobileCellars(List<Cellar> cellars) {
-    return ValueListenableBuilder<int>(
-      valueListenable: CavePreferencesService.cellarZoom,
-      builder: (context, zoom, _) {
-        final cellSize = _cellSizeFromZoom(zoom);
-        return StreamBuilder<List<Wine>>(
-          stream: CaveService.wines(),
-          builder: (context, winesSnap) {
-            final wines = winesSnap.data ?? [];
-            final winesById = {for (final w in wines) w.id: w};
+    return StreamBuilder<List<Wine>>(
+      stream: CaveService.wines(),
+      builder: (context, winesSnap) {
+        final wines = winesSnap.data ?? [];
+        final winesById = {for (final w in wines) w.id: w};
 
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              itemCount: cellars.length + 1,
-              itemBuilder: (context, i) {
-                if (i == 0) return _buildMobileAddCellarBtn(cellars);
-                final c = cellars[i - 1];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildMobileCellarCard(c, winesById, cellSize, cellarIndex: i - 1),
-                );
-              },
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          itemCount: cellars.length + 1,
+          itemBuilder: (context, i) {
+            if (i == 0) return _buildMobileAddCellarBtn(cellars);
+            final c = cellars[i - 1];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _buildMobileCellarCard(c, winesById, 0, cellarIndex: i - 1),
             );
           },
         );
@@ -222,7 +226,7 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
-  Widget _buildMobileCellarCard(Cellar c, Map<String, Wine> winesById, double cellSize, {int cellarIndex = -1}) {
+  Widget _buildMobileCellarCard(Cellar c, Map<String, Wine> winesById, double _, {int cellarIndex = -1}) {
     return StreamBuilder<List<Bottle>>(
       stream: CaveService.bottlesByCellar(c.id),
       builder: (context, bottlesSnap) {
@@ -238,7 +242,8 @@ class _CellierScreenState extends State<CellierScreen> {
           }
         }
         final occupiedCount = anchors.length;
-        final status = _physical != null && cellarIndex >= 0 && cellarIndex < _physical!.length ? _physical![cellarIndex] : null;
+        final pIdx = _findPhysicalIndex(c);
+        final status = pIdx != null ? _physical![pIdx] : null;
 
         return Container(
           decoration: BoxDecoration(
@@ -263,7 +268,7 @@ class _CellierScreenState extends State<CellierScreen> {
                         ),
                       ),
                     ),
-                    if (status != null) _buildTempControls(status, cellarIndex),
+                    if (status != null) _buildTempControls(status, pIdx!),
                     if (status != null) const SizedBox(width: 10),
                     Text(
                       '$occupiedCount/${c.totalSlots}',
@@ -272,10 +277,18 @@ class _CellierScreenState extends State<CellierScreen> {
                   ],
                 ),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+              Padding(
                 padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                child: _buildGridStatic(c, occupied, winesById, cellSize: cellSize, anchors: anchors),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    const labelW = 24.0;
+                    const gap = 1.0;
+                    final availW = constraints.maxWidth - labelW;
+                    final fitCellSize = (availW - gap * (c.cols - 1)) / c.cols;
+                    final mobileCellSize = fitCellSize.clamp(8.0, 44.0);
+                    return _buildGridStatic(c, occupied, winesById, cellSize: mobileCellSize, anchors: anchors);
+                  },
+                ),
               ),
             ],
           ),
@@ -345,7 +358,8 @@ class _CellierScreenState extends State<CellierScreen> {
         }
         final occupiedCount = anchors.length;
         final freeCount = c.totalSlots - occupiedCount;
-        final status = _physical != null && cellarIndex >= 0 && cellarIndex < _physical!.length ? _physical![cellarIndex] : null;
+        final pIdx = _findPhysicalIndex(c);
+        final status = pIdx != null ? _physical![pIdx] : null;
 
         return Container(
           decoration: BoxDecoration(
@@ -369,7 +383,7 @@ class _CellierScreenState extends State<CellierScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    if (status != null) _buildTempControls(status, cellarIndex),
+                    if (status != null) _buildTempControls(status, pIdx!),
                     if (status != null) const SizedBox(width: 10),
                     Text(
                       '$occupiedCount/${c.totalSlots} bouteilles',
