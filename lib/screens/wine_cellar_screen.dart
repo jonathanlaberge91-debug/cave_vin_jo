@@ -233,15 +233,17 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        if (_loading)
+        if (_loading && _cellars == null)
           const Center(child: Padding(
             padding: EdgeInsets.only(top: 60),
             child: CircularProgressIndicator(color: AppColors.gold),
           )),
-        if (_error != null)
-          _ErrorCard(message: _error!, bridgeUrl: _bridgeUrl,
+        if (_error != null && _cellars == null)
+          _OfflineBanner(
+            bridgeUrl: _bridgeUrl,
             onRetry: () { setState(() { _loading = true; _error = null; }); _fetch(); },
-            onConfigure: _showBridgeUrlDialog),
+            onConfigure: _showBridgeUrlDialog,
+          ),
         if (_cellars != null)
           for (var i = 0; i < _cellars!.length; i++) ...[
             _CellarCard(status: _cellars![i], index: i, sending: _sendingFor.contains(i), onSend: _send),
@@ -266,47 +268,63 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  final String message;
+class _OfflineBanner extends StatelessWidget {
   final String bridgeUrl;
   final VoidCallback onRetry;
   final VoidCallback onConfigure;
-  const _ErrorCard({required this.message, required this.bridgeUrl, required this.onRetry, required this.onConfigure});
+  const _OfflineBanner({required this.bridgeUrl, required this.onRetry, required this.onConfigure});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.bg2, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x40C62828)),
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Column(
+      child: Row(
         children: [
-          const Icon(Icons.power_off_outlined, color: Color(0xFFE8667A), size: 44),
-          const SizedBox(height: 14),
-          Text(message, style: AppText.sans(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text('Lancer "node server.js" dans tuya_bridge/\npuis vérifier l\'URL : $bridgeUrl',
-            style: AppText.sans(color: AppColors.text3, fontSize: 12), textAlign: TextAlign.center),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF1A1408),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                child: Text('Réessayer', style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13)),
+          const Icon(Icons.wifi_off_rounded, color: AppColors.text3, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Celliers hors ligne', style: AppText.sans(color: AppColors.text2, fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  'Connexion au pont impossible. Vérifiez que vous êtes sur le même réseau Wi-Fi que vos celliers.',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border2),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: onConfigure,
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.text2, side: const BorderSide(color: AppColors.border2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                child: Text('Configurer URL', style: AppText.sans(fontSize: 13)),
+              child: const Icon(Icons.refresh, size: 16, color: AppColors.text2),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onConfigure,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border2),
               ),
-            ],
+              child: const Icon(Icons.settings_outlined, size: 16, color: AppColors.text2),
+            ),
           ),
         ],
       ),
