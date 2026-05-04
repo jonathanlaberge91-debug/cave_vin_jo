@@ -260,25 +260,22 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  'Cave de\nJonathan Laberge',
-                  style: AppText.serif(
-                    color: AppColors.gold2,
-                    fontSize: 24,
-                    height: 1.0,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 48,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'GESTIONNAIRE DE VINS',
-                  style: AppText.sans(
-                    color: AppColors.text3,
-                    fontSize: 10,
-                    letterSpacing: 1.1,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Cave de\nJonathan Laberge',
+                    style: AppText.serif(
+                      color: AppColors.gold2,
+                      fontSize: 20,
+                      height: 1.15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
