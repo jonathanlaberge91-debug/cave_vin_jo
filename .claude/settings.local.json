@@ -84,7 +84,8 @@
       "PowerShell(gcloud projects add-iam-policy-binding cave-vin-jo *)",
       "PowerShell(gh secret *)",
       "Bash(where npm *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "PowerShell(ls C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\functions 2>$null; if \\(-not $?\\) { \"No functions dir\" })"
     ]
   }
 }

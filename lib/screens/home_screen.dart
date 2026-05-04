@@ -186,22 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: InputBorder.none,
                       ),
                     )
-                  : Row(
-                      children: [
-                        Image.asset(
-                          'assets/images/logo.png',
-                          height: 32,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          _items[_selectedIndex].label!,
-                          style: AppText.serif(
-                            color: AppColors.gold2,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ],
-                    ),
+                  : const _AppBranding(compact: true),
               actions: [
                 IconButton(
                   icon: Icon(
@@ -260,26 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
-            child: Row(
-              children: [
-                Image.asset(
-                  'assets/images/logo.png',
-                  height: 48,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Cave de\nJonathan Laberge',
-                    style: AppText.serif(
-                      color: AppColors.gold2,
-                      fontSize: 20,
-                      height: 1.15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: const _AppBranding(compact: false),
           ),
           Expanded(
             child: ListView(
@@ -1685,5 +1651,34 @@ class _DrunkRowState extends State<_DrunkRow> {
           overflow: TextOverflow.ellipsis,
         );
     }
+  }
+}
+
+class _AppBranding extends StatelessWidget {
+  final bool compact;
+  const _AppBranding({required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final logoH = compact ? 32.0 : 48.0;
+    final fontSize = compact ? 16.0 : 20.0;
+
+    return Row(
+      children: [
+        Image.asset('assets/images/logo.png', height: logoH),
+        SizedBox(width: compact ? 10 : 12),
+        Expanded(
+          child: Text(
+            'Cave de\nJonathan Laberge',
+            style: AppText.serif(
+              color: AppColors.gold2,
+              fontSize: fontSize,
+              height: 1.15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
