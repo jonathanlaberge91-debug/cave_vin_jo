@@ -54,14 +54,9 @@
     <img src="icons/Icon-512.png" alt="">
   </div>
   <script>
-    // Force clear old service worker caches on new deploy
     if ('serviceWorker' in navigator) {
-      caches.keys().then(function(names) {
-        names.forEach(function(name) { caches.delete(name); });
-      });
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        regs.forEach(function(r) { r.update(); });
-      });
+      // Replace any existing SW with one that kills itself and clears caches
+      navigator.serviceWorker.register('kill-sw.js').catch(function(){});
     }
   </script>
   <script src="flutter_bootstrap.js" async></script>
