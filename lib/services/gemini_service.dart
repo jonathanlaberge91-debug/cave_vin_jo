@@ -249,8 +249,8 @@ class GeminiService {
   "drinkPeak": 2030,
   "drinkTo": 2040,
   "marketValue": 85.00,
-  "wineDescription": "Description du vin en 9 phrases max. Inclure : robe, nez, bouche (structure, acidité, texture), finale, accords mets-vins.",
-  "domaineDescription": "Description du domaine en 9 phrases max. Inclure : histoire, philosophie de vinification, terroir, réputation.",
+  "wineDescription": "Description du vin en 12 phrases max. Inclure : robe, nez, bouche (structure, acidité, texture), finale, accords mets-vins.",
+  "domaineDescription": "Description du domaine en 12 phrases max. Inclure : histoire, philosophie de vinification, terroir, réputation.",
   "critiques": [
     {
       "source": "Nom du critique ou de la publication (ex: Robert Parker / Wine Advocate, James Suckling, Jancis Robinson, Decanter, Vinous, Wine Spectator, La Revue du Vin de France)",
