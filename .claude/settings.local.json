@@ -71,9 +71,8 @@
       "PowerShell(Start-Process -FilePath \"node\" -ArgumentList \"server.js\" -WorkingDirectory \"C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\tuya_bridge\" -WindowStyle Hidden)",
       "PowerShell(npm list *)",
       "PowerShell(Remove-Item *)",
-      "Bash(git add *)",
-      "Bash(git commit -m 'Fix mobile wine detail: responsive padding, single-column origin, smaller title *)",
-      "Bash(git push *)",
+      "Bash(git *)",
+      "PowerShell(git *)",
       "PowerShell(New-Item *)",
       "PowerShell(gh *)",
       "PowerShell(winget install *)",
@@ -83,7 +82,9 @@
       "PowerShell(gcloud iam service-accounts list *)",
       "PowerShell(gcloud iam service-accounts create *)",
       "PowerShell(gcloud projects add-iam-policy-binding cave-vin-jo *)",
-      "PowerShell(gh secret *)"
+      "PowerShell(gh secret *)",
+      "Bash(where npm *)",
+      "Bash(npm list *)"
     ]
   }
 }
