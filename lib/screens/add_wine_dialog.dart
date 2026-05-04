@@ -101,7 +101,12 @@ class _AddWineDialogState extends State<AddWineDialog> {
     final w = widget.wine;
     if (w == null) return;
     _name.text = w.name;
-    if (w.vintage != null) _vintage.text = w.vintage.toString();
+    _aiName.text = w.name;
+    if (w.domaine.isNotEmpty) _aiDomaine.text = w.domaine;
+    if (w.vintage != null) {
+      _vintage.text = w.vintage.toString();
+      _aiVintage.text = w.vintage.toString();
+    }
     _producer.text = w.producer;
     _appellation.text = w.appellation;
     _country.text = w.country;
