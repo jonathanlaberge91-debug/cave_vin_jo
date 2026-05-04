@@ -232,7 +232,7 @@ class GeminiService {
 
   static const _jsonFormat = '''
 {
-  "name": "nom complet du vin",
+  "name": "nom du vin SANS millésime, SANS année, SANS producteur (ex: Château Margaux, pas Château Margaux 2015)",
   "producer": "producteur / château",
   "vintage": 2015,
   "appellation": "appellation d'origine",

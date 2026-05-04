@@ -145,15 +145,37 @@ String _buildOriginGrid(Wine wine, String alcohol) {
 
 List<({String name, int pct})> _parseGrapes(String grapes) {
   if (grapes.isEmpty) return [];
-  final parts = grapes.split(RegExp(r'[,;]'));
+  final parts = grapes.split(RegExp(r'[,;/]'));
   final result = <({String name, int pct})>[];
   for (final p in parts) {
-    final m = RegExp(r'(.+?)\s+(\d+)\s*%').firstMatch(p.trim());
-    if (m != null) {
-      result.add((name: m.group(1)!.trim(), pct: int.parse(m.group(2)!)));
-    } else {
-      result.add((name: p.trim(), pct: 0));
+    final trimmed = p.trim();
+    if (trimmed.isEmpty) continue;
+    final m1 = RegExp(r'(.+?)\s+(\d+)\s*%').firstMatch(trimmed);
+    if (m1 != null) {
+      result.add((name: m1.group(1)!.trim(), pct: int.parse(m1.group(2)!)));
+      continue;
     }
+    final m2 = RegExp(r'(\d+)\s*%\s+(.+)').firstMatch(trimmed);
+    if (m2 != null) {
+      result.add((name: m2.group(2)!.trim(), pct: int.parse(m2.group(1)!)));
+      continue;
+    }
+    final m3 = RegExp(r'(.+?)\s*\((\d+)\s*%\)').firstMatch(trimmed);
+    if (m3 != null) {
+      result.add((name: m3.group(1)!.trim(), pct: int.parse(m3.group(2)!)));
+      continue;
+    }
+    final m4 = RegExp(r'(.+?)\s*:\s*(\d+)\s*%').firstMatch(trimmed);
+    if (m4 != null) {
+      result.add((name: m4.group(1)!.trim(), pct: int.parse(m4.group(2)!)));
+      continue;
+    }
+    final cleaned = trimmed.replaceAll(RegExp(r'\s*\d+%?\s*'), '').trim();
+    result.add((name: cleaned.isNotEmpty ? cleaned : trimmed, pct: 0));
+  }
+  if (result.isNotEmpty && result.every((g) => g.pct == 0)) {
+    final equal = (100 ~/ result.length);
+    return [for (final g in result) (name: g.name, pct: equal)];
   }
   return result;
 }
