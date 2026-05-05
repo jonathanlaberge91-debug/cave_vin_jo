@@ -142,6 +142,8 @@ class _StatsBody extends StatelessWidget {
           return _CepageBarCard(wines: wines, cave: cave);
         }
         return _CepageDonutCard(wines: wines, cave: cave);
+      case StatItem.cepagesPart:
+        return _CepagePartDonutCard(wines: wines, cave: cave);
     }
   }
 
@@ -1800,6 +1802,23 @@ class _CepageBarCard extends StatelessWidget {
   }
 }
 
+Map<String, int> _parseGrapeCounts(Map<String, Wine> wines, List<Bottle> cave) {
+  final counts = <String, int>{};
+  for (final b in cave) {
+    final w = wines[b.wineId];
+    if (w == null || w.grapes.isEmpty) continue;
+    final grapes = w.grapes.split(RegExp(r'[,;/]'));
+    final main = grapes.first
+        .trim()
+        .replaceAll(RegExp(r'\s*\(\s*\d+\s*%?\s*\)\s*'), '') // remove (85%) or (85)
+        .replaceAll(RegExp(r'\s*\d+%?\s*'), '') // remove standalone 85% or 85
+        .trim();
+    if (main.isEmpty) continue;
+    counts[main] = (counts[main] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ── 21. Cépages donut ──
 class _CepageDonutCard extends StatelessWidget {
   final Map<String, Wine> wines;
@@ -1808,15 +1827,7 @@ class _CepageDonutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final counts = <String, int>{};
-    for (final b in cave) {
-      final w = wines[b.wineId];
-      if (w == null || w.grapes.isEmpty) continue;
-      final grapes = w.grapes.split(RegExp(r'[,;/]'));
-      final main = grapes.first.trim().replaceAll(RegExp(r'\s*\d+%?\s*'), '').trim();
-      if (main.isEmpty) continue;
-      counts[main] = (counts[main] ?? 0) + 1;
-    }
+    final counts = _parseGrapeCounts(wines, cave);
     if (counts.isEmpty) return const SizedBox.shrink();
 
     var sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
@@ -1844,56 +1855,143 @@ class _CepageDonutCard extends StatelessWidget {
     ];
 
     final entries = display.entries.toList();
-    final sections = List.generate(entries.length, (i) {
-      return PieChartSectionData(
-        value: entries[i].value.toDouble(),
-        title: '${entries[i].value}',
-        color: palette[i % palette.length],
-        radius: 38,
-        titleStyle: AppText.sans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-      );
-    });
+    final sections = List.generate(entries.length, (i) => PieChartSectionData(
+      value: entries[i].value.toDouble(),
+      title: '${entries[i].value}',
+      color: palette[i % palette.length],
+      radius: 38,
+      titleStyle: AppText.sans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+    ));
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final legendItems = List.generate(entries.length, (i) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: palette[i % palette.length], shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Flexible(child: Text('${entries[i].key} (${entries[i].value})',
+            style: AppText.sans(color: AppColors.text2, fontSize: 11),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ]),
+    ));
+    final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
+
+    if (isMobile) {
+      return SizedBox(
+        height: 360,
+        child: _StatCard(
+          title: 'Cépages principaux ($total)',
+          child: Column(children: [
+            SizedBox(height: 180, child: chart),
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 4, children: legendItems),
+          ]),
+        ),
+      );
+    }
     return SizedBox(
       height: 300,
       child: _StatCard(
         title: 'Cépages principaux ($total)',
-        child: Row(
-          children: [
-            Expanded(
-              child: PieChart(PieChartData(
-                sections: sections,
-                centerSpaceRadius: 40,
-                sectionsSpace: 2,
-              )),
-            ),
-            const SizedBox(width: 16),
-            Flexible(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(entries.length, (i) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 10, height: 10, decoration: BoxDecoration(color: palette[i % palette.length], shape: BoxShape.circle)),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text('${entries[i].key} (${entries[i].value})',
-                              style: AppText.sans(color: AppColors.text2, fontSize: 11),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ],
+        child: Row(children: [
+          Expanded(child: chart),
+          const SizedBox(width: 16),
+          Flexible(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: legendItems,
+          )),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── 22. Cépages - part en cave (%) ──
+class _CepagePartDonutCard extends StatelessWidget {
+  final Map<String, Wine> wines;
+  final List<Bottle> cave;
+  const _CepagePartDonutCard({required this.wines, required this.cave});
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = _parseGrapeCounts(wines, cave);
+    if (counts.isEmpty) return const SizedBox.shrink();
+
+    var sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final total = sorted.fold<int>(0, (s, e) => s + e.value);
+
+    Map<String, int> display;
+    if (sorted.length > 8) {
+      final top = sorted.sublist(0, 8);
+      final other = sorted.sublist(8).fold<int>(0, (s, e) => s + e.value);
+      display = {for (final e in top) e.key: e.value, 'Autres': other};
+    } else {
+      display = {for (final e in sorted) e.key: e.value};
+    }
+
+    final palette = [
+      const Color(0xFFB23A48),
+      const Color(0xFFE6D27A),
+      const Color(0xFF7CD492),
+      const Color(0xFF70B8E8),
+      const Color(0xFFC490F0),
+      const Color(0xFFE08A3C),
+      const Color(0xFFE89DA6),
+      const Color(0xFFB8C9D9),
+      AppColors.text3,
+    ];
+
+    final entries = display.entries.toList();
+    int pct(int v) => (v / total * 100).round();
+
+    final sections = List.generate(entries.length, (i) => PieChartSectionData(
+      value: entries[i].value.toDouble(),
+      title: '${pct(entries[i].value)}%',
+      color: palette[i % palette.length],
+      radius: 38,
+      titleStyle: AppText.sans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+    ));
+
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final legendItems = List.generate(entries.length, (i) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: palette[i % palette.length], shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Flexible(child: Text('${entries[i].key} (${pct(entries[i].value)}%)',
+            style: AppText.sans(color: AppColors.text2, fontSize: 11),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ]),
+    ));
+    final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
+
+    if (isMobile) {
+      return SizedBox(
+        height: 360,
+        child: _StatCard(
+          title: 'Cépages - part en cave',
+          child: Column(children: [
+            SizedBox(height: 180, child: chart),
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 4, children: legendItems),
+          ]),
         ),
+      );
+    }
+    return SizedBox(
+      height: 300,
+      child: _StatCard(
+        title: 'Cépages - part en cave',
+        child: Row(children: [
+          Expanded(child: chart),
+          const SizedBox(width: 16),
+          Flexible(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: legendItems,
+          )),
+        ]),
       ),
     );
   }

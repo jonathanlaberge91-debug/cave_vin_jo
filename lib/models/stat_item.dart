@@ -26,7 +26,8 @@ enum StatItem {
   distributionPrix('Distribution des prix', chartType: StatChartType.barres, allowedTypes: [StatChartType.barres, StatChartType.ligne], isPriceRelated: true),
   maturiteCalendrier('Calendrier de maturité', chartType: StatChartType.ligne, allowedTypes: [StatChartType.ligne, StatChartType.barres]),
   distributionMillesimes('Distribution des millésimes', chartType: StatChartType.barres, allowedTypes: [StatChartType.barres, StatChartType.ligne, StatChartType.donut]),
-  cepagesDonut('Cépages principaux', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut, StatChartType.barresH]);
+  cepagesDonut('Cépages principaux', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut, StatChartType.barresH]),
+  cepagesPart('Cépages - part en cave', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut]);
 
   final String label;
   final StatChartType chartType;
@@ -51,6 +52,7 @@ enum StatItem {
     maturiteCalendrier,
     distributionMillesimes,
     cepagesDonut,
+    cepagesPart,
   ];
 
   static const List<List<StatItem>> defaultLayout = [
@@ -67,6 +69,6 @@ enum StatItem {
     [distributionPrix],
     [maturiteCalendrier],
     [distributionMillesimes],
-    [cepagesDonut],
+    [cepagesDonut, cepagesPart],
   ];
 }
