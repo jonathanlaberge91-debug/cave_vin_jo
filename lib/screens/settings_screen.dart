@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bottle.dart';
@@ -33,56 +33,44 @@ class SettingsScreen extends StatelessWidget {
         0 => const _SettingsSection(
             title: 'Cave',
             description:
-                'Personnalise les colonnes affichées dans le tableau « Ma Cave ».',
+                'Personnalise les colonnes affichÃ©es dans le tableau Â« Ma Cave Â».',
             child: _CaveContent(),
           ),
         1 => const _SettingsSection(
             title: 'Celliers',
             description:
-                'Gère tes celliers : renomme, modifie ou supprime.',
+                'GÃ¨re tes celliers : renomme, modifie ou supprime.',
             child: _CellarSettingsContent(),
           ),
         2 => _SettingsSection(
             title: 'Bouteilles bues',
             description:
-                'Personnalise les colonnes affichées dans le tableau des bouteilles bues.',
+                'Personnalise les colonnes affichÃ©es dans le tableau des bouteilles bues.',
             child: _DrunkColumnsContent(),
           ),
         3 => const _SettingsSection(
             title: 'Liste de souhaits',
             description:
-                'Personnalise les colonnes affichées dans la liste de souhaits.',
+                'Personnalise les colonnes affichÃ©es dans la liste de souhaits.',
             child: _WishColumnsContent(),
           ),
         4 => const _SettingsSection(
             title: 'Statistiques',
             description:
-                'Personnalise l\'ordre des statistiques et masque les informations financières.',
+                'Personnalise l\'ordre des statistiques et masque les informations financiÃ¨res.',
             child: _StatsSettingsContent(),
           ),
         5 => const _SettingsSection(
-            title: 'Clés API',
+            title: 'ClÃ©s API',
             description:
-                'Services tiers utilisés par l\'application (analyse de photos, recherche, etc.).',
+                'Services tiers utilisÃ©s par l\'application (analyse de photos, recherche, etc.).',
             child: _ApiKeysContent(),
-          ),
-        6 => const _SettingsSection(
-            title: 'Capteurs Govee',
-            description:
-                'Liste tes capteurs de température et d\'humidité Govee et associe-les à tes celliers.',
-            child: _GoveeContent(),
-          ),
-        7 => const _SettingsSection(
-            title: 'Wine CellR',
-            description:
-                'Configure le pont local Wine CellR pour contrôler tes appareils Tuya.',
-            child: _WineCellrContent(),
           ),
         _ => const _SettingsSection(
             title: 'Actualisation',
             icon: Icons.refresh_outlined,
             description:
-                'Relance des estimations Gemini pour la valeur marché et la période de garde de tes vins.',
+                'Relance des estimations Gemini pour la valeur marchÃ© et la pÃ©riode de garde de tes vins.',
             child: _ActualisationContent(),
           ),
       },
@@ -270,10 +258,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Google Gemini',
           description:
-              'Utilisé pour remplir automatiquement les fiches de vin (identification, fenêtre de dégustation, descriptions).',
+              'UtilisÃ© pour remplir automatiquement les fiches de vin (identification, fenÃªtre de dÃ©gustation, descriptions).',
           child: _buildKeyField(
             controller: _geminiKey,
-            hint: 'Coller votre clé API Gemini ici…',
+            hint: 'Coller votre clÃ© API Gemini iciâ€¦',
             obscure: _obscureGemini,
             onToggle: () => setState(() => _obscureGemini = !_obscureGemini),
             onSave: _saveGemini,
@@ -285,10 +273,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Google Maps',
           description:
-              'Utilisé pour la carte des domaines. Nécessite les APIs « Maps JavaScript API » et « Geocoding API » activées dans Google Cloud Console.',
+              'UtilisÃ© pour la carte des domaines. NÃ©cessite les APIs Â« Maps JavaScript API Â» et Â« Geocoding API Â» activÃ©es dans Google Cloud Console.',
           child: _buildKeyField(
             controller: _mapsKey,
-            hint: 'Coller votre clé API Google Maps ici…',
+            hint: 'Coller votre clÃ© API Google Maps iciâ€¦',
             obscure: _obscureMaps,
             onToggle: () => setState(() => _obscureMaps = !_obscureMaps),
             onSave: _saveMaps,
@@ -300,10 +288,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Govee',
           description:
-              'Capteurs de température et humidité Govee. Clé disponible sur developer.govee.com.',
+              'Capteurs de tempÃ©rature et humiditÃ© Govee. ClÃ© disponible sur developer.govee.com.',
           child: _buildKeyField(
             controller: _goveeKey,
-            hint: 'Coller votre clé API Govee ici…',
+            hint: 'Coller votre clÃ© API Govee iciâ€¦',
             obscure: _obscureGovee,
             onToggle: () => setState(() => _obscureGovee = !_obscureGovee),
             onSave: _saveGovee,
@@ -384,7 +372,7 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
                 ),
               ),
               child: Text(
-                saved ? 'Sauvegardé' : 'Sauvegarder',
+                saved ? 'SauvegardÃ©' : 'Sauvegarder',
                 style: AppText.sans(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -407,7 +395,7 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
             ),
             const SizedBox(width: 6),
             Text(
-              configured ? 'Clé configurée' : 'Aucune clé configurée',
+              configured ? 'ClÃ© configurÃ©e' : 'Aucune clÃ© configurÃ©e',
               style: AppText.sans(
                 color: configured
                     ? const Color(0xFF6AAA7A)
@@ -433,12 +421,12 @@ class _CaveContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo, Vin et Qté sont toujours affichées.',
+              'Active les colonnes que tu veux voir. Photo, Vin et QtÃ© sont toujours affichÃ©es.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetToDefaults(),
               child: Text(
-                'Réinitialiser',
+                'RÃ©initialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -583,12 +571,12 @@ class _DrunkColumnsContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
+              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichÃ©es.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetDrunkToDefaults(),
               child: Text(
-                'Réinitialiser',
+                'RÃ©initialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -727,12 +715,12 @@ class _WishColumnsContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
+              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichÃ©es.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetWishToDefaults(),
               child: Text(
-                'Réinitialiser',
+                'RÃ©initialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -876,7 +864,7 @@ class _CellarSettingsContent extends StatelessWidget {
             final cellars = snap.data ?? [];
             if (cellars.isEmpty) {
               return Text(
-                'Aucun cellier configuré.',
+                'Aucun cellier configurÃ©.',
                 style: AppText.sans(color: AppColors.text3, fontSize: 13),
               );
             }
@@ -996,7 +984,7 @@ class _CellarSettingsRow extends StatelessWidget {
                 border: Border.all(color: const Color(0x40C9A84C)),
               ),
               child: Text(
-                'N°${c.number}',
+                'NÂ°${c.number}',
                 style: AppText.sans(
                   color: AppColors.gold2,
                   fontSize: 11,
@@ -1018,7 +1006,7 @@ class _CellarSettingsRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${c.cols} colonnes × ${c.rows} rangées · ${c.totalSlots} cases',
+                    '${c.cols} colonnes Ã— ${c.rows} rangÃ©es Â· ${c.totalSlots} cases',
                     style: AppText.sans(color: AppColors.text3, fontSize: 11),
                   ),
                 ],
@@ -1090,7 +1078,7 @@ class _CellarSettingsRow extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF6E2A20),
-            content: Text('Le numéro ${result.number} est déjà utilisé.',
+            content: Text('Le numÃ©ro ${result.number} est dÃ©jÃ  utilisÃ©.',
                 style: AppText.sans(color: AppColors.text)),
           ),
         );
@@ -1120,7 +1108,7 @@ class _CellarSettingsRow extends StatelessWidget {
           style: AppText.serif(color: AppColors.gold2, fontSize: 18),
         ),
         content: Text(
-          'Le cellier ${c.number}${c.name.isEmpty ? '' : ' (${c.name})'} sera supprimé. Cette action est irréversible.',
+          'Le cellier ${c.number}${c.name.isEmpty ? '' : ' (${c.name})'} sera supprimÃ©. Cette action est irrÃ©versible.',
           style: AppText.sans(color: AppColors.text2, fontSize: 13),
         ),
         actions: [
@@ -1233,7 +1221,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
       children: [
         _SettingsSubsection(
           title: 'Masquer les prix',
-          description: 'Cache toutes les statistiques liées aux prix et valeurs financières.',
+          description: 'Cache toutes les statistiques liÃ©es aux prix et valeurs financiÃ¨res.',
           child: InkWell(
             onTap: () => _toggleHidePrices(!_hidePrices),
             borderRadius: BorderRadius.circular(10),
@@ -1275,7 +1263,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
         const SizedBox(height: 24),
         _SettingsSubsection(
           title: 'Disposition des statistiques',
-          description: 'Glisse les rangées pour réorganiser. Utilise les boutons pour grouper ou séparer.',
+          description: 'Glisse les rangÃ©es pour rÃ©organiser. Utilise les boutons pour grouper ou sÃ©parer.',
           trailing: [
             TextButton(
               onPressed: () {
@@ -1289,7 +1277,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
                 CavePreferencesService.resetStatsToDefaults();
               },
               child: Text(
-                'Réinitialiser',
+                'RÃ©initialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -1405,7 +1393,7 @@ class _StatRowTile extends StatelessWidget {
                 ),
                 if (canMerge)
                   Tooltip(
-                    message: 'Grouper avec la rangée suivante',
+                    message: 'Grouper avec la rangÃ©e suivante',
                     child: InkWell(
                       onTap: onMerge,
                       borderRadius: BorderRadius.circular(6),
@@ -1706,7 +1694,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
   String? _marketSubtitle(MarketHistoryEntry? e, BottleFormat format) {
     if (e == null) return null;
     final val = (e.value * _marketMultiplier(format)).toStringAsFixed(0);
-    return '$val \$ · ${_formatDate(e.timestamp)}';
+    return '$val \$ Â· ${_formatDate(e.timestamp)}';
   }
 
   String? _gardeSubtitle(GardeHistoryEntry? e, BottleFormat format) {
@@ -1714,9 +1702,9 @@ class _ActualisationContentState extends State<_ActualisationContent>
     final offset = format.gardeOffset;
     final parts = <String>[];
     if (e.drinkFrom != null) parts.add('De ${e.drinkFrom! + offset}');
-    if (e.drinkPeak != null) parts.add('Apogée ${e.drinkPeak! + offset}');
-    if (e.drinkTo != null) parts.add('Jusqu\'à ${e.drinkTo! + offset}');
-    return '${parts.isEmpty ? '—' : parts.join(' · ')} · ${_formatDate(e.timestamp)}';
+    if (e.drinkPeak != null) parts.add('ApogÃ©e ${e.drinkPeak! + offset}');
+    if (e.drinkTo != null) parts.add('Jusqu\'Ã  ${e.drinkTo! + offset}');
+    return '${parts.isEmpty ? 'â€”' : parts.join(' Â· ')} Â· ${_formatDate(e.timestamp)}';
   }
 
   @override
@@ -1750,8 +1738,8 @@ class _ActualisationContentState extends State<_ActualisationContent>
             unselectedLabelStyle: AppText.sans(fontSize: 13),
             dividerHeight: 0,
             tabs: const [
-              Tab(text: 'Valeur marché'),
-              Tab(text: 'Période de garde'),
+              Tab(text: 'Valeur marchÃ©'),
+              Tab(text: 'PÃ©riode de garde'),
             ],
           ),
         ),
@@ -1809,7 +1797,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
     return _SettingsSubsection(
       title: 'Refresh automatique',
       description:
-          'Actualise automatiquement un pourcentage de tes vins à intervalle régulier via Cloud Function.',
+          'Actualise automatiquement un pourcentage de tes vins Ã  intervalle rÃ©gulier via Cloud Function.',
       child: Column(
         children: [
           InkWell(
@@ -2041,7 +2029,7 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''} · ${widget.format.label}',
+                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''} Â· ${widget.format.label}',
                         style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2219,7 +2207,7 @@ class _GardeHistoryRow extends StatelessWidget {
       if (entry.drinkPeak != null) '${shift(entry.drinkPeak)}',
       if (entry.drinkTo != null) '${shift(entry.drinkTo)}',
     ];
-    final range = parts.join(' → ');
+    final range = parts.join(' â†’ ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2268,366 +2256,3 @@ Widget _refreshButton({required bool refreshing, required VoidCallback onTap}) {
   );
 }
 
-// ─── Govee ────────────────────────────────────────────────────────────────────
-
-class _GoveeContent extends StatefulWidget {
-  const _GoveeContent();
-  @override
-  State<_GoveeContent> createState() => _GoveeContentState();
-}
-
-class _GoveeContentState extends State<_GoveeContent> {
-  List<GoveeSensor>? _sensors;
-  List<Cellar> _cellars = [];
-  StreamSubscription<List<Cellar>>? _cellarSub;
-  Timer? _timer;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _cellarSub = CellarService.watch().listen((list) {
-      if (mounted) setState(() => _cellars = list);
-    });
-    _load();
-    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _fetch());
-  }
-
-  @override
-  void dispose() {
-    _cellarSub?.cancel();
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    final cached = await GoveeService.loadCache();
-    if (mounted && cached.isNotEmpty) setState(() => _sensors = cached);
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    if (!GoveeService.isConfigured) return;
-    if (mounted) setState(() => _loading = true);
-    try {
-      final devices = await GoveeService.fetchDevices();
-      if (devices.isEmpty) {
-        if (mounted) setState(() { _sensors = []; _loading = false; });
-        return;
-      }
-      final statuses = await Future.wait(
-        devices.map((d) => GoveeService.fetchStatus(d.device, d.sku, d.name)),
-      );
-      final results = statuses.whereType<GoveeSensor>().toList();
-      if (mounted) {
-        setState(() { _sensors = results; _loading = false; });
-        GoveeService.saveCache(results);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  static double? _goveeTemp(double? raw) {
-    if (raw == null) return null;
-    if (raw > 1000) return raw / 100;
-    if (raw > 45) return (raw - 32) * 5 / 9;
-    return raw;
-  }
-
-  Future<void> _assign(GoveeSensor sensor, String? cellarId, String? position) async {
-    for (final c in _cellars) {
-      if (c.goveeTopDevice == sensor.device) await CellarService.update(c.id, clearGoveeTop: true);
-      if (c.goveeBottomDevice == sensor.device) await CellarService.update(c.id, clearGoveeBottom: true);
-    }
-    if (cellarId == null || position == null) return;
-    if (position == 'top') {
-      await CellarService.update(cellarId, goveeTopDevice: sensor.device);
-    } else {
-      await CellarService.update(cellarId, goveeBottomDevice: sensor.device);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!GoveeService.isConfigured) {
-      return Text(
-        'Clé API Govee non configurée.\nVa dans Clés API pour la configurer.',
-        style: AppText.sans(color: AppColors.text3, fontSize: 13, height: 1.6),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (_loading)
-              const SizedBox(
-                width: 14, height: 14,
-                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold),
-              ),
-            const Spacer(),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: _fetch,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.bg3,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.refresh, size: 14, color: AppColors.text2),
-                      const SizedBox(width: 4),
-                      Text('Rafraîchir', style: AppText.sans(color: AppColors.text2, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_sensors == null)
-          const Center(child: CircularProgressIndicator(color: AppColors.gold))
-        else if (_sensors!.isEmpty)
-          Text('Aucun capteur Govee trouvé.', style: AppText.sans(color: AppColors.text3, fontSize: 13))
-        else
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [for (final s in _sensors!) _buildCard(s)],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCard(GoveeSensor sensor) {
-    final tempC = _goveeTemp(sensor.temperature);
-    final hum = sensor.humidity;
-    Cellar? assignedCellar;
-    String? assignedPosition;
-    for (final c in _cellars) {
-      if (c.goveeTopDevice == sensor.device) { assignedCellar = c; assignedPosition = 'top'; break; }
-      if (c.goveeBottomDevice == sensor.device) { assignedCellar = c; assignedPosition = 'bottom'; break; }
-    }
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bg2,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8, height: 8,
-                decoration: BoxDecoration(
-                  color: sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: (sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A)).withValues(alpha: 0.5), blurRadius: 4)],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(sensor.name, style: AppText.sans(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              if (tempC != null) ...[
-                const Icon(Icons.thermostat, size: 16, color: AppColors.gold2),
-                const SizedBox(width: 4),
-                Text('${tempC.toStringAsFixed(1)}°C', style: AppText.sans(color: AppColors.gold2, fontSize: 18, fontWeight: FontWeight.w700)),
-              ],
-              if (tempC != null && hum != null) const SizedBox(width: 14),
-              if (hum != null) ...[
-                const Icon(Icons.water_drop_outlined, size: 14, color: Color(0xFF70B8E8)),
-                const SizedBox(width: 3),
-                Text('${hum.toStringAsFixed(0)}%', style: AppText.sans(color: const Color(0xFF70B8E8), fontSize: 15, fontWeight: FontWeight.w600)),
-              ],
-              if (tempC == null && hum == null)
-                Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 16)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            sensor.online ? 'En ligne' : 'Hors ligne',
-            style: AppText.sans(color: sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A), fontSize: 10),
-          ),
-          const SizedBox(height: 10),
-          Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 10),
-          _buildAssignment(sensor, assignedCellar, assignedPosition),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssignment(GoveeSensor sensor, Cellar? current, String? position) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          height: 30,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(color: AppColors.bg3, borderRadius: BorderRadius.circular(6), border: Border.all(color: AppColors.border2)),
-          child: DropdownButton<String?>(
-            value: current?.id,
-            isExpanded: true,
-            underline: const SizedBox(),
-            isDense: true,
-            dropdownColor: AppColors.bg3,
-            style: AppText.sans(color: AppColors.text, fontSize: 11),
-            hint: Text('— Aucun cellier', style: AppText.sans(color: AppColors.text3, fontSize: 11)),
-            icon: const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.text3),
-            items: [
-              DropdownMenuItem<String?>(value: null, child: Text('— Aucun', style: AppText.sans(color: AppColors.text3, fontSize: 11))),
-              ..._cellars.map((c) => DropdownMenuItem<String?>(
-                value: c.id,
-                child: Text(c.name.isNotEmpty ? c.name : 'Cellier ${c.number}', style: AppText.sans(color: AppColors.text, fontSize: 11), overflow: TextOverflow.ellipsis),
-              )),
-            ],
-            onChanged: (cellarId) {
-              final pos = (current?.id == cellarId) ? (position ?? 'top') : 'top';
-              _assign(sensor, cellarId, cellarId == null ? null : pos);
-            },
-          ),
-        ),
-        if (current != null) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(child: _posBtn('Haut', position == 'top', () => _assign(sensor, current.id, 'top'))),
-              const SizedBox(width: 4),
-              Expanded(child: _posBtn('Bas', position == 'bottom', () => _assign(sensor, current.id, 'bottom'))),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _posBtn(String label, bool selected, VoidCallback onTap) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.gold.withValues(alpha: 0.15) : AppColors.bg3,
-            borderRadius: BorderRadius.circular(5),
-            border: Border.all(color: selected ? AppColors.gold : AppColors.border2),
-          ),
-          alignment: Alignment.center,
-          child: Text(label, style: AppText.sans(color: selected ? AppColors.gold : AppColors.text3, fontSize: 11, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Wine CellR ───────────────────────────────────────────────────────────────
-
-class _WineCellrContent extends StatefulWidget {
-  const _WineCellrContent();
-  @override
-  State<_WineCellrContent> createState() => _WineCellrContentState();
-}
-
-class _WineCellrContentState extends State<_WineCellrContent> {
-  late final TextEditingController _urlController;
-  bool _saved = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _urlController = TextEditingController();
-    _loadUrl();
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('wine_cellr_bridge_url');
-    if (mounted && saved != null && saved.isNotEmpty) {
-      setState(() => _urlController.text = saved);
-    }
-  }
-
-  Future<void> _save() async {
-    final url = _urlController.text.trim();
-    final prefs = await SharedPreferences.getInstance();
-    if (url.isEmpty) {
-      await prefs.remove('wine_cellr_bridge_url');
-    } else {
-      await prefs.setString('wine_cellr_bridge_url', url);
-    }
-    setState(() => _saved = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _saved = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SettingsSubsection(
-      title: 'Pont local (bridge)',
-      description: 'Adresse du serveur wine-cellr-bridge sur ton réseau local (ex : http://192.168.1.100:8765). En cas d\'indisponibilité, le cloud est utilisé automatiquement.',
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _urlController,
-              style: AppText.sans(color: AppColors.text, fontSize: 13),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: AppColors.bg3,
-                hintText: 'http://localhost:8765',
-                hintStyle: AppText.sans(color: AppColors.text3, fontSize: 12),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.gold)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              foregroundColor: const Color(0xFF1A1408),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(
-              _saved ? 'Sauvegardé' : 'Sauvegarder',
-              style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
