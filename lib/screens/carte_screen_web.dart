@@ -11,22 +11,33 @@ import '../services/cave_service.dart';
 import '../services/maps_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import '../widgets/cascade_filter.dart';
 import 'wine_detail_screen.dart';
+
+class _WineFormatEntry {
+  final Wine wine;
+  final String formatLabel;
+  final int count;
+
+  _WineFormatEntry({
+    required this.wine,
+    required this.formatLabel,
+    required this.count,
+  });
+}
 
 class _DomainPin {
   final GeoCoord coord;
   final String address;
   final String domaine;
-  final List<Wine> wines;
-  final Map<String, int> bottleCountByWine;
+  final List<_WineFormatEntry> entries;
   final int totalBottles;
 
   _DomainPin({
     required this.coord,
     required this.address,
     required this.domaine,
-    required this.wines,
-    required this.bottleCountByWine,
+    required this.entries,
     required this.totalBottles,
   });
 }
@@ -47,6 +58,9 @@ class _CarteScreenState extends State<CarteScreen> {
   String? _error;
   String _loadingStatus = 'Chargement des vins…';
   List<_DomainPin> _pins = [];
+  List<_DomainPin> _allPins = [];
+  CascadeFilterState _cascadeFilter = const CascadeFilterState();
+  List<CascadeFilterData> _filterData = [];
   Map<String, Wine> _winesById = {};
   late final String _mapDivId;
 
@@ -77,10 +91,11 @@ class _CarteScreenState extends State<CarteScreen> {
   }
 
   void _registerWineCallback() {
-    globalContext['_caveOpenWine'] = ((JSAny? wineId) {
+    globalContext['_caveOpenWine'] = ((JSAny? wineId, [JSAny? format]) {
       if (wineId == null) return;
       final id = (wineId as JSString).toDart;
-      _openWineDetail(id);
+      final fmt = format != null ? (format as JSString).toDart : null;
+      _openWineDetail(id, fmt);
     }).toJS;
   }
 
@@ -104,11 +119,14 @@ class _CarteScreenState extends State<CarteScreen> {
 ''');
   }
 
-  void _openWineDetail(String wineId) async {
+  void _openWineDetail(String wineId, [String? formatLabel]) async {
     final wine = _winesById[wineId];
     if (wine == null || !mounted) return;
-    final bottles = await CaveService.bottlesByWine(wineId).first;
-    if (!mounted) return;
+    var bottles = await CaveService.bottlesByWine(wineId).first;
+    if (formatLabel != null) {
+      bottles = bottles.where((b) => b.format.label == formatLabel).toList();
+    }
+    if (bottles.isEmpty || !mounted) return;
     _disableMapInteraction();
     await showWineDetail(context, wine: wine, bottles: bottles);
     if (mounted) _enableMapInteraction();
@@ -155,26 +173,33 @@ class _CarteScreenState extends State<CarteScreen> {
         }
         final coord = await MapsService.geocode(entry.key);
         if (coord != null) {
-          final countByWine = <String, int>{};
+          final formatEntries = <_WineFormatEntry>[];
           int total = 0;
-          final winesWithBottles = <Wine>[];
           for (final w in entry.value) {
-            final c = bottles.where((b) => b.wineId == w.id).length;
-            if (c > 0) {
-              countByWine[w.id] = c;
-              total += c;
-              winesWithBottles.add(w);
+            final wBottles = bottles.where((b) => b.wineId == w.id).toList();
+            if (wBottles.isEmpty) continue;
+            final byFormat = <String, int>{};
+            for (final b in wBottles) {
+              byFormat[b.format.label] = (byFormat[b.format.label] ?? 0) + 1;
+            }
+            for (final fe in byFormat.entries) {
+              formatEntries.add(_WineFormatEntry(
+                wine: w,
+                formatLabel: fe.key,
+                count: fe.value,
+              ));
+              total += fe.value;
             }
           }
-          if (winesWithBottles.isEmpty) continue;
+          if (formatEntries.isEmpty) continue;
+          final firstWine = formatEntries.first.wine;
           pins.add(_DomainPin(
             coord: coord,
             address: entry.key,
-            domaine: winesWithBottles.first.domaine.isNotEmpty
-                ? winesWithBottles.first.domaine
-                : winesWithBottles.first.name,
-            wines: winesWithBottles,
-            bottleCountByWine: countByWine,
+            domaine: firstWine.domaine.isNotEmpty
+                ? firstWine.domaine
+                : firstWine.name,
+            entries: formatEntries,
             totalBottles: total,
           ));
         }
@@ -189,7 +214,9 @@ class _CarteScreenState extends State<CarteScreen> {
         return;
       }
 
+      _allPins = pins;
       _pins = pins;
+      _filterData = _buildFilterData(pins);
 
       if (mounted) {
         setState(() => _loadingStatus = 'Chargement de Google Maps…');
@@ -257,20 +284,65 @@ class _CarteScreenState extends State<CarteScreen> {
     'petillant': 'PÉTILLANT',
   };
 
+  List<CascadeFilterData> _buildFilterData(List<_DomainPin> pins) {
+    final seen = <String>{};
+    final result = <CascadeFilterData>[];
+    for (final pin in pins) {
+      for (final entry in pin.entries) {
+        final w = entry.wine;
+        if (w.country.isEmpty && w.region.isEmpty) continue;
+        final key = '${w.country}|${w.region}|${w.appellation}|${w.climat}';
+        if (seen.add(key)) {
+          result.add(CascadeFilterData(
+            country: w.country,
+            region: w.region,
+            appellation: w.appellation,
+            climat: w.climat,
+          ));
+        }
+      }
+    }
+    return result;
+  }
+
+  List<_DomainPin> get _filteredPins {
+    if (_cascadeFilter.isEmpty) return _allPins;
+    return _allPins.where((pin) {
+      return pin.entries.any((e) {
+        final w = e.wine;
+        return _cascadeFilter.matchesWine(
+          country: w.country,
+          region: w.region,
+          appellation: w.appellation,
+          climat: w.climat,
+        );
+      });
+    }).toList();
+  }
+
+  void _onFilterChanged(CascadeFilterState f) {
+    setState(() {
+      _cascadeFilter = f;
+      _pins = _filteredPins;
+    });
+    _initializeMap();
+  }
+
   void _initializeMap() {
     final markersJson = _pins.map((p) {
-      final wineItems = p.wines.map((w) {
+      final wineItems = p.entries.map((e) {
+        final w = e.wine;
         final vintage = w.vintage != null ? ' ${w.vintage}' : '';
         final tc = _typeColors[w.type.name] ?? '#C9A84C';
         final tl = _typeLabels[w.type.name] ?? '';
-        final bc = p.bottleCountByWine[w.id] ?? 0;
         return {
           'id': w.id,
           'name': _esc(w.name),
           'vintage': vintage,
           'typeColor': tc,
           'typeLabel': tl,
-          'bottles': bc,
+          'format': _esc(e.formatLabel),
+          'count': e.count,
         };
       }).toList();
 
@@ -375,7 +447,7 @@ class _CarteScreenState extends State<CarteScreen> {
       '<div style="border-top:1px solid #2a2418;padding-top:8px">';
 
     m.wines.forEach(function(w) {
-      html += '<div onclick="window._caveOpenWine(\\'' + w.id + '\\')" ' +
+      html += '<div onclick="window._caveOpenWine(\\'' + w.id + '\\',\\'' + w.format + '\\')" ' +
         'style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px -8px;border-radius:8px;cursor:pointer;transition:background 0.15s" ' +
         'onmouseover="this.style.background=\\'#2a2418\\'" onmouseout="this.style.background=\\'transparent\\'">' +
 
@@ -384,7 +456,7 @@ class _CarteScreenState extends State<CarteScreen> {
 
         '<span style="flex:1;font-size:13px;font-weight:500;color:#E8E0D0">' + w.name + w.vintage + '</span>' +
 
-        '<span style="font-size:10px;color:#8a7a5a;white-space:nowrap">' + w.bottles + ' bout.</span>' +
+        '<span style="font-size:10px;color:#8a7a5a;white-space:nowrap">' + w.count + '× ' + w.format + '</span>' +
 
         '</div>';
     });
@@ -575,11 +647,27 @@ class _CarteScreenState extends State<CarteScreen> {
       );
     }
 
-    final totalWines = _pins.fold<int>(0, (s, p) => s + p.wines.length);
-    final totalBottles = _pins.fold<int>(0, (s, p) => s + p.totalBottles);
+    final filtered = _filteredPins;
+    final totalWines = filtered.fold<int>(0, (s, p) => s + p.entries.length);
+    final totalBottles = filtered.fold<int>(0, (s, p) => s + p.totalBottles);
 
-    return Stack(
+    return Column(
       children: [
+        if (_filterData.any((e) => e.country.isNotEmpty))
+          Container(
+            decoration: const BoxDecoration(
+              color: AppColors.bg2,
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            ),
+            child: CascadeFilterBar(
+              filter: _cascadeFilter,
+              allItems: _filterData,
+              onChanged: _onFilterChanged,
+            ),
+          ),
+        Expanded(
+          child: Stack(
+            children: [
         Positioned.fill(
           child: HtmlElementView(viewType: _viewType),
         ),
@@ -607,7 +695,7 @@ class _CarteScreenState extends State<CarteScreen> {
                 const Icon(Icons.place, size: 16, color: AppColors.gold),
                 const SizedBox(width: 8),
                 Text(
-                  '${_pins.length} domaine${_pins.length > 1 ? 's' : ''}',
+                  '${filtered.length} domaine${filtered.length > 1 ? 's' : ''}',
                   style: AppText.sans(
                     color: AppColors.gold2,
                     fontSize: 12,
@@ -628,6 +716,9 @@ class _CarteScreenState extends State<CarteScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+            ],
           ),
         ),
       ],
