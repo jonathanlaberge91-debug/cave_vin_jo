@@ -24,6 +24,16 @@ enum BottleFormat {
     }
   }
 
+  int get gardeOffset {
+    switch (this) {
+      case ml375:  return -3;
+      case ml750:  return 0;
+      case ml1500: return 3;
+      case ml3000: return 7;
+      case ml6000: return 12;
+    }
+  }
+
   static BottleFormat fromLabel(String? label) =>
       values.firstWhere((f) => f.label == label, orElse: () => ml750);
 }

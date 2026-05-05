@@ -1734,6 +1734,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
                 ? _marketSubtitle(_latestMarket[_wines[i].id])
                 : _gardeSubtitle(_latestGarde[_wines[i].id]),
             refreshing: refreshing.contains(_wines[i].id),
+            isMarket: isMarket,
             onRefresh: () => _refreshOne(_wines[i], isMarket: isMarket),
           ),
           if (i < _wines.length - 1) const SizedBox(height: 6),
@@ -1904,52 +1905,258 @@ class _ActualisationContentState extends State<_ActualisationContent>
   }
 }
 
-class _HistoryWineRow extends StatelessWidget {
+class _HistoryWineRow extends StatefulWidget {
   final Wine wine;
   final String? subtitle;
   final bool refreshing;
+  final bool isMarket;
   final VoidCallback onRefresh;
 
   const _HistoryWineRow({
     required this.wine,
     required this.subtitle,
     required this.refreshing,
+    required this.isMarket,
     required this.onRefresh,
   });
 
   @override
+  State<_HistoryWineRow> createState() => _HistoryWineRowState();
+}
+
+class _HistoryWineRowState extends State<_HistoryWineRow> {
+  bool _expanded = false;
+  bool _loading = false;
+  List<MarketHistoryEntry> _marketHistory = [];
+  List<GardeHistoryEntry> _gardeHistory = [];
+
+  Future<void> _loadHistory() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    if (widget.isMarket) {
+      final entries = await ActualisationService.getMarketHistory(widget.wine.id);
+      if (mounted) setState(() { _marketHistory = entries; _loading = false; });
+    } else {
+      final entries = await ActualisationService.getGardeHistory(widget.wine.id);
+      if (mounted) setState(() { _gardeHistory = entries; _loading = false; });
+    }
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String _fmtSource(String s) =>
+      s == 'initial' ? 'Initial' : s == 'auto' ? 'Auto' : 'Gemini';
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.bg3,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
               children: [
-                Text(
-                  '${wine.name}${wine.vintage != null ? ' ${wine.vintage}' : ''}',
-                  style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle ?? 'Aucune estimation',
-                  style: AppText.sans(
-                    color: subtitle != null ? AppColors.gold2 : AppColors.text3,
-                    fontSize: 11,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''}',
+                        style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle ?? 'Aucune estimation',
+                        style: AppText.sans(
+                          color: widget.subtitle != null ? AppColors.gold2 : AppColors.text3,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                InkWell(
+                  onTap: () {
+                    final nowExpanded = !_expanded;
+                    setState(() => _expanded = nowExpanded);
+                    if (nowExpanded) _loadHistory();
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg4,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border2),
+                    ),
+                    child: Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 15,
+                      color: AppColors.text2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _refreshButton(refreshing: widget.refreshing, onTap: widget.onRefresh),
               ],
             ),
           ),
-          _refreshButton(refreshing: refreshing, onTap: onRefresh),
+          if (_expanded) ...[
+            Divider(height: 1, color: AppColors.border),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(14),
+                child: Center(child: SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+                )),
+              )
+            else if (widget.isMarket)
+              _marketHistory.isEmpty
+                  ? _emptyHistory()
+                  : Column(children: [
+                      for (int i = 0; i < _marketHistory.length; i++) ...[
+                        if (i > 0) Divider(height: 1, color: AppColors.border),
+                        _MarketHistoryRow(
+                          entry: _marketHistory[i],
+                          prev: i + 1 < _marketHistory.length ? _marketHistory[i + 1] : null,
+                          date: _fmtDate(_marketHistory[i].timestamp),
+                          source: _fmtSource(_marketHistory[i].source),
+                        ),
+                      ],
+                    ])
+            else
+              _gardeHistory.isEmpty
+                  ? _emptyHistory()
+                  : Column(children: [
+                      for (int i = 0; i < _gardeHistory.length; i++) ...[
+                        if (i > 0) Divider(height: 1, color: AppColors.border),
+                        _GardeHistoryRow(
+                          entry: _gardeHistory[i],
+                          date: _fmtDate(_gardeHistory[i].timestamp),
+                          source: _fmtSource(_gardeHistory[i].source),
+                        ),
+                      ],
+                    ]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyHistory() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    child: Text('Aucun historique', style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+  );
+}
+
+class _MarketHistoryRow extends StatelessWidget {
+  final MarketHistoryEntry entry;
+  final MarketHistoryEntry? prev;
+  final String date;
+  final String source;
+
+  const _MarketHistoryRow({
+    required this.entry,
+    required this.date,
+    required this.source,
+    this.prev,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = prev != null ? entry.value - prev!.value : null;
+    final up = delta != null && delta > 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Text(date, style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.bg4,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(source, style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+          ),
+          const Spacer(),
+          if (delta != null && delta != 0) ...[
+            Icon(
+              up ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 11,
+              color: up ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
+            ),
+            const SizedBox(width: 2),
+            Text(
+              '${delta.abs().toStringAsFixed(0)} \$',
+              style: AppText.sans(
+                color: up ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Text(
+            '${entry.value.toStringAsFixed(0)} \$',
+            style: AppText.serif(color: AppColors.gold2, fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GardeHistoryRow extends StatelessWidget {
+  final GardeHistoryEntry entry;
+  final String date;
+  final String source;
+
+  const _GardeHistoryRow({
+    required this.entry,
+    required this.date,
+    required this.source,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[
+      if (entry.drinkFrom != null) '${entry.drinkFrom}',
+      if (entry.drinkPeak != null) '${entry.drinkPeak}',
+      if (entry.drinkTo != null) '${entry.drinkTo}',
+    ];
+    final range = parts.join(' → ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Text(date, style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.bg4,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(source, style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+          ),
+          const Spacer(),
+          Text(
+            range,
+            style: AppText.serif(color: AppColors.gold2, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
