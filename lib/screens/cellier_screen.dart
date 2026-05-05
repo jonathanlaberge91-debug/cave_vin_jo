@@ -603,7 +603,7 @@ class _CellierScreenState extends State<CellierScreen> {
     final Color lockColor = (status?.keyLock ?? false) ? const Color(0xFFE8667A) : const Color(0xFF7CD492);
     final double fillRatio = c.totalSlots > 0 ? occupiedCount / c.totalSlots : 0.0;
 
-    final double btnSize = compact ? 26.0 : 30.0;
+    final double btnSize = compact ? 24.0 : 30.0;
     final double tempFontSize = compact ? 17.0 : 21.0;
     final double sensorFontSize = compact ? 13.0 : 15.0;
     final double labelFontSize = compact ? 7.0 : 8.0;
@@ -640,7 +640,7 @@ class _CellierScreenState extends State<CellierScreen> {
 
     Widget consigneCol() {
       return Padding(
-        padding: EdgeInsets.fromLTRB(10, compact ? 8.0 : 10.0, 10, compact ? 8.0 : 10.0),
+        padding: EdgeInsets.fromLTRB(compact ? 8.0 : 10.0, compact ? 8.0 : 10.0, compact ? 8.0 : 10.0, compact ? 8.0 : 10.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -664,16 +664,16 @@ class _CellierScreenState extends State<CellierScreen> {
                     child: Center(child: Icon(Icons.remove, size: btnSize * 0.5, color: AppColors.text2)),
                   ),
                 ),
-                SizedBox(width: compact ? 8.0 : 10.0),
+                SizedBox(width: compact ? 5.0 : 10.0),
                 SizedBox(
-                  width: compact ? 44.0 : 52.0,
+                  width: compact ? 34.0 : 52.0,
                   child: Text(
                     hasTuya ? '$target$unit' : '—',
                     textAlign: TextAlign.center,
                     style: AppText.sans(color: AppColors.gold2, fontSize: tempFontSize, fontWeight: FontWeight.w700),
                   ),
                 ),
-                SizedBox(width: compact ? 8.0 : 10.0),
+                SizedBox(width: compact ? 5.0 : 10.0),
                 _ctrlTap(
                   onTap: (!hasTuya || busy) ? null : () {
                     setState(() => _optimisticTemp[p] = (target ?? 0) + 1);
@@ -760,6 +760,8 @@ class _CellierScreenState extends State<CellierScreen> {
           child: Text(
             c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppText.serif(color: AppColors.gold2, fontSize: compact ? 15.0 : 18.0, fontWeight: FontWeight.w600),
           ),
         ),
@@ -782,26 +784,36 @@ class _CellierScreenState extends State<CellierScreen> {
               ],
             ),
           ),
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: AppColors.border),
-              bottom: BorderSide(color: AppColors.border),
+        () {
+          final showTopGovee = !compact || topTemp != null || (c.goveeTopDevice?.isNotEmpty ?? false);
+          final showConsigne = !compact || hasTuya;
+          final showBottomGovee = !compact || bottomTemp != null || (c.goveeBottomDevice?.isNotEmpty ?? false);
+          if (!showTopGovee && !showConsigne && !showBottomGovee) return const SizedBox.shrink();
+          return Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.border),
+                bottom: BorderSide(color: AppColors.border),
+              ),
             ),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: 3, child: goveeCol(true, topTemp, topHum)),
-                Container(width: 1, color: AppColors.border),
-                Expanded(flex: 4, child: consigneCol()),
-                Container(width: 1, color: AppColors.border),
-                Expanded(flex: 3, child: goveeCol(false, bottomTemp, bottomHum)),
-              ],
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showTopGovee) ...[
+                    Expanded(flex: 3, child: goveeCol(true, topTemp, topHum)),
+                    if (showConsigne || showBottomGovee) Container(width: 1, color: AppColors.border),
+                  ],
+                  if (showConsigne) ...[
+                    Expanded(flex: 4, child: consigneCol()),
+                    if (showBottomGovee) Container(width: 1, color: AppColors.border),
+                  ],
+                  if (showBottomGovee) Expanded(flex: 3, child: goveeCol(false, bottomTemp, bottomHum)),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        }(),
         Padding(
           padding: EdgeInsets.fromLTRB(compact ? 12.0 : 16.0, compact ? 7.0 : 8.0, compact ? 12.0 : 16.0, compact ? 8.0 : 10.0),
           child: Row(
