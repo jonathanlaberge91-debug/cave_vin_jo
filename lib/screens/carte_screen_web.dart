@@ -652,6 +652,7 @@ class _CarteScreenState extends State<CarteScreen> {
     final totalBottles = filtered.fold<int>(0, (s, p) => s + p.totalBottles);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_filterData.any((e) => e.country.isNotEmpty))
           Container(

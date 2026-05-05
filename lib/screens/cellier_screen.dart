@@ -251,23 +251,31 @@ class _CellierScreenState extends State<CellierScreen> {
   }
 
   Widget _buildDesktopLayout(List<Cellar> cellars) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          StreamBuilder<List<Wine>>(
-            stream: _wineStream,
-            builder: (context, wSnap) {
-              final wines = wSnap.data ?? [];
-              if (wines.isEmpty) return const SizedBox.shrink();
-              return CascadeFilterBar(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        StreamBuilder<List<Wine>>(
+          stream: _wineStream,
+          builder: (context, wSnap) {
+            final wines = wSnap.data ?? [];
+            final filterData = wines.isEmpty ? <CascadeFilterData>[] : _buildFilterData(wines);
+            if (!filterData.any((e) => e.country.isNotEmpty)) return const SizedBox.shrink();
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.bg2,
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: CascadeFilterBar(
                 filter: widget.filter,
-                allItems: _buildFilterData(wines),
+                allItems: filterData,
                 onChanged: widget.onFilterChanged,
-              );
-            },
-          ),
-          Expanded(
+              ),
+            );
+          },
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -304,23 +312,31 @@ class _CellierScreenState extends State<CellierScreen> {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildMobileLayout(List<Cellar> cellars) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StreamBuilder<List<Wine>>(
           stream: _wineStream,
           builder: (context, wSnap) {
             final wines = wSnap.data ?? [];
-            if (wines.isEmpty) return const SizedBox.shrink();
-            return CascadeFilterBar(
-              filter: widget.filter,
-              allItems: _buildFilterData(wines),
-              onChanged: widget.onFilterChanged,
+            final filterData = wines.isEmpty ? <CascadeFilterData>[] : _buildFilterData(wines);
+            if (!filterData.any((e) => e.country.isNotEmpty)) return const SizedBox.shrink();
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.bg2,
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: CascadeFilterBar(
+                filter: widget.filter,
+                allItems: filterData,
+                onChanged: widget.onFilterChanged,
+              ),
             );
           },
         ),

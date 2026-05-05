@@ -303,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMain() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTopbar(),
         Expanded(
