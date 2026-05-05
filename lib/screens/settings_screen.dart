@@ -1,6 +1,4 @@
-﻿import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bottle.dart';
 import '../models/cave_column.dart';
 import '../models/cellar.dart';
@@ -20,6 +18,8 @@ import '../services/maps_service.dart';
 import '../dialogs/cellar_form_dialog.dart';
 import '../theme/app_text.dart';
 import '../theme/app_colors.dart';
+import 'govee_sensors_screen.dart';
+import 'wine_cellar_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final int section;
@@ -27,50 +27,52 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (section == 6) return const GoveeSensorsScreen();
+    if (section == 7) return const WineCellarScreen();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: switch (section) {
         0 => const _SettingsSection(
             title: 'Cave',
             description:
-                'Personnalise les colonnes affichÃ©es dans le tableau Â« Ma Cave Â».',
+                'Personnalise les colonnes affichées dans le tableau « Ma Cave ».',
             child: _CaveContent(),
           ),
         1 => const _SettingsSection(
             title: 'Celliers',
             description:
-                'GÃ¨re tes celliers : renomme, modifie ou supprime.',
+                'Gère tes celliers : renomme, modifie ou supprime.',
             child: _CellarSettingsContent(),
           ),
         2 => _SettingsSection(
             title: 'Bouteilles bues',
             description:
-                'Personnalise les colonnes affichÃ©es dans le tableau des bouteilles bues.',
+                'Personnalise les colonnes affichées dans le tableau des bouteilles bues.',
             child: _DrunkColumnsContent(),
           ),
         3 => const _SettingsSection(
             title: 'Liste de souhaits',
             description:
-                'Personnalise les colonnes affichÃ©es dans la liste de souhaits.',
+                'Personnalise les colonnes affichées dans la liste de souhaits.',
             child: _WishColumnsContent(),
           ),
         4 => const _SettingsSection(
             title: 'Statistiques',
             description:
-                'Personnalise l\'ordre des statistiques et masque les informations financiÃ¨res.',
+                'Personnalise l\'ordre des statistiques et masque les informations financières.',
             child: _StatsSettingsContent(),
           ),
         5 => const _SettingsSection(
-            title: 'ClÃ©s API',
+            title: 'Clés API',
             description:
-                'Services tiers utilisÃ©s par l\'application (analyse de photos, recherche, etc.).',
+                'Services tiers utilisés par l\'application (analyse de photos, recherche, etc.).',
             child: _ApiKeysContent(),
           ),
         _ => const _SettingsSection(
             title: 'Actualisation',
             icon: Icons.refresh_outlined,
             description:
-                'Relance des estimations Gemini pour la valeur marchÃ© et la pÃ©riode de garde de tes vins.',
+                'Relance des estimations Gemini pour la valeur marché et la période de garde de tes vins.',
             child: _ActualisationContent(),
           ),
       },
@@ -258,10 +260,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Google Gemini',
           description:
-              'UtilisÃ© pour remplir automatiquement les fiches de vin (identification, fenÃªtre de dÃ©gustation, descriptions).',
+              'Utilisé pour remplir automatiquement les fiches de vin (identification, fenêtre de dégustation, descriptions).',
           child: _buildKeyField(
             controller: _geminiKey,
-            hint: 'Coller votre clÃ© API Gemini iciâ€¦',
+            hint: 'Coller votre clé API Gemini ici…',
             obscure: _obscureGemini,
             onToggle: () => setState(() => _obscureGemini = !_obscureGemini),
             onSave: _saveGemini,
@@ -273,10 +275,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Google Maps',
           description:
-              'UtilisÃ© pour la carte des domaines. NÃ©cessite les APIs Â« Maps JavaScript API Â» et Â« Geocoding API Â» activÃ©es dans Google Cloud Console.',
+              'Utilisé pour la carte des domaines. Nécessite les APIs « Maps JavaScript API » et « Geocoding API » activées dans Google Cloud Console.',
           child: _buildKeyField(
             controller: _mapsKey,
-            hint: 'Coller votre clÃ© API Google Maps iciâ€¦',
+            hint: 'Coller votre clé API Google Maps ici…',
             obscure: _obscureMaps,
             onToggle: () => setState(() => _obscureMaps = !_obscureMaps),
             onSave: _saveMaps,
@@ -288,10 +290,10 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Govee',
           description:
-              'Capteurs de tempÃ©rature et humiditÃ© Govee. ClÃ© disponible sur developer.govee.com.',
+              'Capteurs de température et humidité Govee. Clé disponible sur developer.govee.com.',
           child: _buildKeyField(
             controller: _goveeKey,
-            hint: 'Coller votre clÃ© API Govee iciâ€¦',
+            hint: 'Coller votre clé API Govee ici…',
             obscure: _obscureGovee,
             onToggle: () => setState(() => _obscureGovee = !_obscureGovee),
             onSave: _saveGovee,
@@ -372,7 +374,7 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
                 ),
               ),
               child: Text(
-                saved ? 'SauvegardÃ©' : 'Sauvegarder',
+                saved ? 'Sauvegardé' : 'Sauvegarder',
                 style: AppText.sans(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -395,7 +397,7 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
             ),
             const SizedBox(width: 6),
             Text(
-              configured ? 'ClÃ© configurÃ©e' : 'Aucune clÃ© configurÃ©e',
+              configured ? 'Clé configurée' : 'Aucune clé configurée',
               style: AppText.sans(
                 color: configured
                     ? const Color(0xFF6AAA7A)
@@ -421,12 +423,12 @@ class _CaveContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo, Vin et QtÃ© sont toujours affichÃ©es.',
+              'Active les colonnes que tu veux voir. Photo, Vin et Qté sont toujours affichées.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetToDefaults(),
               child: Text(
-                'RÃ©initialiser',
+                'Réinitialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -571,12 +573,12 @@ class _DrunkColumnsContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichÃ©es.',
+              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetDrunkToDefaults(),
               child: Text(
-                'RÃ©initialiser',
+                'Réinitialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -715,12 +717,12 @@ class _WishColumnsContent extends StatelessWidget {
         return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
-              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichÃ©es.',
+              'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetWishToDefaults(),
               child: Text(
-                'RÃ©initialiser',
+                'Réinitialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -864,7 +866,7 @@ class _CellarSettingsContent extends StatelessWidget {
             final cellars = snap.data ?? [];
             if (cellars.isEmpty) {
               return Text(
-                'Aucun cellier configurÃ©.',
+                'Aucun cellier configuré.',
                 style: AppText.sans(color: AppColors.text3, fontSize: 13),
               );
             }
@@ -984,7 +986,7 @@ class _CellarSettingsRow extends StatelessWidget {
                 border: Border.all(color: const Color(0x40C9A84C)),
               ),
               child: Text(
-                'NÂ°${c.number}',
+                'N°${c.number}',
                 style: AppText.sans(
                   color: AppColors.gold2,
                   fontSize: 11,
@@ -1006,7 +1008,7 @@ class _CellarSettingsRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${c.cols} colonnes Ã— ${c.rows} rangÃ©es Â· ${c.totalSlots} cases',
+                    '${c.cols} colonnes × ${c.rows} rangées · ${c.totalSlots} cases',
                     style: AppText.sans(color: AppColors.text3, fontSize: 11),
                   ),
                 ],
@@ -1078,7 +1080,7 @@ class _CellarSettingsRow extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF6E2A20),
-            content: Text('Le numÃ©ro ${result.number} est dÃ©jÃ  utilisÃ©.',
+            content: Text('Le numéro ${result.number} est déjà utilisé.',
                 style: AppText.sans(color: AppColors.text)),
           ),
         );
@@ -1108,7 +1110,7 @@ class _CellarSettingsRow extends StatelessWidget {
           style: AppText.serif(color: AppColors.gold2, fontSize: 18),
         ),
         content: Text(
-          'Le cellier ${c.number}${c.name.isEmpty ? '' : ' (${c.name})'} sera supprimÃ©. Cette action est irrÃ©versible.',
+          'Le cellier ${c.number}${c.name.isEmpty ? '' : ' (${c.name})'} sera supprimé. Cette action est irréversible.',
           style: AppText.sans(color: AppColors.text2, fontSize: 13),
         ),
         actions: [
@@ -1221,7 +1223,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
       children: [
         _SettingsSubsection(
           title: 'Masquer les prix',
-          description: 'Cache toutes les statistiques liÃ©es aux prix et valeurs financiÃ¨res.',
+          description: 'Cache toutes les statistiques liées aux prix et valeurs financières.',
           child: InkWell(
             onTap: () => _toggleHidePrices(!_hidePrices),
             borderRadius: BorderRadius.circular(10),
@@ -1263,7 +1265,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
         const SizedBox(height: 24),
         _SettingsSubsection(
           title: 'Disposition des statistiques',
-          description: 'Glisse les rangÃ©es pour rÃ©organiser. Utilise les boutons pour grouper ou sÃ©parer.',
+          description: 'Glisse les rangées pour réorganiser. Utilise les boutons pour grouper ou séparer.',
           trailing: [
             TextButton(
               onPressed: () {
@@ -1277,7 +1279,7 @@ class _StatsSettingsContentState extends State<_StatsSettingsContent> {
                 CavePreferencesService.resetStatsToDefaults();
               },
               child: Text(
-                'RÃ©initialiser',
+                'Réinitialiser',
                 style: AppText.sans(
                   color: AppColors.text2,
                   fontSize: 12,
@@ -1393,7 +1395,7 @@ class _StatRowTile extends StatelessWidget {
                 ),
                 if (canMerge)
                   Tooltip(
-                    message: 'Grouper avec la rangÃ©e suivante',
+                    message: 'Grouper avec la rangée suivante',
                     child: InkWell(
                       onTap: onMerge,
                       borderRadius: BorderRadius.circular(6),
@@ -1694,7 +1696,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
   String? _marketSubtitle(MarketHistoryEntry? e, BottleFormat format) {
     if (e == null) return null;
     final val = (e.value * _marketMultiplier(format)).toStringAsFixed(0);
-    return '$val \$ Â· ${_formatDate(e.timestamp)}';
+    return '$val \$ · ${_formatDate(e.timestamp)}';
   }
 
   String? _gardeSubtitle(GardeHistoryEntry? e, BottleFormat format) {
@@ -1702,9 +1704,9 @@ class _ActualisationContentState extends State<_ActualisationContent>
     final offset = format.gardeOffset;
     final parts = <String>[];
     if (e.drinkFrom != null) parts.add('De ${e.drinkFrom! + offset}');
-    if (e.drinkPeak != null) parts.add('ApogÃ©e ${e.drinkPeak! + offset}');
-    if (e.drinkTo != null) parts.add('Jusqu\'Ã  ${e.drinkTo! + offset}');
-    return '${parts.isEmpty ? 'â€”' : parts.join(' Â· ')} Â· ${_formatDate(e.timestamp)}';
+    if (e.drinkPeak != null) parts.add('Apogée ${e.drinkPeak! + offset}');
+    if (e.drinkTo != null) parts.add('Jusqu\'à ${e.drinkTo! + offset}');
+    return '${parts.isEmpty ? '—' : parts.join(' · ')} · ${_formatDate(e.timestamp)}';
   }
 
   @override
@@ -1738,8 +1740,8 @@ class _ActualisationContentState extends State<_ActualisationContent>
             unselectedLabelStyle: AppText.sans(fontSize: 13),
             dividerHeight: 0,
             tabs: const [
-              Tab(text: 'Valeur marchÃ©'),
-              Tab(text: 'PÃ©riode de garde'),
+              Tab(text: 'Valeur marché'),
+              Tab(text: 'Période de garde'),
             ],
           ),
         ),
@@ -1797,7 +1799,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
     return _SettingsSubsection(
       title: 'Refresh automatique',
       description:
-          'Actualise automatiquement un pourcentage de tes vins Ã  intervalle rÃ©gulier via Cloud Function.',
+          'Actualise automatiquement un pourcentage de tes vins à intervalle régulier via Cloud Function.',
       child: Column(
         children: [
           InkWell(
@@ -2029,7 +2031,7 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''} Â· ${widget.format.label}',
+                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''} · ${widget.format.label}',
                         style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2207,7 +2209,7 @@ class _GardeHistoryRow extends StatelessWidget {
       if (entry.drinkPeak != null) '${shift(entry.drinkPeak)}',
       if (entry.drinkTo != null) '${shift(entry.drinkTo)}',
     ];
-    final range = parts.join(' â†’ ');
+    final range = parts.join(' → ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2255,4 +2257,3 @@ Widget _refreshButton({required bool refreshing, required VoidCallback onTap}) {
     ),
   );
 }
-
