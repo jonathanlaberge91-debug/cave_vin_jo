@@ -934,6 +934,7 @@ class _DrunkPageState extends State<_DrunkPage> {
                     : DrunkColumn.values.where((c) => visibleCols.contains(c)).toList();
                 final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (hasFilterData)
                       Container(
@@ -947,35 +948,50 @@ class _DrunkPageState extends State<_DrunkPage> {
                           onChanged: (f) => setState(() => _cascadeFilter = f),
                         ),
                       ),
-                    if (!isMobile) ...[
-                      Container(
-                        color: AppColors.bg2,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        child: _DrunkHeader(columns: cols),
-                      ),
-                      const Divider(height: 1, color: AppColors.border),
-                    ],
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: bottles.length,
-                        itemBuilder: (context, i) {
-                          final b = bottles[i];
-                          final w = winesById[b.wineId];
-                          return _DrunkRow(
-                            bottle: b,
-                            wine: w,
-                            columns: cols,
-                            onTap: w != null
-                                ? () => showWineDetail(context,
-                                    wine: w,
-                                    bottles: bottles
-                                        .where((x) => x.wineId == w.id && x.format == b.format)
-                                        .toList(),
-                                    format: b.format)
-                                : null,
-                          );
-                        },
+                      child: Padding(
+                        padding: EdgeInsets.all(isMobile ? 0 : 20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isMobile ? Colors.transparent : AppColors.bg2,
+                            borderRadius: BorderRadius.circular(isMobile ? 0 : 14),
+                            border: isMobile ? null : Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            children: [
+                              if (!isMobile) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  child: _DrunkHeader(columns: cols),
+                                ),
+                                const Divider(height: 1, color: AppColors.border),
+                              ],
+                              Expanded(
+                                child: ListView.builder(
+                                  itemCount: bottles.length,
+                                  itemBuilder: (context, i) {
+                                    final b = bottles[i];
+                                    final w = winesById[b.wineId];
+                                    return _DrunkRow(
+                                      bottle: b,
+                                      wine: w,
+                                      columns: cols,
+                                      onTap: w != null
+                                          ? () => showWineDetail(context,
+                                              wine: w,
+                                              bottles: bottles
+                                                  .where((x) => x.wineId == w.id && x.format == b.format)
+                                                  .toList(),
+                                              format: b.format)
+                                          : null,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1042,8 +1058,10 @@ class _WishlistPageState extends State<_WishlistPage> {
             final cols = WishColumn.values
                 .where((c) => visibleCols.contains(c))
                 .toList();
+            final isMobile = MediaQuery.of(context).size.width < 600;
             final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (hasFilterData)
                   Container(
@@ -1057,88 +1075,105 @@ class _WishlistPageState extends State<_WishlistPage> {
                       onChanged: (f) => setState(() => _cascadeFilter = f),
                     ),
                   ),
-                Container(
-                  color: AppColors.bg2,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  child: Row(
-                    children: [
-                      Expanded(child: _WishHeader(columns: cols)),
-                      const SizedBox(width: 32),
-                    ],
-                  ),
-                ),
-                Container(
-                  color: AppColors.bg2,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
-                  child: Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => showAddWishDialog(context),
-                        icon: const Icon(Icons.add, size: 16),
-                        label: Text('Ajouter un souhait',
-                            style: AppText.sans(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.gold,
-                          foregroundColor: const Color(0xFF1A1408),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                        ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(isMobile ? 0 : 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isMobile ? Colors.transparent : AppColors.bg2,
+                        borderRadius: BorderRadius.circular(isMobile ? 0 : 14),
+                        border: isMobile ? null : Border.all(color: AppColors.border),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${wishes.length} vin${wishes.length > 1 ? 's' : ''}',
-                        style: AppText.sans(
-                            color: AppColors.text3, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: AppColors.border),
-                if (wishes.isEmpty)
-                  Expanded(
-                    child: Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.favorite_border, size: 48, color: AppColors.text3),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Aucun vin dans la liste',
-                            style: AppText.serif(
-                                color: AppColors.text2, fontSize: 22),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: AppColors.border)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(child: _WishHeader(columns: cols)),
+                                const SizedBox(width: 32),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Ajoute des vins que tu aimerais avoir',
-                            style: AppText.sans(
-                                color: AppColors.text3, fontSize: 13),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => showAddWishDialog(context),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: Text('Ajouter un souhait',
+                                      style: AppText.sans(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.gold,
+                                    foregroundColor: const Color(0xFF1A1408),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '${wishes.length} vin${wishes.length > 1 ? 's' : ''}',
+                                  style: AppText.sans(
+                                      color: AppColors.text3, fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ),
+                          const Divider(height: 1, color: AppColors.border),
+                          if (wishes.isEmpty)
+                            Expanded(
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.favorite_border, size: 48, color: AppColors.text3),
+                                    const SizedBox(height: 14),
+                                    Text(
+                                      'Aucun vin dans la liste',
+                                      style: AppText.serif(
+                                          color: AppColors.text2, fontSize: 22),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Ajoute des vins que tu aimerais avoir',
+                                      style: AppText.sans(
+                                          color: AppColors.text3, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: wishes.length,
+                                itemBuilder: (context, i) {
+                                  return _WishRow(
+                                    wish: wishes[i],
+                                    columns: cols,
+                                    onTap: () =>
+                                        showEditWishDialog(context, wishes[i]),
+                                    onDelete: () =>
+                                        WishlistService.deleteWish(wishes[i].id),
+                                  );
+                                },
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                  )
-                else
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: wishes.length,
-                      itemBuilder: (context, i) {
-                        return _WishRow(
-                          wish: wishes[i],
-                          columns: cols,
-                          onTap: () =>
-                              showEditWishDialog(context, wishes[i]),
-                          onDelete: () =>
-                              WishlistService.deleteWish(wishes[i].id),
-                        );
-                      },
-                    ),
                   ),
+                ),
               ],
             );
           },
@@ -1851,24 +1886,28 @@ class _AppBranding extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logoH = compact ? 32.0 : 48.0;
-    final fontSize = compact ? 16.0 : 20.0;
+    final logo = SizedBox(
+      height: compact ? 36.0 : 48.0,
+      child: Image.asset(
+        'assets/images/logo_small.png',
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
+      ),
+    );
+
+    if (compact) return logo;
 
     return Row(
       children: [
-        Image.asset(
-          'assets/images/logo_small.png',
-          height: logoH,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: true,
-        ),
-        SizedBox(width: compact ? 10 : 12),
+        logo,
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             'Cave de\nJonathan Laberge',
             style: AppText.serif(
               color: AppColors.gold2,
-              fontSize: fontSize,
+              fontSize: 20,
               height: 1.15,
               fontWeight: FontWeight.w500,
             ),
