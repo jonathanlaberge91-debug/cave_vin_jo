@@ -2716,6 +2716,7 @@ class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
                           return _MobileUnplacedItem(
                             wine: w,
                             bottles: group,
+                            isDragging: widget.isDragging,
                             onTap: () => widget.onChipTap(first, w),
                             onOpenDetail: w != null
                                 ? () => widget.onOpenDetail(w, first)
@@ -2745,12 +2746,14 @@ class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
 class _MobileUnplacedItem extends StatelessWidget {
   final Wine? wine;
   final List<Bottle> bottles;
+  final ValueNotifier<bool> isDragging;
   final VoidCallback onTap;
   final VoidCallback? onOpenDetail;
 
   const _MobileUnplacedItem({
     required this.wine,
     required this.bottles,
+    required this.isDragging,
     required this.onTap,
     this.onOpenDetail,
   });
@@ -2759,51 +2762,96 @@ class _MobileUnplacedItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = wine;
     final first = bottles.first;
-    return GestureDetector(
-      onTap: onTap,
+
+    final row = Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8, height: 8,
+            decoration: BoxDecoration(
+              color: w != null ? wineTypeColor(w.type) : AppColors.text3,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  w?.name ?? '?',
+                  style: AppText.sans(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${first.format.label} · x${bottles.length}',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onOpenDetail,
+            child: const Icon(Icons.chevron_right, size: 18, color: AppColors.text3),
+          ),
+        ],
+      ),
+    );
+
+    final feedback = Material(
+      color: Colors.transparent,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.bg3,
+          color: AppColors.bg2,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 14)],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 8,
-              height: 8,
+              width: 8, height: 8,
               decoration: BoxDecoration(
                 color: w != null ? wineTypeColor(w.type) : AppColors.text3,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    w?.name ?? '?',
-                    style: AppText.sans(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w500),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${first.format.label} · x${bottles.length}',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 10),
-                  ),
-                ],
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(
+                w?.name ?? '?',
+                style: AppText.sans(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            GestureDetector(
-              onTap: onOpenDetail,
-              child: const Icon(Icons.chevron_right, size: 18, color: AppColors.text3),
-            ),
+            const SizedBox(width: 6),
+            Text(first.format.label, style: AppText.sans(color: AppColors.text3, fontSize: 10)),
           ],
         ),
       ),
+    );
+
+    return LongPressDraggable<Bottle>(
+      data: first,
+      delay: const Duration(milliseconds: 300),
+      onDragStarted: () => isDragging.value = true,
+      onDragEnd: (_) => isDragging.value = false,
+      onDraggableCanceled: (_, _) => isDragging.value = false,
+      feedback: feedback,
+      childWhenDragging: Opacity(opacity: 0.3, child: row),
+      child: GestureDetector(onTap: onTap, child: row),
     );
   }
 }
