@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -206,114 +206,6 @@ class _CellierScreenState extends State<CellierScreen> {
     if (raw > 1000) return raw / 100;
     if (raw > 45) return (raw - 32) * 5 / 9;
     return raw;
-  }
-
-  Widget _buildGoveeSection({bool compact = false}) {
-    if (_goveeSensors == null || _goveeSensors!.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        compact ? 8 : 20, compact ? 6 : 8, compact ? 8 : 20, compact ? 4 : 8,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.sensors, size: 12, color: AppColors.text3),
-                const SizedBox(width: 5),
-                Text(
-                  'CAPTEURS GOVEE',
-                  style: AppText.sans(
-                    color: AppColors.text3,
-                    fontSize: 9,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              for (final s in _goveeSensors!)
-                _buildSensorCard(s),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSensorCard(GoveeSensor sensor) {
-    final tempC = _goveeTemp(sensor.temperature);
-    final hum = sensor.humidity;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.bg3,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7, height: 7,
-            decoration: BoxDecoration(
-              color: sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A)).withValues(alpha: 0.5),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                sensor.name,
-                style: AppText.sans(color: AppColors.text2, fontSize: 10),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (tempC != null) ...[
-                    const Icon(Icons.thermostat, size: 13, color: AppColors.gold2),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${tempC.toStringAsFixed(1)}°C',
-                      style: AppText.sans(color: AppColors.gold2, fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                  if (tempC != null && hum != null) const SizedBox(width: 10),
-                  if (hum != null) ...[
-                    const Icon(Icons.water_drop_outlined, size: 11, color: Color(0xFF70B8E8)),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${hum.toStringAsFixed(0)}%',
-                      style: AppText.sans(color: const Color(0xFF70B8E8), fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                  if (tempC == null && hum == null)
-                    Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 12)),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -534,29 +426,7 @@ class _CellierScreenState extends State<CellierScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTopLedBar(status: status, physicalIdx: pIdx, height: 6),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 10, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
-                        style: AppText.serif(
-                          color: AppColors.gold2,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '$occupiedCount/${c.totalSlots}',
-                      style: AppText.sans(color: AppColors.text3, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              _buildTempStrip(c, compact: true),
-              if (status != null) _buildCellarControls(status, pIdx!, compact: true),
+              _buildCellarHeader(c, occupiedCount, status, pIdx, compact: true),
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -651,7 +521,6 @@ class _CellierScreenState extends State<CellierScreen> {
           }
         }
         final occupiedCount = anchors.length;
-        final freeCount = c.totalSlots - occupiedCount;
         final pIdx = _findPhysicalIndex(c);
         final status = pIdx != null ? _physical![pIdx] : null;
 
@@ -666,31 +535,7 @@ class _CellierScreenState extends State<CellierScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTopLedBar(status: status, physicalIdx: pIdx, height: 12),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 14, 12),
-                child: Row(
-                  children: [
-                    Text(
-                      c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
-                      style: AppText.serif(
-                        color: AppColors.gold2,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '$occupiedCount/${c.totalSlots} bouteilles',
-                      style: AppText.sans(
-                        color: AppColors.text3,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _buildTempStrip(c),
-              if (status != null) _buildCellarControls(status, pIdx!),
+              _buildCellarHeader(c, occupiedCount, status, pIdx),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -722,266 +567,258 @@ class _CellierScreenState extends State<CellierScreen> {
     }
   }
 
-  Widget _buildTempStrip(Cellar c, {bool compact = false}) {
+  Widget _buildCellarHeader(Cellar c, int occupiedCount, CellarStatus? status, int? pIdx, {bool compact = false}) {
     final topSensor = _findSensorByDevice(c.goveeTopDevice);
     final bottomSensor = _findSensorByDevice(c.goveeBottomDevice);
-    final hasTop = c.goveeTopDevice != null && c.goveeTopDevice!.isNotEmpty;
-    final hasBottom = c.goveeBottomDevice != null && c.goveeBottomDevice!.isNotEmpty;
-
     final topTemp = _goveeTemp(topSensor?.temperature);
     final topHum = topSensor?.humidity;
     final bottomTemp = _goveeTemp(bottomSensor?.temperature);
     final bottomHum = bottomSensor?.humidity;
 
-    Widget zone({
-      required bool isTop,
-      required double? temp,
-      required double? hum,
-      required bool assigned,
-    }) {
-      final color = isTop ? const Color(0xFFE8A04C) : const Color(0xFF70B8E8);
-      final emptyColor = const Color(0xFF6A6050);
-      final hasData = temp != null;
-      final c = hasData ? color : emptyColor;
+    final bool hasTuya = status != null && pIdx != null;
+    final bool busy = hasTuya && _sending.contains(pIdx);
+    final bool isCelsius = status?.tempUnit != 'f';
+    final int p = pIdx ?? 0;
+    final int? target = (status == null || pIdx == null)
+        ? null
+        : (_optimisticTemp[p] ?? (isCelsius ? status.targetTemp : status.targetTempF));
+    final String unit = isCelsius ? '°C' : '°F';
+    final Color powerColor = (status?.power ?? false) ? const Color(0xFF7CD492) : const Color(0xFFE8667A);
+    final Color lockColor = (status?.keyLock ?? false) ? const Color(0xFFE8667A) : const Color(0xFF7CD492);
+    final double fillRatio = c.totalSlots > 0 ? occupiedCount / c.totalSlots : 0.0;
 
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: compact ? 20 : 24,
-            height: compact ? 20 : 24,
-            decoration: BoxDecoration(
-              color: c.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: c.withValues(alpha: 0.4)),
+    final double btnSize = compact ? 26.0 : 30.0;
+    final double tempFontSize = compact ? 17.0 : 21.0;
+    final double sensorFontSize = compact ? 13.0 : 15.0;
+    final double labelFontSize = compact ? 7.0 : 8.0;
+
+    Widget goveeCol(bool isTop, double? temp, double? hum) {
+      final Color color = isTop ? const Color(0xFFE8A04C) : const Color(0xFF70B8E8);
+      final String label = isTop ? '▲ HAUT' : '▼ BAS';
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: compact ? 8.0 : 10.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(label, style: AppText.sans(color: AppColors.text3, fontSize: labelFontSize, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+            SizedBox(height: compact ? 4.0 : 5.0),
+            Text(
+              temp != null ? '${temp.toStringAsFixed(1)}°C' : '—',
+              style: AppText.sans(color: temp != null ? color : AppColors.text3, fontSize: sensorFontSize, fontWeight: FontWeight.w700),
             ),
-            child: Center(
-              child: Text(
-                isTop ? '▲' : '▼',
-                style: TextStyle(
-                  color: c,
-                  fontSize: compact ? 8 : 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: compact ? 6 : 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isTop ? 'HAUT' : 'BAS',
-                style: AppText.sans(
-                  color: AppColors.text3,
-                  fontSize: compact ? 7 : 9,
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+            if (hum != null) ...[
+              const SizedBox(height: 3),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    hasData ? '${temp.toStringAsFixed(1)}°C' : '—',
-                    style: AppText.sans(
-                      color: c,
-                      fontSize: compact ? 12 : 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (hum != null) ...[
-                    SizedBox(width: compact ? 6 : 8),
-                    Text(
-                      '${hum.toStringAsFixed(0)}%',
-                      style: AppText.sans(
-                        color: AppColors.text3,
-                        fontSize: compact ? 9 : 10,
-                      ),
-                    ),
-                  ],
+                  const Icon(Icons.water_drop, size: 9, color: Color(0xFF70B8E8)),
+                  const SizedBox(width: 2),
+                  Text('${hum.toStringAsFixed(0)}%', style: AppText.sans(color: AppColors.text3, fontSize: compact ? 9.0 : 10.0)),
                 ],
               ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 10 : 18,
-        vertical: compact ? 4 : 6,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0x991A1710),
-        border: Border(
-          top: BorderSide(color: AppColors.border),
-          bottom: BorderSide(color: AppColors.border),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          zone(isTop: true, temp: topTemp, hum: topHum, assigned: hasTop),
-          SizedBox(width: compact ? 12 : 24),
-          Container(
-            width: 1,
-            height: compact ? 20 : 24,
-            color: AppColors.border,
-          ),
-          SizedBox(width: compact ? 12 : 24),
-          zone(isTop: false, temp: bottomTemp, hum: bottomHum, assigned: hasBottom),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCellarControls(CellarStatus status, int idx, {bool compact = false}) {
-    final busy = _sending.contains(idx);
-    final isCelsius = status.tempUnit == 'c';
-    final current = isCelsius ? status.currentTemp : status.currentTempF;
-    final target = _optimisticTemp[idx] ?? (isCelsius ? status.targetTemp : status.targetTempF);
-    final unit = isCelsius ? '°C' : '°F';
-    final powerColor = status.power ? const Color(0xFF7CD492) : const Color(0xFFE8667A);
-    final lockColor = status.keyLock ? const Color(0xFFE8667A) : const Color(0xFF7CD492);
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(compact ? 10 : 14, 0, compact ? 10 : 14, compact ? 6 : 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: BoxDecoration(
-          color: AppColors.bg.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            _ctrlTap(
-              onTap: busy ? null : () => _sendDps(idx, '1', !status.power),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: powerColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: powerColor.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.power_settings_new, size: 10, color: powerColor),
-                    const SizedBox(width: 3),
-                    Text(status.power ? 'ON' : 'OFF', style: AppText.sans(color: powerColor, fontSize: 9, fontWeight: FontWeight.w700)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _ctrlTap(
-              onTap: busy ? null : () {
-                setState(() => _optimisticTemp[idx] = target - 1);
-                _sendDps(idx, '2', target - 1);
-              },
-              child: Container(
-                width: 20, height: 20,
-                decoration: BoxDecoration(
-                  color: AppColors.bg,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppColors.border2),
-                ),
-                child: const Icon(Icons.remove, size: 11, color: AppColors.text2),
-              ),
-            ),
-            Tooltip(
-              richMessage: TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Actuelle : ',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 11),
-                  ),
-                  TextSpan(
-                    text: '$current$unit',
-                    style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-                boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 16)],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text('$target$unit', style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700)),
-              ),
-            ),
-            _ctrlTap(
-              onTap: busy ? null : () {
-                setState(() => _optimisticTemp[idx] = target + 1);
-                _sendDps(idx, '2', target + 1);
-              },
-              child: Container(
-                width: 20, height: 20,
-                decoration: BoxDecoration(
-                  color: AppColors.bg,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppColors.border2),
-                ),
-                child: const Icon(Icons.add, size: 11, color: AppColors.text2),
-              ),
-            ),
-            const Spacer(),
-            if (status.door) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8A04C).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFE8A04C).withValues(alpha: 0.4)),
-                ),
-                child: const Icon(Icons.door_front_door_outlined, size: 12, color: Color(0xFFE8A04C)),
-              ),
-              const SizedBox(width: 6),
-            ],
-            _ctrlTap(
-              onTap: busy ? null : () => _sendDps(idx, '5', !status.keyLock),
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: lockColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: lockColor.withValues(alpha: 0.3)),
-                ),
-                child: Icon(
-                  status.keyLock ? Icons.lock_outline : Icons.lock_open_outlined,
-                  size: 12,
-                  color: lockColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            _ctrlTap(
-              onTap: busy ? null : () => _sendDps(idx, '4', isCelsius ? 'f' : 'c'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.bg,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.border2),
-                ),
-                child: Text(unit, style: AppText.sans(color: AppColors.gold2, fontSize: 10, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            if (busy) ...[
-              const SizedBox(width: 6),
-              const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold)),
             ],
           ],
         ),
-      ),
+      );
+    }
+
+    Widget consigneCol() {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(10, compact ? 8.0 : 10.0, 10, compact ? 8.0 : 10.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('CONSIGNE', style: AppText.sans(color: AppColors.text3, fontSize: labelFontSize, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+            SizedBox(height: compact ? 5.0 : 6.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ctrlTap(
+                  onTap: (!hasTuya || busy) ? null : () {
+                    setState(() => _optimisticTemp[p] = (target ?? 0) - 1);
+                    _sendDps(p, '2', (target ?? 0) - 1);
+                  },
+                  child: Container(
+                    width: btnSize, height: btnSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border2),
+                    ),
+                    child: Center(child: Icon(Icons.remove, size: btnSize * 0.5, color: AppColors.text2)),
+                  ),
+                ),
+                SizedBox(width: compact ? 8.0 : 10.0),
+                SizedBox(
+                  width: compact ? 44.0 : 52.0,
+                  child: Text(
+                    hasTuya ? '$target$unit' : '—',
+                    textAlign: TextAlign.center,
+                    style: AppText.sans(color: AppColors.gold2, fontSize: tempFontSize, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                SizedBox(width: compact ? 8.0 : 10.0),
+                _ctrlTap(
+                  onTap: (!hasTuya || busy) ? null : () {
+                    setState(() => _optimisticTemp[p] = (target ?? 0) + 1);
+                    _sendDps(p, '2', (target ?? 0) + 1);
+                  },
+                  child: Container(
+                    width: btnSize, height: btnSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border2),
+                    ),
+                    child: Center(child: Icon(Icons.add, size: btnSize * 0.5, color: AppColors.text2)),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: compact ? 4.0 : 5.0),
+            if (hasTuya)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ctrlTap(
+                    onTap: busy ? null : () => _sendDps(p, '1', !(status?.power ?? false)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: powerColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: powerColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.power_settings_new, size: 9, color: powerColor),
+                          const SizedBox(width: 3),
+                          Text((status?.power ?? false) ? 'ON' : 'OFF', style: AppText.sans(color: powerColor, fontSize: 9, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  _ctrlTap(
+                    onTap: busy ? null : () => _sendDps(p, '5', !(status?.keyLock ?? false)),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: lockColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: lockColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon((status?.keyLock ?? false) ? Icons.lock_outline : Icons.lock_open_outlined, size: 11, color: lockColor),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  _ctrlTap(
+                    onTap: busy ? null : () => _sendDps(p, '4', isCelsius ? 'f' : 'c'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.border2),
+                      ),
+                      child: Text(unit, style: AppText.sans(color: AppColors.gold2, fontSize: 10, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  if (busy) ...[
+                    const SizedBox(width: 5),
+                    const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold)),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(18, compact ? 10.0 : 12.0, 18, compact ? 7.0 : 9.0),
+          child: Text(
+            c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
+            textAlign: TextAlign.center,
+            style: AppText.serif(color: AppColors.gold2, fontSize: compact ? 15.0 : 18.0, fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (status?.door == true)
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0x1AE8A04C),
+              border: Border(
+                top: BorderSide(color: Color(0x44E8A04C)),
+                bottom: BorderSide(color: Color(0x44E8A04C)),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.door_front_door_outlined, size: 13, color: Color(0xFFE8A04C)),
+                const SizedBox(width: 6),
+                Text('Porte ouverte', style: AppText.sans(color: const Color(0xFFE8A04C), fontSize: 11, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppColors.border),
+              bottom: BorderSide(color: AppColors.border),
+            ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: 3, child: goveeCol(true, topTemp, topHum)),
+                Container(width: 1, color: AppColors.border),
+                Expanded(flex: 4, child: consigneCol()),
+                Container(width: 1, color: AppColors.border),
+                Expanded(flex: 3, child: goveeCol(false, bottomTemp, bottomHum)),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(compact ? 12.0 : 16.0, compact ? 7.0 : 8.0, compact ? 12.0 : 16.0, compact ? 8.0 : 10.0),
+          child: Row(
+            children: [
+              Text('$occupiedCount / ${c.totalSlots}', style: AppText.sans(color: AppColors.text3, fontSize: 10, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: SizedBox(
+                    height: 5,
+                    child: Stack(
+                      children: [
+                        Container(color: AppColors.bg),
+                        FractionallySizedBox(
+                          widthFactor: fillRatio.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(colors: [Color(0x55C9A84C), Color(0xFFD4B96A)]),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('${(fillRatio * 100).round()}%', style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
