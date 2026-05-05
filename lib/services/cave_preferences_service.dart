@@ -40,6 +40,16 @@ class CavePreferencesService {
   static final ValueNotifier<Map<StatItem, StatChartType>> statsChartTypes =
       ValueNotifier({});
 
+  static const _autoRefreshEnabledKey = 'auto_refresh_enabled';
+  static const _autoRefreshPercentKey = 'auto_refresh_percent';
+  static const _autoRefreshPeriodKey = 'auto_refresh_period';
+  static const _lastAutoRefreshRunKey = 'last_auto_refresh_run';
+
+  static final ValueNotifier<bool> autoRefreshEnabled = ValueNotifier(false);
+  static final ValueNotifier<int> autoRefreshPercent = ValueNotifier(10);
+  static final ValueNotifier<String> autoRefreshPeriod = ValueNotifier('month');
+  static final ValueNotifier<DateTime?> lastAutoRefreshRun = ValueNotifier(null);
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final local = prefs.getStringList(_key);
@@ -73,6 +83,15 @@ class CavePreferencesService {
     if (chartTypesLocal != null) {
       statsChartTypes.value = _decodeChartTypes(chartTypesLocal);
     }
+
+    final arEnabled = prefs.getBool(_autoRefreshEnabledKey);
+    if (arEnabled != null) autoRefreshEnabled.value = arEnabled;
+    final arPercent = prefs.getInt(_autoRefreshPercentKey);
+    if (arPercent != null) autoRefreshPercent.value = arPercent;
+    final arPeriod = prefs.getString(_autoRefreshPeriodKey);
+    if (arPeriod != null) autoRefreshPeriod.value = arPeriod;
+    final lastRun = prefs.getString(_lastAutoRefreshRunKey);
+    if (lastRun != null) lastAutoRefreshRun.value = DateTime.tryParse(lastRun);
 
     try {
       final snap = await _settingsDoc.get();
@@ -168,6 +187,28 @@ class CavePreferencesService {
           {'statsChartTypes': chartTypesLocal},
           SetOptions(merge: true),
         );
+      }
+
+      final remoteArEnabled = snap.data()?['autoRefreshEnabled'] as bool?;
+      if (remoteArEnabled != null) {
+        autoRefreshEnabled.value = remoteArEnabled;
+        await prefs.setBool(_autoRefreshEnabledKey, remoteArEnabled);
+      } else if (arEnabled != null) {
+        await _settingsDoc.set({'autoRefreshEnabled': arEnabled}, SetOptions(merge: true));
+      }
+      final remoteArPercent = snap.data()?['autoRefreshRatePercent'] as int?;
+      if (remoteArPercent != null) {
+        autoRefreshPercent.value = remoteArPercent;
+        await prefs.setInt(_autoRefreshPercentKey, remoteArPercent);
+      } else if (arPercent != null) {
+        await _settingsDoc.set({'autoRefreshRatePercent': arPercent}, SetOptions(merge: true));
+      }
+      final remoteArPeriod = snap.data()?['autoRefreshRatePeriod'] as String?;
+      if (remoteArPeriod != null) {
+        autoRefreshPeriod.value = remoteArPeriod;
+        await prefs.setString(_autoRefreshPeriodKey, remoteArPeriod);
+      } else if (arPeriod != null) {
+        await _settingsDoc.set({'autoRefreshRatePeriod': arPeriod}, SetOptions(merge: true));
       }
     } catch (_) {}
   }
@@ -318,6 +359,42 @@ class CavePreferencesService {
     await prefs.remove(_statsChartTypesKey);
     try {
       await _settingsDoc.set({'statsChartTypes': FieldValue.delete()}, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  static Future<void> setAutoRefreshEnabled(bool enabled) async {
+    autoRefreshEnabled.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoRefreshEnabledKey, enabled);
+    try {
+      await _settingsDoc.set({'autoRefreshEnabled': enabled}, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  static Future<void> setAutoRefreshPercent(int percent) async {
+    autoRefreshPercent.value = percent;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_autoRefreshPercentKey, percent);
+    try {
+      await _settingsDoc.set({'autoRefreshRatePercent': percent}, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  static Future<void> setAutoRefreshPeriod(String period) async {
+    autoRefreshPeriod.value = period;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_autoRefreshPeriodKey, period);
+    try {
+      await _settingsDoc.set({'autoRefreshRatePeriod': period}, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  static Future<void> setLastAutoRefreshRun(DateTime dt) async {
+    lastAutoRefreshRun.value = dt;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastAutoRefreshRunKey, dt.toIso8601String());
+    try {
+      await _settingsDoc.set({'lastAutoRefreshRun': Timestamp.fromDate(dt)}, SetOptions(merge: true));
     } catch (_) {}
   }
 

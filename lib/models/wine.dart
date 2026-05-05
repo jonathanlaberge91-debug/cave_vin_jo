@@ -54,6 +54,7 @@ class Wine {
   final String? photoUrl;
   final List<Critique> critiques;
   final DateTime createdAt;
+  final DateTime? lastAutoRefreshed;
 
   Wine({
     required this.id,
@@ -79,6 +80,7 @@ class Wine {
     this.photoUrl,
     this.critiques = const [],
     required this.createdAt,
+    this.lastAutoRefreshed,
   });
 
   Map<String, dynamic> toMap() => {
@@ -138,6 +140,7 @@ class Wine {
               .toList() ??
           const [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastAutoRefreshed: (data['lastAutoRefreshed'] as Timestamp?)?.toDate(),
     );
   }
 }
