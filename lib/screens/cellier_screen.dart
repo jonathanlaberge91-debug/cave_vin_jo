@@ -363,14 +363,12 @@ class _CellierScreenState extends State<CellierScreen> {
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          itemCount: cellars.length + 1,
+          itemCount: cellars.length,
           itemBuilder: (context, i) {
-            if (i == 0) return _buildMobileAddCellarBtn(cellars);
-            final ai = i;
-            final c = cellars[ai - 1];
+            final c = cellars[i];
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _buildMobileCellarCard(c, winesById, 0, cellarIndex: ai - 1),
+              child: _buildMobileCellarCard(c, winesById, 0, cellarIndex: i),
             );
           },
         );
@@ -378,39 +376,6 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
-  Widget _buildMobileAddCellarBtn(List<Cellar> cellars) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Text(
-            '${cellars.length} cellier${cellars.length > 1 ? 's' : ''}',
-            style: AppText.sans(color: AppColors.text3, fontSize: 12),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _onCreate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.add, size: 14, color: AppColors.gold),
-                  const SizedBox(width: 4),
-                  Text('Ajouter', style: AppText.sans(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMobileCellarCard(Cellar c, Map<String, Wine> winesById, double _, {int cellarIndex = -1}) {
     return StreamBuilder<List<Bottle>>(
@@ -1440,7 +1405,6 @@ class _CellierScreenState extends State<CellierScreen> {
             ),
           ),
           const Spacer(),
-          _ctaButton('+ Nouveau cellier', onTap: _onCreate),
         ],
       ),
     );
