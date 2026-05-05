@@ -40,12 +40,25 @@ class _CellierScreenState extends State<CellierScreen> {
   bool _useCloud = false;
   Timer? _bridgeTimer;
   final Set<int> _sending = {};
+  final Map<int, int> _optimisticTemp = {};
   List<GoveeSensor>? _goveeSensors;
   Timer? _goveeTimer;
+
+  // Cached streams — never recreated, avoids StreamBuilder flicker on every setState
+  late final Stream<List<Cellar>> _cellarStream;
+  late final Stream<List<Wine>> _wineStream;
+  late final Stream<List<Bottle>> _unplacedStream;
+  final Map<String, Stream<List<Bottle>>> _bottleStreams = {};
+
+  Stream<List<Bottle>> _bottleStreamFor(String cellarId) =>
+      _bottleStreams.putIfAbsent(cellarId, () => CaveService.bottlesByCellar(cellarId));
 
   @override
   void initState() {
     super.initState();
+    _cellarStream = CellarService.watch();
+    _wineStream = CaveService.wines();
+    _unplacedStream = CaveService.unplacedBottlesInCave();
     _loadCachedTuya();
     _loadBridge();
     _loadCachedGovee();
@@ -95,7 +108,7 @@ class _CellierScreenState extends State<CellierScreen> {
           final list = (jsonDecode(res.body) as List)
               .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
               .toList();
-          if (mounted) setState(() { _physical = list; _useCloud = false; });
+          if (mounted) setState(() { _physical = list; _useCloud = false; _optimisticTemp.clear(); });
           _saveTuyaCache(res.body);
           return;
         }
@@ -107,7 +120,7 @@ class _CellierScreenState extends State<CellierScreen> {
         final list = (jsonDecode(res.body) as List)
             .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
             .toList();
-        if (mounted) setState(() { _physical = list; _useCloud = true; });
+        if (mounted) setState(() { _physical = list; _useCloud = true; _optimisticTemp.clear(); });
         _saveTuyaCache(res.body);
       }
     } catch (_) {}
@@ -306,9 +319,9 @@ class _CellierScreenState extends State<CellierScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Cellar>>(
-      stream: CellarService.watch(),
+      stream: _cellarStream,
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
+        if (snap.data == null) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.gold),
           );
@@ -351,7 +364,7 @@ class _CellierScreenState extends State<CellierScreen> {
       child: Column(
         children: [
           StreamBuilder<List<Wine>>(
-            stream: CaveService.wines(),
+            stream: _wineStream,
             builder: (context, wSnap) {
               final wines = wSnap.data ?? [];
               if (wines.isEmpty) return const SizedBox.shrink();
@@ -408,7 +421,7 @@ class _CellierScreenState extends State<CellierScreen> {
     return Column(
       children: [
         StreamBuilder<List<Wine>>(
-          stream: CaveService.wines(),
+          stream: _wineStream,
           builder: (context, wSnap) {
             final wines = wSnap.data ?? [];
             if (wines.isEmpty) return const SizedBox.shrink();
@@ -435,7 +448,7 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Widget _buildMobileCellars(List<Cellar> cellars) {
     return StreamBuilder<List<Wine>>(
-      stream: CaveService.wines(),
+      stream: _wineStream,
       builder: (context, winesSnap) {
         final wines = winesSnap.data ?? [];
         final winesById = {for (final w in wines) w.id: w};
@@ -493,7 +506,7 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Widget _buildMobileCellarCard(Cellar c, Map<String, Wine> winesById, double _, {int cellarIndex = -1}) {
     return StreamBuilder<List<Bottle>>(
-      stream: CaveService.bottlesByCellar(c.id),
+      stream: _bottleStreamFor(c.id),
       builder: (context, bottlesSnap) {
         final bottles = bottlesSnap.data ?? [];
         final occupied = <String, Bottle>{};
@@ -581,7 +594,7 @@ class _CellierScreenState extends State<CellierScreen> {
       builder: (context, zoom, _) {
         final cellSize = _cellSizeFromZoom(zoom);
         return StreamBuilder<List<Wine>>(
-          stream: CaveService.wines(),
+          stream: _wineStream,
           builder: (context, winesSnap) {
             final wines = winesSnap.data ?? [];
             final winesById = {for (final w in wines) w.id: w};
@@ -624,7 +637,7 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Widget _buildCellarCard(Cellar c, Map<String, Wine> winesById, double cellSize, {int cellarIndex = -1}) {
     return StreamBuilder<List<Bottle>>(
-      stream: CaveService.bottlesByCellar(c.id),
+      stream: _bottleStreamFor(c.id),
       builder: (context, bottlesSnap) {
         final bottles = bottlesSnap.data ?? [];
         final occupied = <String, Bottle>{};
@@ -829,7 +842,7 @@ class _CellierScreenState extends State<CellierScreen> {
     final busy = _sending.contains(idx);
     final isCelsius = status.tempUnit == 'c';
     final current = isCelsius ? status.currentTemp : status.currentTempF;
-    final target = isCelsius ? status.targetTemp : status.targetTempF;
+    final target = _optimisticTemp[idx] ?? (isCelsius ? status.targetTemp : status.targetTempF);
     final unit = isCelsius ? '°C' : '°F';
     final powerColor = status.power ? const Color(0xFF7CD492) : const Color(0xFFE8667A);
     final lockColor = status.keyLock ? const Color(0xFFE8667A) : const Color(0xFF7CD492);
@@ -866,7 +879,10 @@ class _CellierScreenState extends State<CellierScreen> {
             ),
             const SizedBox(width: 8),
             _ctrlTap(
-              onTap: busy ? null : () => _sendDps(idx, '2', target - 1),
+              onTap: busy ? null : () {
+                setState(() => _optimisticTemp[idx] = target - 1);
+                _sendDps(idx, '2', target - 1);
+              },
               child: Container(
                 width: 20, height: 20,
                 decoration: BoxDecoration(
@@ -877,12 +893,36 @@ class _CellierScreenState extends State<CellierScreen> {
                 child: const Icon(Icons.remove, size: 11, color: AppColors.text2),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('$target$unit', style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700)),
+            Tooltip(
+              richMessage: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Actuelle : ',
+                    style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                  ),
+                  TextSpan(
+                    text: '$current$unit',
+                    style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+                boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 16)],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text('$target$unit', style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
             ),
             _ctrlTap(
-              onTap: busy ? null : () => _sendDps(idx, '2', target + 1),
+              onTap: busy ? null : () {
+                setState(() => _optimisticTemp[idx] = target + 1);
+                _sendDps(idx, '2', target + 1);
+              },
               child: Container(
                 width: 20, height: 20,
                 decoration: BoxDecoration(
@@ -1332,11 +1372,11 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Widget _buildUnplacedBar() {
     return StreamBuilder<List<Bottle>>(
-      stream: CaveService.unplacedBottlesInCave(),
+      stream: _unplacedStream,
       builder: (context, bottlesSnap) {
         final bottles = bottlesSnap.data ?? [];
         return StreamBuilder<List<Wine>>(
-          stream: CaveService.wines(),
+          stream: _wineStream,
           builder: (context, winesSnap) {
             final winesById = {
               for (final w in winesSnap.data ?? <Wine>[]) w.id: w
@@ -2701,15 +2741,24 @@ class _MobileUnplacedPanel extends StatefulWidget {
 
 class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
   bool _expanded = false;
+  late final Stream<List<Bottle>> _unplacedStream;
+  late final Stream<List<Wine>> _wineStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _unplacedStream = CaveService.unplacedBottlesInCave();
+    _wineStream = CaveService.wines();
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Bottle>>(
-      stream: CaveService.unplacedBottlesInCave(),
+      stream: _unplacedStream,
       builder: (context, bottlesSnap) {
         final bottles = bottlesSnap.data ?? [];
         return StreamBuilder<List<Wine>>(
-          stream: CaveService.wines(),
+          stream: _wineStream,
           builder: (context, winesSnap) {
             final winesById = {
               for (final w in winesSnap.data ?? <Wine>[]) w.id: w
