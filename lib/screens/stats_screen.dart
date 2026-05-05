@@ -185,8 +185,9 @@ class _StatsBody extends StatelessWidget {
                   }
                 }
 
+                final mobile = MediaQuery.of(context).size.width < 600;
                 return ListView(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.fromLTRB(mobile ? 12 : 24, 24, mobile ? 12 : 24, 24),
                   children: [
                     Text(
                       'Statistiques',
@@ -274,7 +275,10 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           Container(height: 1, color: AppColors.border),
-          Expanded(child: Padding(padding: const EdgeInsets.all(18), child: child)),
+          if (height != null)
+            Expanded(child: Padding(padding: const EdgeInsets.all(18), child: child))
+          else
+            Padding(padding: const EdgeInsets.all(18), child: child),
         ],
       ),
     );
@@ -297,6 +301,36 @@ class _ValeurTotaleCard extends StatelessWidget {
     final pct = totalAchat > 0 ? (diff / totalAchat * 100) : 0.0;
     final positive = diff >= 0;
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final heroSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('VALEUR DE LA CAVE',
+            style: AppText.sans(color: AppColors.text3, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
+        Text('${totalMarche.toStringAsFixed(0)} \$',
+            style: AppText.serif(color: AppColors.gold2, fontSize: isMobile ? 28 : 36, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text('valeur marchande estimée', style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+      ],
+    );
+    final detailSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _valLine('Prix d\'achat', '${totalAchat.toStringAsFixed(0)} \$', AppColors.text2),
+        const SizedBox(height: 8),
+        _valLine('Valeur marché', '${totalMarche.toStringAsFixed(0)} \$', AppColors.gold2),
+        const SizedBox(height: 8),
+        _valLine(
+          'Plus-value',
+          '${positive ? '+' : ''}${diff.toStringAsFixed(0)} \$ (${pct.toStringAsFixed(1)}%)',
+          positive ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
+        ),
+        const SizedBox(height: 8),
+        _valLine('Bouteilles', '${cave.length}', AppColors.text),
+      ],
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bg2,
@@ -304,45 +338,19 @@ class _ValeurTotaleCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      child: isMobile
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              children: [heroSection, const SizedBox(height: 20), detailSection],
+            )
+          : Row(
               children: [
-                Text('VALEUR DE LA CAVE',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                Text('${totalMarche.toStringAsFixed(0)} \$',
-                    style: AppText.serif(color: AppColors.gold2, fontSize: 36, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text('valeur marchande estimée',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+                Expanded(child: heroSection),
+                Container(width: 1, height: 80, color: AppColors.border),
+                const SizedBox(width: 24),
+                Expanded(child: detailSection),
               ],
             ),
-          ),
-          Container(width: 1, height: 80, color: AppColors.border),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _valLine('Prix d\'achat', '${totalAchat.toStringAsFixed(0)} \$', AppColors.text2),
-                const SizedBox(height: 8),
-                _valLine('Valeur marché', '${totalMarche.toStringAsFixed(0)} \$', AppColors.gold2),
-                const SizedBox(height: 8),
-                _valLine(
-                  'Plus-value',
-                  '${positive ? '+' : ''}${diff.toStringAsFixed(0)} \$ (${pct.toStringAsFixed(1)}%)',
-                  positive ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
-                ),
-                const SizedBox(height: 8),
-                _valLine('Bouteilles', '${cave.length}', AppColors.text),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -409,6 +417,26 @@ class _DiversiteStreakRow extends StatelessWidget {
       }
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(children: [
+            _counterTile(Icons.wine_bar_outlined, '${cave.length}', 'Bouteilles', AppColors.text),
+            const SizedBox(width: 10),
+            _counterTile(Icons.public_outlined, '${countries.length}', 'Pays', const Color(0xFF70B8E8)),
+            const SizedBox(width: 10),
+            _counterTile(Icons.terrain_outlined, '${regions.length}', 'Régions', const Color(0xFF7CD492)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            _counterTile(Icons.label_outlined, '${appellations.length}', 'Appellations', AppColors.gold2),
+            const SizedBox(width: 10),
+            _counterTile(Icons.local_fire_department_outlined, '$streak j', 'Sans ouvrir', const Color(0xFFE8667A)),
+          ]),
+        ],
+      );
+    }
     return Row(
       children: [
         _counterTile(Icons.wine_bar_outlined, '${cave.length}', 'Bouteilles', AppColors.text),
@@ -477,41 +505,36 @@ class _TypeDonutCard extends StatelessWidget {
       );
     }).toList();
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final legend = WineType.values.where((t) => (counts[t] ?? 0) > 0).map((t) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: wineTypeColor(t), shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text('${wineTypeLabel(t)} (${counts[t]})', style: AppText.sans(color: AppColors.text2, fontSize: 11)),
+      ]),
+    )).toList();
+    final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
+
+    if (isMobile) {
+      return _StatCard(
+        title: 'Répartition par type ($total)',
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(height: 180, child: chart),
+          const SizedBox(height: 12),
+          Wrap(spacing: 12, runSpacing: 4, children: legend),
+        ]),
+      );
+    }
     return SizedBox(
       height: 300,
       child: _StatCard(
         title: 'Répartition par type ($total)',
-        child: Row(
-          children: [
-            Expanded(
-              child: PieChart(PieChartData(
-                sections: sections,
-                centerSpaceRadius: 40,
-                sectionsSpace: 2,
-              )),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: WineType.values
-                  .where((t) => (counts[t] ?? 0) > 0)
-                  .map((t) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(width: 10, height: 10, decoration: BoxDecoration(color: wineTypeColor(t), shape: BoxShape.circle)),
-                            const SizedBox(width: 8),
-                            Text('${wineTypeLabel(t)} (${counts[t]})',
-                                style: AppText.sans(color: AppColors.text2, fontSize: 11)),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ],
-        ),
+        child: Row(children: [
+          Expanded(child: chart),
+          const SizedBox(width: 16),
+          Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: legend),
+        ]),
       ),
     );
   }
@@ -556,38 +579,36 @@ class _GardeDonutCard extends StatelessWidget {
       titleStyle: AppText.sans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
     )).toList();
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final legend = items.map((e) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: e.$3, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text('${e.$1} (${e.$2})', style: AppText.sans(color: AppColors.text2, fontSize: 11)),
+      ]),
+    )).toList();
+    final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
+
+    if (isMobile) {
+      return _StatCard(
+        title: 'Fenêtre de garde',
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(height: 180, child: chart),
+          const SizedBox(height: 12),
+          Wrap(spacing: 12, runSpacing: 4, children: legend),
+        ]),
+      );
+    }
     return SizedBox(
       height: 300,
       child: _StatCard(
         title: 'Fenêtre de garde',
-        child: Row(
-          children: [
-            Expanded(
-              child: PieChart(PieChartData(
-                sections: sections,
-                centerSpaceRadius: 40,
-                sectionsSpace: 2,
-              )),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: items.map((e) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(width: 10, height: 10, decoration: BoxDecoration(color: e.$3, shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Text('${e.$1} (${e.$2})',
-                        style: AppText.sans(color: AppColors.text2, fontSize: 11)),
-                  ],
-                ),
-              )).toList(),
-            ),
-          ],
-        ),
+        child: Row(children: [
+          Expanded(child: chart),
+          const SizedBox(width: 16),
+          Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: legend),
+        ]),
       ),
     );
   }
@@ -805,6 +826,7 @@ class _HorizontalBarCard extends StatelessWidget {
     var sorted = data.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     if (!showAll && sorted.length > 15) sorted = sorted.sublist(0, 15);
     final maxVal = sorted.first.value;
+    final labelW = MediaQuery.of(context).size.width < 600 ? 90.0 : 140.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -831,7 +853,7 @@ class _HorizontalBarCard extends StatelessWidget {
                   child: Row(
                     children: [
                       SizedBox(
-                        width: 140,
+                        width: labelW,
                         child: Text(e.key,
                             style: AppText.sans(color: AppColors.text2, fontSize: 12),
                             maxLines: 1,
@@ -1306,32 +1328,42 @@ class _GenericDonutCard extends StatelessWidget {
       titleStyle: AppText.sans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
     ));
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final legendItems = List.generate(top.length, (i) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: palette[i % palette.length], shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Flexible(child: Text('${top[i].key} (${top[i].value})',
+            style: AppText.sans(color: AppColors.text2, fontSize: 11),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ]),
+    ));
+    final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
+
+    if (isMobile) {
+      return _StatCard(
+        title: '$title ($total)',
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(height: 180, child: chart),
+          const SizedBox(height: 12),
+          Wrap(spacing: 12, runSpacing: 4, children: legendItems),
+        ]),
+      );
+    }
     return SizedBox(
       height: 300,
       child: _StatCard(
         title: '$title ($total)',
-        child: Row(
-          children: [
-            Expanded(child: PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2))),
-            const SizedBox(width: 16),
-            Flexible(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(top.length, (i) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 10, height: 10, decoration: BoxDecoration(color: palette[i % palette.length], shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Flexible(child: Text('${top[i].key} (${top[i].value})',
-                        style: AppText.sans(color: AppColors.text2, fontSize: 11),
-                        maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  ]),
-                )),
-              ),
-            ),
-          ],
-        ),
+        child: Row(children: [
+          Expanded(child: chart),
+          const SizedBox(width: 16),
+          Flexible(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: legendItems,
+          )),
+        ]),
       ),
     );
   }
