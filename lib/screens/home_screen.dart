@@ -1890,7 +1890,7 @@ class _AppBranding extends StatelessWidget {
     final logo = SizedBox(
       height: compact ? 36.0 : 48.0,
       child: Image.asset(
-        'assets/images/logo_small.png',
+        'assets/images/logo.png',
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
         isAntiAlias: true,
