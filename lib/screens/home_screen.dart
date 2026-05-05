@@ -947,13 +947,15 @@ class _DrunkPageState extends State<_DrunkPage> {
                           onChanged: (f) => setState(() => _cascadeFilter = f),
                         ),
                       ),
-                    Container(
-                      color: AppColors.bg2,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      child: _DrunkHeader(columns: cols),
-                    ),
-                    const Divider(height: 1, color: AppColors.border),
+                    if (!isMobile) ...[
+                      Container(
+                        color: AppColors.bg2,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        child: _DrunkHeader(columns: cols),
+                      ),
+                      const Divider(height: 1, color: AppColors.border),
+                    ],
                     Expanded(
                       child: ListView.builder(
                         itemCount: bottles.length,
@@ -1472,10 +1474,127 @@ class _DrunkRow extends StatefulWidget {
 class _DrunkRowState extends State<_DrunkRow> {
   bool _hover = false;
 
+  Widget _photo(Wine? w) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: w?.photoUrl != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(w!.photoUrl!, fit: BoxFit.cover),
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  color: AppColors.bg3,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Center(
+                  child: Icon(Icons.wine_bar, color: AppColors.text3, size: 16),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _editButton(Bottle b) => Tooltip(
+        message: 'Modifier',
+        child: GestureDetector(
+          onTap: () => showDrinkBottleDialog(context, b),
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.bg3,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.border2),
+            ),
+            child: const Icon(Icons.edit_outlined, size: 13, color: AppColors.text3),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final b = widget.bottle;
     final w = widget.wine;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    final decoration = BoxDecoration(
+      color: _hover ? const Color(0x0FC9A84C) : Colors.transparent,
+      border: const Border(bottom: BorderSide(color: AppColors.border)),
+    );
+
+    if (isMobile) {
+      final meta = <String>[
+        if (w?.producer != null && w!.producer.isNotEmpty) w.producer,
+        if (w?.vintage != null) '${w!.vintage}',
+        if (b.drunkAt != null) fmtDate(b.drunkAt!),
+      ].join(' · ');
+
+      return MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: InkWell(
+          onTap: widget.onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: decoration,
+            child: Row(
+              children: [
+                _photo(w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              w?.name ?? '—',
+                              style: AppText.serif(
+                                color: AppColors.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (b.drunkRating != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '${b.drunkRating}/100',
+                              style: AppText.sans(
+                                color: AppColors.gold2,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          meta,
+                          style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _editButton(b),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -1484,32 +1603,12 @@ class _DrunkRowState extends State<_DrunkRow> {
         onTap: widget.onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: _hover ? const Color(0x0FC9A84C) : Colors.transparent,
-            border: const Border(
-                bottom: BorderSide(color: AppColors.border)),
-          ),
+          decoration: decoration,
           child: Row(
             children: [
               for (final col in widget.columns)
                 _buildCell(col, b, w),
-              Tooltip(
-                message: 'Modifier',
-                child: GestureDetector(
-                  onTap: () => showDrinkBottleDialog(context, b),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: AppColors.bg3,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.border2),
-                    ),
-                    child: const Icon(Icons.edit_outlined,
-                        size: 13, color: AppColors.text3),
-                  ),
-                ),
-              ),
+              _editButton(b),
             ],
           ),
         ),
@@ -1518,35 +1617,9 @@ class _DrunkRowState extends State<_DrunkRow> {
   }
 
   Widget _buildCell(DrunkColumn col, Bottle b, Wine? w) {
+    if (col == DrunkColumn.photo) return _photo(w);
     final child = _cellContent(col, b, w);
-    if (col == DrunkColumn.photo) {
-      return Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: w?.photoUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.network(w!.photoUrl!, fit: BoxFit.cover),
-                )
-              : Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.bg3,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.wine_bar,
-                        color: AppColors.text3, size: 16),
-                  ),
-                ),
-        ),
-      );
-    }
-    if (col.flex != null) {
-      return Expanded(flex: col.flex!, child: child);
-    }
+    if (col.flex != null) return Expanded(flex: col.flex!, child: child);
     return SizedBox(width: col.width!, child: child);
   }
 
