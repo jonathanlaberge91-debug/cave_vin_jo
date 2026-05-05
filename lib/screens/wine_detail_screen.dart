@@ -588,25 +588,49 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < stats.length; i++) ...[
-          Expanded(child: _StatTile(data: stats[i])),
-          if (i < stats.length - 1) const SizedBox(width: 10),
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 400;
+      if (!compact || stats.length <= 2) {
+        return Row(
+          children: [
+            for (var i = 0; i < stats.length; i++) ...[
+              Expanded(child: _StatTile(data: stats[i], compact: compact)),
+              if (i < stats.length - 1) const SizedBox(width: 10),
+            ],
+          ],
+        );
+      }
+      return Column(
+        children: [
+          for (var i = 0; i < stats.length; i += 2) ...[
+            Row(
+              children: [
+                Expanded(child: _StatTile(data: stats[i], compact: true)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: i + 1 < stats.length
+                      ? _StatTile(data: stats[i + 1], compact: true)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            if (i + 2 < stats.length) const SizedBox(height: 10),
+          ],
         ],
-      ],
-    );
+      );
+    });
   }
 }
 
 class _StatTile extends StatelessWidget {
   final _StatTileData data;
-  const _StatTile({required this.data});
+  final bool compact;
+  const _StatTile({required this.data, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.bg3,
         borderRadius: BorderRadius.circular(10),
@@ -620,7 +644,7 @@ class _StatTile extends StatelessWidget {
             style: AppText.sans(
               color: AppColors.text3,
               fontSize: 9,
-              letterSpacing: 1.1,
+              letterSpacing: 1.0,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -630,7 +654,7 @@ class _StatTile extends StatelessWidget {
               text: data.value,
               style: AppText.serif(
                 color: AppColors.gold2,
-                fontSize: 22,
+                fontSize: compact ? 18 : 22,
                 fontWeight: FontWeight.w500,
                 height: 1.1,
               ),
@@ -640,7 +664,7 @@ class _StatTile extends StatelessWidget {
                     text: data.suffix,
                     style: AppText.sans(
                       color: AppColors.text3,
-                      fontSize: 11,
+                      fontSize: compact ? 10 : 11,
                     ),
                   ),
               ],
