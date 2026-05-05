@@ -108,7 +108,10 @@ class _HomeScreenState extends State<HomeScreen> {
           if (entry.label == 'Ajouter') {
             _openAddWine();
           } else {
-            setState(() => _selectedIndex = currentItemIndex);
+            setState(() {
+              _selectedIndex = currentItemIndex;
+              if (!_searchableLabels.contains(entry.label)) _clearSearch();
+            });
           }
         },
       ));
@@ -121,6 +124,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool get _isSettingsSelected =>
       _items[_selectedIndex].label == 'Paramètres';
+
+  static const _searchableLabels = {'Ma Cave', 'Cellier', 'Bouteilles bues', 'Liste de souhaits'};
+  bool get _isSearchPage => _searchableLabels.contains(_items[_selectedIndex].label);
+
+  void _clearSearch() {
+    _searchController.clear();
+    _searchQuery = '';
+    _mobileSearchOpen = false;
+  }
 
   Widget _buildSettingsSubMenu() {
     return Container(
@@ -191,21 +203,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : const _AppBranding(compact: true),
               actions: [
-                IconButton(
-                  icon: Icon(
-                    _mobileSearchOpen ? Icons.close : Icons.search,
-                    color: AppColors.text,
+                if (_isSearchPage)
+                  IconButton(
+                    icon: Icon(
+                      _mobileSearchOpen ? Icons.close : Icons.search,
+                      color: AppColors.text,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _mobileSearchOpen = !_mobileSearchOpen;
+                        if (!_mobileSearchOpen) _clearSearch();
+                      });
+                    },
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _mobileSearchOpen = !_mobileSearchOpen;
-                      if (!_mobileSearchOpen) {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      }
-                    });
-                  },
-                ),
               ],
             ),
       drawer: isWide ? null : Drawer(child: _buildSidebar()),
@@ -330,43 +340,37 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.bg3,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-                  style: AppText.sans(
-                    color: AppColors.text,
-                    fontSize: 13,
+          if (_isSearchPage) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.bg3,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Rechercher…',
-                    hintStyle: AppText.sans(
-                      color: AppColors.text3,
-                      fontSize: 13,
-                    ),
-                    prefixIcon: const Icon(Icons.search, color: AppColors.text3, size: 18),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 36),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 9,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+                    style: AppText.sans(color: AppColors.text, fontSize: 13),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Rechercher…',
+                      hintStyle: AppText.sans(color: AppColors.text3, fontSize: 13),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.text3, size: 18),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ] else
+            const Spacer(),
           _ctaButton('+ Ajouter', onTap: _openAddWine),
         ],
       ),
@@ -1073,103 +1077,9 @@ class _WishlistPageState extends State<_WishlistPage> {
                     ),
                   ),
                 Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 0 : 20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isMobile ? Colors.transparent : AppColors.bg2,
-                        borderRadius: BorderRadius.circular(isMobile ? 0 : 14),
-                        border: isMobile ? null : Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: const BoxDecoration(
-                              border: Border(bottom: BorderSide(color: AppColors.border)),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(child: _WishHeader(columns: cols)),
-                                const SizedBox(width: 32),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () => showAddWishDialog(context),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: Text('Ajouter un souhait',
-                                      style: AppText.sans(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.gold,
-                                    foregroundColor: const Color(0xFF1A1408),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '${wishes.length} vin${wishes.length > 1 ? 's' : ''}',
-                                  style: AppText.sans(
-                                      color: AppColors.text3, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Divider(height: 1, color: AppColors.border),
-                          if (wishes.isEmpty)
-                            Expanded(
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.favorite_border, size: 48, color: AppColors.text3),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      'Aucun vin dans la liste',
-                                      style: AppText.serif(
-                                          color: AppColors.text2, fontSize: 22),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Ajoute des vins que tu aimerais avoir',
-                                      style: AppText.sans(
-                                          color: AppColors.text3, fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          else
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: wishes.length,
-                                itemBuilder: (context, i) {
-                                  return _WishRow(
-                                    wish: wishes[i],
-                                    columns: cols,
-                                    onTap: () =>
-                                        showEditWishDialog(context, wishes[i]),
-                                    onDelete: () =>
-                                        WishlistService.deleteWish(wishes[i].id),
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: isMobile
+                      ? _buildWishMobile(context, wishes)
+                      : _buildWishDesktop(context, wishes, cols),
                 ),
               ],
             );
@@ -1178,6 +1088,325 @@ class _WishlistPageState extends State<_WishlistPage> {
       },
     );
   }
+
+  Widget _buildWishMobile(BuildContext context, List<WishWine> wishes) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => showAddWishDialog(context),
+                icon: const Icon(Icons.add, size: 15),
+                label: Text('Ajouter', style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: const Color(0xFF1A1408),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${wishes.length} vin${wishes.length > 1 ? 's' : ''}',
+                style: AppText.sans(color: AppColors.text3, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        if (wishes.isEmpty)
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.favorite_border, size: 44, color: AppColors.text3),
+                  const SizedBox(height: 12),
+                  Text('Aucun vin dans la liste',
+                      style: AppText.serif(color: AppColors.text2, fontSize: 18)),
+                  const SizedBox(height: 6),
+                  Text('Ajoute des vins que tu aimerais avoir',
+                      style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+                ],
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              itemCount: wishes.length,
+              itemBuilder: (context, i) => _WishCard(
+                wish: wishes[i],
+                onTap: () => showEditWishDialog(context, wishes[i]),
+                onDelete: () => WishlistService.deleteWish(wishes[i].id),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildWishDesktop(BuildContext context, List<WishWine> wishes, List<WishColumn> cols) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _WishHeader(columns: cols)),
+                  const SizedBox(width: 32),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => showAddWishDialog(context),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: Text('Ajouter un souhait',
+                        style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: const Color(0xFF1A1408),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('${wishes.length} vin${wishes.length > 1 ? 's' : ''}',
+                      style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+            if (wishes.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.favorite_border, size: 48, color: AppColors.text3),
+                      const SizedBox(height: 14),
+                      Text('Aucun vin dans la liste',
+                          style: AppText.serif(color: AppColors.text2, fontSize: 22)),
+                      const SizedBox(height: 8),
+                      Text('Ajoute des vins que tu aimerais avoir',
+                          style: AppText.sans(color: AppColors.text3, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: wishes.length,
+                  itemBuilder: (context, i) => _WishRow(
+                    wish: wishes[i],
+                    columns: cols,
+                    onTap: () => showEditWishDialog(context, wishes[i]),
+                    onDelete: () => WishlistService.deleteWish(wishes[i].id),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<bool> _confirmDeleteWish(BuildContext context, String name) async {
+  return await showDialog<bool>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.6),
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.bg2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.border2),
+          ),
+          title: Text(
+            'Supprimer le souhait ?',
+            style: AppText.serif(
+              color: AppColors.text,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            '« $name » sera supprimé définitivement de la liste.',
+            style: AppText.sans(color: AppColors.text2, fontSize: 13, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Annuler', style: AppText.sans(color: AppColors.text2)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFB23A48),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Supprimer',
+                style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+}
+
+class _WishCard extends StatelessWidget {
+  final WishWine wish;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _WishCard({required this.wish, required this.onTap, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = wish;
+    final tc = wineTypeColor(w.type);
+    final gardeInfo = GardeInfo.fromWish(w);
+
+    return Dismissible(
+      key: Key(w.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: const Color(0xFFB23A48).withValues(alpha: 0.18),
+        child: const Icon(Icons.delete_outline, color: Color(0xFFE8667A), size: 22),
+      ),
+      confirmDismiss: (_) => _confirmDeleteWish(context, w.name),
+      onDismissed: (_) => onDelete(),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Photo
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: w.photoUrl != null
+                    ? Image.network(w.photoUrl!, width: 38, height: 50, fit: BoxFit.cover)
+                    : Container(
+                        width: 38, height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.bg3,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Center(child: Icon(Icons.wine_bar, color: AppColors.text3, size: 15)),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            w.name,
+                            style: AppText.serif(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (w.vintage != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.gold.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                            ),
+                            child: Text('${w.vintage}',
+                                style: AppText.sans(color: AppColors.gold2, fontSize: 10, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (w.producer.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(w.producer,
+                          style: AppText.sans(color: AppColors.gold2, fontSize: 11),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 5, runSpacing: 4,
+                      children: [
+                        _chip(wineTypeLabel(w.type), tc, bold: true),
+                        if (w.appellation.isNotEmpty) _chip(w.appellation, AppColors.text3),
+                        if (w.region.isNotEmpty && w.appellation.isEmpty) _chip(w.region, AppColors.text3),
+                        if (gardeInfo != null) _chip(gardeInfo.label, gardeInfo.color, bold: true),
+                        if (w.marketValue != null)
+                          Text('${w.marketValue!.toStringAsFixed(0)} \$',
+                              style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+                        if (w.rating != null)
+                          Text('${w.rating}/100',
+                              style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String label, Color color, {bool bold = false}) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: color.withValues(alpha: 0.35)),
+    ),
+    child: Text(label,
+        style: AppText.sans(
+          color: color, fontSize: 9,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+          letterSpacing: bold ? 0.6 : 0,
+        )),
+  );
 }
 
 class _WishHeader extends StatelessWidget {
@@ -1262,7 +1491,10 @@ class _WishRowState extends State<_WishRow> {
               Tooltip(
                 message: 'Supprimer',
                 child: GestureDetector(
-                  onTap: widget.onDelete,
+                  onTap: () async {
+                    final ok = await _confirmDeleteWish(context, widget.wish.name);
+                    if (ok == true) widget.onDelete();
+                  },
                   child: Container(
                     width: 28,
                     height: 28,
