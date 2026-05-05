@@ -2620,6 +2620,19 @@ class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
     super.initState();
     _unplacedStream = CaveService.unplacedBottlesInCave();
     _wineStream = CaveService.wines();
+    widget.isDragging.addListener(_onDraggingChanged);
+  }
+
+  void _onDraggingChanged() {
+    if (widget.isDragging.value && _expanded) {
+      setState(() => _expanded = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.isDragging.removeListener(_onDraggingChanged);
+    super.dispose();
   }
 
   @override

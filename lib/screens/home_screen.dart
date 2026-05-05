@@ -15,8 +15,6 @@ import 'wine_detail_screen.dart';
 import 'pairing_screen.dart';
 import 'carte_screen.dart';
 import 'stats_screen.dart';
-import 'wine_cellar_screen.dart';
-import 'govee_sensors_screen.dart';
 import '../dialogs/drink_bottle_dialog.dart';
 import '../dialogs/sommelier_dialog.dart';
 import '../theme/date_format.dart';
@@ -51,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.favorite_border, 'Liste de souhaits'),
     (Icons.bar_chart_outlined, 'Statistiques'),
     (Icons.key_outlined, 'Clés API'),
+    (Icons.sensors_outlined, 'Capteurs Govee'),
+    (Icons.thermostat_outlined, 'Wine CellR'),
     (Icons.refresh_outlined, 'Actualisation'),
   ];
 
@@ -61,8 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavEntry.sep(),
     _NavEntry.item(icon: Icons.local_bar_outlined, label: 'Bouteilles bues'),
     _NavEntry.item(icon: Icons.restaurant_outlined, label: 'Accords mets-vins'),
-    _NavEntry.item(icon: Icons.thermostat_outlined, label: 'Wine CellR'),
-    _NavEntry.item(icon: Icons.sensors_outlined, label: 'Capteurs Govee'),
     _NavEntry.item(icon: Icons.bar_chart_outlined, label: 'Statistiques'),
     _NavEntry.item(icon: Icons.map_outlined, label: 'Carte des domaines'),
     _NavEntry.item(icon: Icons.favorite_border, label: 'Liste de souhaits'),
@@ -403,8 +401,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (label == 'Cellier') return CellierScreen(filter: _cascadeFilter, onFilterChanged: (f) => setState(() => _cascadeFilter = f));
     if (label == 'Bouteilles bues') return _buildDrunkPage();
     if (label == 'Accords mets-vins') return const PairingScreen();
-    if (label == 'Wine CellR') return const WineCellarScreen();
-    if (label == 'Capteurs Govee') return const GoveeSensorsScreen();
     if (label == 'Statistiques') return const StatsScreen();
     if (label == 'Carte des domaines') return const CarteScreen();
     if (label == 'Liste de souhaits') return const _WishlistPage();
