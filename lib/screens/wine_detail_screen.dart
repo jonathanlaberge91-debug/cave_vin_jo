@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart';
-import '../models/garde_history.dart';
-import '../models/market_history.dart';
 import '../services/actualisation_service.dart';
 import '../services/cave_service.dart';
 import '../services/wine_pdf_service.dart';
@@ -351,12 +349,11 @@ class _DialogBodyState extends State<_DialogBody> {
                   },
                 ),
               ],
-              _MarketHistorySection(wine: wine),
               const SizedBox(height: 24),
               _OriginSection(wine: wine, bottles: bottles),
               if (_hasGarde(wine)) ...[
                 const SizedBox(height: 26),
-                _GardeSection(wine: wine),
+                _GardeSection(wine: wine, format: bottles.first.format),
               ],
               if (wine.wineDescription.isNotEmpty) ...[
                 const SizedBox(height: 26),
@@ -776,7 +773,7 @@ class _KvLine extends StatelessWidget {
         textBaseline: TextBaseline.alphabetic,
         children: [
           SizedBox(
-            width: compactLabel ? 80 : 110,
+            width: compactLabel ? 92 : 110,
             child: Text(
               label.toUpperCase(),
               style: AppText.sans(
@@ -787,6 +784,7 @@ class _KvLine extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               value,
@@ -804,79 +802,27 @@ class _KvLine extends StatelessWidget {
 
 class _GardeSection extends StatefulWidget {
   final Wine wine;
-  const _GardeSection({required this.wine});
+  final BottleFormat format;
+  const _GardeSection({required this.wine, required this.format});
 
   @override
   State<_GardeSection> createState() => _GardeSectionState();
 }
 
 class _GardeSectionState extends State<_GardeSection> {
-  List<GardeHistoryEntry> _history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final entries = await ActualisationService.getGardeHistory(widget.wine.id);
-    if (mounted) setState(() => _history = entries);
-  }
-
-  String _fmtDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
-  String _fmtSource(String s) =>
-      s == 'initial' ? 'Initial' : s == 'auto' ? 'Auto' : 'Gemini';
-
   @override
   Widget build(BuildContext context) {
+    final offset = widget.format.gardeOffset;
     return _Section(
-      title: 'Période de garde',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-            decoration: BoxDecoration(
-              color: AppColors.bg3,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: _GardeTimeline(wine: widget.wine),
-          ),
-          if (_history.length > 1) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Moyenne de ${_history.length} estimations',
-              style: AppText.sans(color: AppColors.text3, fontSize: 11),
-            ),
-          ],
-          if (_history.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.bg3,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                children: [
-                  for (int i = 0; i < _history.length; i++) ...[
-                    if (i > 0)
-                      Divider(height: 1, color: AppColors.border),
-                    _GardeHistoryRow(
-                      entry: _history[i],
-                      date: _fmtDate(_history[i].timestamp),
-                      source: _fmtSource(_history[i].source),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ],
+      title: 'Période de garde${offset != 0 ? ' (${offset > 0 ? '+' : ''}$offset ans, ${widget.format.label})' : ''}',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: _GardeTimeline(wine: widget.wine, gardeOffset: offset),
       ),
     );
   }
@@ -884,13 +830,15 @@ class _GardeSectionState extends State<_GardeSection> {
 
 class _GardeTimeline extends StatelessWidget {
   final Wine wine;
-  const _GardeTimeline({required this.wine});
+  final int gardeOffset;
+  const _GardeTimeline({required this.wine, this.gardeOffset = 0});
 
   @override
   Widget build(BuildContext context) {
-    final from = wine.drinkFrom;
-    final peak = wine.drinkPeak;
-    final to = wine.drinkTo;
+    int? shift(int? v) => v != null ? v + gardeOffset : null;
+    final from = shift(wine.drinkFrom);
+    final peak = shift(wine.drinkPeak);
+    final to = shift(wine.drinkTo);
     final now = DateTime.now().year;
 
     final years = <int>{now};
@@ -1574,183 +1522,6 @@ class _BottleAction extends StatefulWidget {
 
   @override
   State<_BottleAction> createState() => _BottleActionState();
-}
-
-// ── Market history ───────────────────────────────────────────────────────────
-
-class _MarketHistorySection extends StatefulWidget {
-  final Wine wine;
-  const _MarketHistorySection({required this.wine});
-
-  @override
-  State<_MarketHistorySection> createState() => _MarketHistorySectionState();
-}
-
-class _MarketHistorySectionState extends State<_MarketHistorySection> {
-  List<MarketHistoryEntry> _history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final entries = await ActualisationService.getMarketHistory(widget.wine.id);
-    if (mounted) setState(() => _history = entries);
-  }
-
-  String _fmtDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
-  String _fmtSource(String s) =>
-      s == 'initial' ? 'Initial' : s == 'auto' ? 'Auto' : 'Gemini';
-
-  @override
-  Widget build(BuildContext context) {
-    if (_history.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 26),
-      child: _Section(
-        title: 'Historique valeur marché',
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.bg3,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            children: [
-              for (int i = 0; i < _history.length; i++) ...[
-                if (i > 0) Divider(height: 1, color: AppColors.border),
-                _MarketHistoryRow(
-                  entry: _history[i],
-                  prev: i + 1 < _history.length ? _history[i + 1] : null,
-                  date: _fmtDate(_history[i].timestamp),
-                  source: _fmtSource(_history[i].source),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MarketHistoryRow extends StatelessWidget {
-  final MarketHistoryEntry entry;
-  final MarketHistoryEntry? prev;
-  final String date;
-  final String source;
-
-  const _MarketHistoryRow({
-    required this.entry,
-    required this.date,
-    required this.source,
-    this.prev,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delta = prev != null ? entry.value - prev!.value : null;
-    final up = delta != null && delta > 0;
-    final down = delta != null && delta < 0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Text(date, style: AppText.sans(color: AppColors.text3, fontSize: 11)),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.bg4,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(source, style: AppText.sans(color: AppColors.text3, fontSize: 10)),
-          ),
-          const Spacer(),
-          if (delta != null && delta != 0) ...[
-            Icon(
-              up ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 11,
-              color: up ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              '${delta.abs().toStringAsFixed(0)} \$',
-              style: AppText.sans(
-                color: up ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          Text(
-            '${entry.value.toStringAsFixed(0)} \$',
-            style: AppText.serif(
-              color: AppColors.gold2,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Garde history row ─────────────────────────────────────────────────────────
-
-class _GardeHistoryRow extends StatelessWidget {
-  final GardeHistoryEntry entry;
-  final String date;
-  final String source;
-
-  const _GardeHistoryRow({
-    required this.entry,
-    required this.date,
-    required this.source,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final parts = <String>[
-      if (entry.drinkFrom != null) '${entry.drinkFrom}',
-      if (entry.drinkPeak != null) '${entry.drinkPeak}',
-      if (entry.drinkTo != null) '${entry.drinkTo}',
-    ];
-    final range = parts.join(' → ');
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Text(date, style: AppText.sans(color: AppColors.text3, fontSize: 11)),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.bg4,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(source, style: AppText.sans(color: AppColors.text3, fontSize: 10)),
-          ),
-          const Spacer(),
-          Text(
-            range,
-            style: AppText.serif(
-              color: AppColors.gold2,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
