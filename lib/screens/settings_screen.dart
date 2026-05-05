@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/cave_column.dart';
 import '../models/cellar.dart';
 import '../models/drunk_column.dart';
+import '../models/market_history.dart';
+import '../models/garde_history.dart';
 import '../models/stat_item.dart';
+import '../models/wine.dart';
 import '../models/wish_column.dart';
+import '../services/actualisation_service.dart';
 import '../services/cave_preferences_service.dart';
+import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
 import '../services/gemini_service.dart';
+import '../services/govee_service.dart';
 import '../services/maps_service.dart';
 import '../dialogs/cellar_form_dialog.dart';
 import '../theme/app_text.dart';
@@ -51,11 +57,18 @@ class SettingsScreen extends StatelessWidget {
                 'Personnalise l\'ordre des statistiques et masque les informations financières.',
             child: _StatsSettingsContent(),
           ),
-        _ => const _SettingsSection(
+        5 => const _SettingsSection(
             title: 'Clés API',
             description:
                 'Services tiers utilisés par l\'application (analyse de photos, recherche, etc.).',
             child: _ApiKeysContent(),
+          ),
+        _ => const _SettingsSection(
+            title: 'Actualisation',
+            icon: Icons.refresh_outlined,
+            description:
+                'Relance des estimations Gemini pour la valeur marché et la période de garde de tes vins.',
+            child: _ActualisationContent(),
           ),
       },
     );
@@ -66,11 +79,13 @@ class _SettingsSection extends StatelessWidget {
   final String title;
   final String? description;
   final Widget child;
+  final IconData? icon;
 
   const _SettingsSection({
     required this.title,
     this.description,
     required this.child,
+    this.icon,
   });
 
   @override
@@ -92,14 +107,22 @@ class _SettingsSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title.toUpperCase(),
-                  style: AppText.sans(
-                    color: AppColors.text3,
-                    fontSize: 11,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, size: 15, color: AppColors.gold),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      title.toUpperCase(),
+                      style: AppText.sans(
+                        color: AppColors.text3,
+                        fontSize: 11,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 if (description != null) ...[
                   const SizedBox(height: 4),
@@ -181,15 +204,19 @@ class _ApiKeysContent extends StatefulWidget {
 class _ApiKeysContentState extends State<_ApiKeysContent> {
   final _geminiKey = TextEditingController(text: GeminiService.apiKey ?? '');
   final _mapsKey = TextEditingController(text: MapsService.apiKey ?? '');
+  final _goveeKey = TextEditingController(text: GoveeService.apiKey ?? '');
   bool _obscureGemini = true;
   bool _obscureMaps = true;
+  bool _obscureGovee = true;
   bool _savedGemini = false;
   bool _savedMaps = false;
+  bool _savedGovee = false;
 
   @override
   void dispose() {
     _geminiKey.dispose();
     _mapsKey.dispose();
+    _goveeKey.dispose();
     super.dispose();
   }
 
@@ -208,6 +235,15 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
     setState(() => _savedMaps = true);
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _savedMaps = false);
+    });
+  }
+
+  void _saveGovee() {
+    final key = _goveeKey.text.trim();
+    GoveeService.apiKey = key.isEmpty ? null : key;
+    setState(() => _savedGovee = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _savedGovee = false);
     });
   }
 
@@ -243,6 +279,21 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
             onSave: _saveMaps,
             saved: _savedMaps,
             configured: MapsService.isConfigured,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _SettingsSubsection(
+          title: 'Govee',
+          description:
+              'Capteurs de température et humidité Govee. Clé disponible sur developer.govee.com.',
+          child: _buildKeyField(
+            controller: _goveeKey,
+            hint: 'Coller votre clé API Govee ici…',
+            obscure: _obscureGovee,
+            onToggle: () => setState(() => _obscureGovee = !_obscureGovee),
+            onSave: _saveGovee,
+            saved: _savedGovee,
+            configured: GoveeService.isConfigured,
           ),
         ),
       ],
@@ -1461,4 +1512,468 @@ class _StatItemChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ActualisationContent extends StatefulWidget {
+  const _ActualisationContent();
+
+  @override
+  State<_ActualisationContent> createState() => _ActualisationContentState();
+}
+
+class _ActualisationContentState extends State<_ActualisationContent>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  List<Wine> _wines = [];
+  final Map<String, MarketHistoryEntry?> _latestMarket = {};
+  final Map<String, GardeHistoryEntry?> _latestGarde = {};
+  bool _loading = true;
+
+  bool _bulkMarketRunning = false;
+  int _bulkMarketDone = 0;
+  int _bulkMarketTotal = 0;
+
+  bool _bulkGardeRunning = false;
+  int _bulkGardeDone = 0;
+  int _bulkGardeTotal = 0;
+
+  final Set<String> _refreshingMarket = {};
+  final Set<String> _refreshingGarde = {};
+
+  bool _autoRefreshEnabled = false;
+  int _autoRefreshPercent = 10;
+  String _autoRefreshPeriod = 'month';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+    _autoRefreshEnabled = CavePreferencesService.autoRefreshEnabled.value;
+    _autoRefreshPercent = CavePreferencesService.autoRefreshPercent.value;
+    _autoRefreshPeriod = CavePreferencesService.autoRefreshPeriod.value;
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final wineSnap = await CaveService.wines().first;
+    final (marketList, gardeList) = await (
+      Future.wait(wineSnap.map((w) => ActualisationService.getMarketHistory(w.id))),
+      Future.wait(wineSnap.map((w) => ActualisationService.getGardeHistory(w.id))),
+    ).wait;
+    if (!mounted) return;
+    setState(() {
+      _wines = wineSnap;
+      for (var i = 0; i < wineSnap.length; i++) {
+        _latestMarket[wineSnap[i].id] = marketList[i].isNotEmpty ? marketList[i].first : null;
+        _latestGarde[wineSnap[i].id] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
+      }
+      _loading = false;
+    });
+  }
+
+  Future<void> _refreshOne(Wine wine, {required bool isMarket}) async {
+    final refreshing = isMarket ? _refreshingMarket : _refreshingGarde;
+    setState(() => refreshing.add(wine.id));
+    try {
+      await ActualisationService.seedIfNeeded(wine);
+      if (isMarket) {
+        await ActualisationService.refreshMarketValue(wine);
+        final mh = await ActualisationService.getMarketHistory(wine.id);
+        if (mounted) setState(() => _latestMarket[wine.id] = mh.isNotEmpty ? mh.first : null);
+      } else {
+        await ActualisationService.refreshGarde(wine);
+        final gh = await ActualisationService.getGardeHistory(wine.id);
+        if (mounted) setState(() => _latestGarde[wine.id] = gh.isNotEmpty ? gh.first : null);
+      }
+    } catch (_) {}
+    if (mounted) setState(() => refreshing.remove(wine.id));
+  }
+
+  Future<void> _bulkRefreshMarket() async {
+    setState(() {
+      _bulkMarketRunning = true;
+      _bulkMarketDone = 0;
+      _bulkMarketTotal = _wines.length;
+    });
+    await ActualisationService.refreshAllMarketValues(
+      _wines,
+      onProgress: (done, _) {
+        if (mounted) setState(() => _bulkMarketDone = done);
+      },
+    );
+    final marketList = await Future.wait(_wines.map((w) => ActualisationService.getMarketHistory(w.id)));
+    if (mounted) {
+      setState(() {
+        for (var i = 0; i < _wines.length; i++) {
+          _latestMarket[_wines[i].id] = marketList[i].isNotEmpty ? marketList[i].first : null;
+        }
+        _bulkMarketRunning = false;
+      });
+    }
+  }
+
+  Future<void> _bulkRefreshGarde() async {
+    setState(() {
+      _bulkGardeRunning = true;
+      _bulkGardeDone = 0;
+      _bulkGardeTotal = _wines.length;
+    });
+    await ActualisationService.refreshAllGarde(
+      _wines,
+      onProgress: (done, _) {
+        if (mounted) setState(() => _bulkGardeDone = done);
+      },
+    );
+    final gardeList = await Future.wait(_wines.map((w) => ActualisationService.getGardeHistory(w.id)));
+    if (mounted) {
+      setState(() {
+        for (var i = 0; i < _wines.length; i++) {
+          _latestGarde[_wines[i].id] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
+        }
+        _bulkGardeRunning = false;
+      });
+    }
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String? _marketSubtitle(MarketHistoryEntry? e) =>
+      e != null ? '${e.value.toStringAsFixed(2)} \$ · ${_formatDate(e.timestamp)}' : null;
+
+  String? _gardeSubtitle(GardeHistoryEntry? e) {
+    if (e == null) return null;
+    final parts = <String>[];
+    if (e.drinkFrom != null) parts.add('De ${e.drinkFrom}');
+    if (e.drinkPeak != null) parts.add('Apogée ${e.drinkPeak}');
+    if (e.drinkTo != null) parts.add('Jusqu\'à ${e.drinkTo}');
+    return '${parts.isEmpty ? '—' : parts.join(' · ')} · ${_formatDate(e.timestamp)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.bg3,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: AppColors.gold,
+            indicatorWeight: 2,
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: AppColors.gold2,
+            unselectedLabelColor: AppColors.text3,
+            labelStyle: AppText.sans(fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: AppText.sans(fontSize: 13),
+            dividerHeight: 0,
+            tabs: const [
+              Tab(text: 'Valeur marché'),
+              Tab(text: 'Période de garde'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _tabController.index == 0 ? _buildTab(isMarket: true) : _buildTab(isMarket: false),
+        ),
+        const SizedBox(height: 20),
+        _buildAutoRefreshSection(),
+      ],
+    );
+  }
+
+  Widget _buildTab({required bool isMarket}) {
+    final bulkRunning = isMarket ? _bulkMarketRunning : _bulkGardeRunning;
+    final bulkDone = isMarket ? _bulkMarketDone : _bulkGardeDone;
+    final bulkTotal = isMarket ? _bulkMarketTotal : _bulkGardeTotal;
+    final refreshing = isMarket ? _refreshingMarket : _refreshingGarde;
+    return Column(
+      key: ValueKey(isMarket),
+      children: [
+        Row(children: [
+          const Spacer(),
+          _bulkButton(
+            running: bulkRunning,
+            done: bulkDone,
+            total: bulkTotal,
+            onTap: isMarket ? _bulkRefreshMarket : _bulkRefreshGarde,
+          ),
+        ]),
+        const SizedBox(height: 12),
+        if (bulkRunning) ...[
+          _progressBar(bulkDone, bulkTotal),
+          const SizedBox(height: 12),
+        ],
+        for (var i = 0; i < _wines.length; i++) ...[
+          _HistoryWineRow(
+            wine: _wines[i],
+            subtitle: isMarket
+                ? _marketSubtitle(_latestMarket[_wines[i].id])
+                : _gardeSubtitle(_latestGarde[_wines[i].id]),
+            refreshing: refreshing.contains(_wines[i].id),
+            onRefresh: () => _refreshOne(_wines[i], isMarket: isMarket),
+          ),
+          if (i < _wines.length - 1) const SizedBox(height: 6),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAutoRefreshSection() {
+    return _SettingsSubsection(
+      title: 'Refresh automatique',
+      description:
+          'Actualise automatiquement un pourcentage de tes vins à intervalle régulier via Cloud Function.',
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              final newVal = !_autoRefreshEnabled;
+              setState(() => _autoRefreshEnabled = newVal);
+              CavePreferencesService.setAutoRefreshEnabled(newVal);
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: IgnorePointer(
+                      child: Checkbox(
+                        value: _autoRefreshEnabled,
+                        onChanged: null,
+                        activeColor: AppColors.gold,
+                        checkColor: const Color(0xFF1A1408),
+                        side: const BorderSide(color: AppColors.text3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Activer le refresh automatique',
+                    style: AppText.sans(
+                      color: _autoRefreshEnabled ? AppColors.gold2 : AppColors.text2,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_autoRefreshEnabled) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _dropdownField<int>(
+                    value: _autoRefreshPercent,
+                    items: const [5, 10, 20, 25],
+                    itemLabel: (v) => '$v %',
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _autoRefreshPercent = v);
+                      CavePreferencesService.setAutoRefreshPercent(v);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _dropdownField<String>(
+                    value: _autoRefreshPeriod,
+                    items: const ['week', 'month'],
+                    itemLabel: (v) => v == 'week' ? 'Semaine' : 'Mois',
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _autoRefreshPeriod = v);
+                      CavePreferencesService.setAutoRefreshPeriod(v);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bulkButton({
+    required bool running,
+    required int done,
+    required int total,
+    required VoidCallback onTap,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: running ? null : onTap,
+      icon: running
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+            )
+          : const Icon(Icons.refresh, size: 14),
+      label: Text(
+        running ? '$done / $total' : 'Actualiser tout',
+        style: AppText.sans(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.gold.withValues(alpha: 0.15),
+        foregroundColor: AppColors.gold2,
+        disabledBackgroundColor: AppColors.bg3,
+        disabledForegroundColor: AppColors.text3,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.3)),
+        ),
+        elevation: 0,
+      ),
+    );
+  }
+
+  Widget _progressBar(int done, int total) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: LinearProgressIndicator(
+        value: total > 0 ? done / total : 0.0,
+        minHeight: 6,
+        backgroundColor: AppColors.bg3,
+        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
+      ),
+    );
+  }
+
+  Widget _dropdownField<T>({
+    required T value,
+    required List<T> items,
+    required String Function(T) itemLabel,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          isExpanded: true,
+          value: value,
+          dropdownColor: AppColors.bg2,
+          style: AppText.sans(color: AppColors.text, fontSize: 13),
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.text3),
+          items: items.map((v) => DropdownMenuItem<T>(
+            value: v,
+            child: Text(itemLabel(v), style: AppText.sans(color: AppColors.text2, fontSize: 13)),
+          )).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryWineRow extends StatelessWidget {
+  final Wine wine;
+  final String? subtitle;
+  final bool refreshing;
+  final VoidCallback onRefresh;
+
+  const _HistoryWineRow({
+    required this.wine,
+    required this.subtitle,
+    required this.refreshing,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${wine.name}${wine.vintage != null ? ' ${wine.vintage}' : ''}',
+                  style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle ?? 'Aucune estimation',
+                  style: AppText.sans(
+                    color: subtitle != null ? AppColors.gold2 : AppColors.text3,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _refreshButton(refreshing: refreshing, onTap: onRefresh),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _refreshButton({required bool refreshing, required VoidCallback onTap}) {
+  return InkWell(
+    onTap: refreshing ? null : onTap,
+    borderRadius: BorderRadius.circular(20),
+    child: Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: AppColors.bg4,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.border2),
+      ),
+      child: refreshing
+          ? const Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+            )
+          : const Icon(Icons.refresh, size: 15, color: AppColors.text2),
+    ),
+  );
 }

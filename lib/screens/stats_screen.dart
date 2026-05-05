@@ -275,10 +275,7 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           Container(height: 1, color: AppColors.border),
-          if (height != null)
-            Expanded(child: Padding(padding: const EdgeInsets.all(18), child: child))
-          else
-            Padding(padding: const EdgeInsets.all(18), child: child),
+          Expanded(child: Padding(padding: const EdgeInsets.all(18), child: child)),
         ],
       ),
     );
@@ -517,13 +514,16 @@ class _TypeDonutCard extends StatelessWidget {
     final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
 
     if (isMobile) {
-      return _StatCard(
-        title: 'Répartition par type ($total)',
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(height: 180, child: chart),
-          const SizedBox(height: 12),
-          Wrap(spacing: 12, runSpacing: 4, children: legend),
-        ]),
+      return SizedBox(
+        height: 360,
+        child: _StatCard(
+          title: 'Répartition par type ($total)',
+          child: Column(children: [
+            SizedBox(height: 180, child: chart),
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 4, children: legend),
+          ]),
+        ),
       );
     }
     return SizedBox(
@@ -591,13 +591,16 @@ class _GardeDonutCard extends StatelessWidget {
     final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
 
     if (isMobile) {
-      return _StatCard(
-        title: 'Fenêtre de garde',
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(height: 180, child: chart),
-          const SizedBox(height: 12),
-          Wrap(spacing: 12, runSpacing: 4, children: legend),
-        ]),
+      return SizedBox(
+        height: 340,
+        child: _StatCard(
+          title: 'Fenêtre de garde',
+          child: Column(children: [
+            SizedBox(height: 180, child: chart),
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 4, children: legend),
+          ]),
+        ),
       );
     }
     return SizedBox(
@@ -1342,13 +1345,16 @@ class _GenericDonutCard extends StatelessWidget {
     final chart = PieChart(PieChartData(sections: sections, centerSpaceRadius: 40, sectionsSpace: 2));
 
     if (isMobile) {
-      return _StatCard(
-        title: '$title ($total)',
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(height: 180, child: chart),
-          const SizedBox(height: 12),
-          Wrap(spacing: 12, runSpacing: 4, children: legendItems),
-        ]),
+      return SizedBox(
+        height: 360,
+        child: _StatCard(
+          title: '$title ($total)',
+          child: Column(children: [
+            SizedBox(height: 180, child: chart),
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 4, children: legendItems),
+          ]),
+        ),
       );
     }
     return SizedBox(

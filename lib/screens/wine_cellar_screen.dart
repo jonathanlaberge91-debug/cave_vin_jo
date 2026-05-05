@@ -144,30 +144,48 @@ class _WineCellarScreenState extends State<WineCellarScreen> {
     }
   }
 
-  Future<void> _rawSend(int cellarIndex, String dps, dynamic value) async {
-    await http.post(
+  Future<String?> _rawSend(int cellarIndex, String dps, dynamic value) async {
+    final res = await http.post(
       Uri.parse('$_activeUrl/set/$cellarIndex'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'dps': dps, 'value': value}),
     ).timeout(const Duration(seconds: 15));
+    if (res.statusCode != 200) {
+      try {
+        final body = jsonDecode(res.body);
+        return body['error']?.toString() ?? 'Erreur ${res.statusCode}';
+      } catch (_) {
+        return 'Erreur ${res.statusCode}';
+      }
+    }
+    return null;
   }
 
   Future<void> _send(int cellarIndex, String dps, dynamic value) async {
     if (_sendingFor.contains(cellarIndex)) return;
     setState(() => _sendingFor.add(cellarIndex));
+    String? error;
     try {
       final needsUnlock = dps == '106' || dps == '107' || dps == '102';
       final wasLocked = _cellars != null && cellarIndex < _cellars!.length && _cellars![cellarIndex].keyLock;
       if (needsUnlock && wasLocked) {
-        await _rawSend(cellarIndex, '5', false);
+        error = await _rawSend(cellarIndex, '5', false);
+        if (error != null) throw Exception(error);
         await Future.delayed(const Duration(milliseconds: 1500));
       }
-      await _rawSend(cellarIndex, dps, value);
+      error = await _rawSend(cellarIndex, dps, value);
+      if (error != null) throw Exception(error);
       if (needsUnlock && wasLocked) {
         await Future.delayed(const Duration(milliseconds: 1500));
         await _rawSend(cellarIndex, '5', true);
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: const Color(0xFFB23A48)),
+        );
+      }
+    }
     if (mounted) setState(() => _sendingFor.remove(cellarIndex));
     _fetch();
   }
@@ -528,11 +546,11 @@ class _CellarCard extends StatelessWidget {
 
   void _showSideLightPicker(BuildContext context) {
     final options = [
-      ('OFF', 'OFF', AppColors.text3),
-      ('25', '25%', const Color(0xFFE8C97A).withValues(alpha: 0.4)),
-      ('50', '50%', const Color(0xFFE8C97A).withValues(alpha: 0.6)),
-      ('75', '75%', const Color(0xFFE8C97A).withValues(alpha: 0.8)),
-      ('100', '100%', const Color(0xFFE8C97A)),
+      (0, 'OFF', AppColors.text3),
+      (25, '25%', const Color(0xFFE8C97A).withValues(alpha: 0.4)),
+      (50, '50%', const Color(0xFFE8C97A).withValues(alpha: 0.6)),
+      (75, '75%', const Color(0xFFE8C97A).withValues(alpha: 0.8)),
+      (100, '100%', const Color(0xFFE8C97A)),
     ];
     showDialog(
       context: context,
@@ -544,7 +562,7 @@ class _CellarCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final o in options)
-              _pickerOption(ctx, '106', o.$1, o.$2, o.$3, '${status.sideLight}' == o.$1 || (status.sideLight == 0 && o.$1 == 'OFF')),
+              _pickerOption(ctx, '106', o.$1, o.$2, o.$3, status.sideLight == o.$1),
           ],
         ),
       ),
