@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart';
+import '../services/actualisation_service.dart';
 import '../services/cave_service.dart';
 import '../services/wine_pdf_service.dart';
 import '../theme/app_colors.dart';
@@ -17,22 +18,29 @@ Future<void> showWineDetail(
   BuildContext context, {
   required Wine wine,
   required List<Bottle> bottles,
+  BottleFormat? format,
 }) {
   return showDialog(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.65),
-    builder: (_) => WineDetailDialog(wine: wine, bottles: bottles),
+    builder: (_) => WineDetailDialog(
+      wine: wine,
+      bottles: bottles,
+      format: format ?? bottles.first.format,
+    ),
   );
 }
 
 class WineDetailDialog extends StatefulWidget {
   final Wine wine;
   final List<Bottle> bottles;
+  final BottleFormat format;
 
   const WineDetailDialog({
     super.key,
     required this.wine,
     required this.bottles,
+    required this.format,
   });
 
   @override
@@ -70,53 +78,62 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: StreamBuilder<List<Bottle>>(
-                stream: CaveService.bottlesByWine(widget.wine.id),
-                initialData: widget.bottles,
-                builder: (context, snap) {
-                  final mine = snap.data ?? const <Bottle>[];
-                  if (mine.isEmpty) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) Navigator.of(context).maybePop();
-                    });
-                    return const SizedBox.shrink();
-                  }
-                  return SingleChildScrollView(
-                    child: _DialogBody(wine: widget.wine, bottles: mine),
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              top: 14,
-              right: 98,
-              child: _HeaderAction(
-                icon: Icons.print_outlined,
-                tooltip: 'Fiche imprimable',
-                onTap: () => openWinePrintSheet(widget.wine, widget.bottles),
-              ),
-            ),
-            Positioned(
-              top: 14,
-              right: 56,
-              child: _HeaderAction(
-                icon: Icons.edit_outlined,
-                tooltip: 'Modifier le vin',
-                onTap: () => showEditWineDialog(context, widget.wine),
-              ),
-            ),
-            Positioned(
-              top: 14,
-              right: 14,
-              child: _CloseButton(
-                onTap: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
+        child: StreamBuilder<Wine?>(
+          stream: CaveService.wine(widget.wine.id),
+          initialData: widget.wine,
+          builder: (context, wineSnap) {
+            final wine = wineSnap.data ?? widget.wine;
+            return Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: StreamBuilder<List<Bottle>>(
+                    stream: CaveService.bottlesByWine(widget.wine.id).map(
+                      (list) => list.where((b) => b.format == widget.format).toList(),
+                    ),
+                    initialData: widget.bottles,
+                    builder: (context, snap) {
+                      final mine = snap.data ?? const <Bottle>[];
+                      if (mine.isEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) Navigator.of(context).maybePop();
+                        });
+                        return const SizedBox.shrink();
+                      }
+                      return SingleChildScrollView(
+                        child: _DialogBody(wine: wine, bottles: mine),
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 98,
+                  child: _HeaderAction(
+                    icon: Icons.print_outlined,
+                    tooltip: 'Fiche imprimable',
+                    onTap: () => openWinePrintSheet(wine, widget.bottles),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 56,
+                  child: _HeaderAction(
+                    icon: Icons.edit_outlined,
+                    tooltip: 'Modifier le vin',
+                    onTap: () => showEditWineDialog(context, wine),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: _CloseButton(
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -214,10 +231,20 @@ class _CloseButtonState extends State<_CloseButton> {
   }
 }
 
-class _DialogBody extends StatelessWidget {
+class _DialogBody extends StatefulWidget {
   final Wine wine;
   final List<Bottle> bottles;
   const _DialogBody({required this.wine, required this.bottles});
+
+  @override
+  State<_DialogBody> createState() => _DialogBodyState();
+}
+
+class _DialogBodyState extends State<_DialogBody> {
+  bool _loadingMarket = false;
+
+  Wine get wine => widget.wine;
+  List<Bottle> get bottles => widget.bottles;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +254,13 @@ class _DialogBody extends StatelessWidget {
         .fold<double>(0, (s, v) => s + v);
     final purchaseCount = bottles.where((b) => b.purchasePrice != null).length;
     final avgPrice = purchaseCount > 0 ? purchaseTotal / purchaseCount : null;
+    final hasMarket = bottles.any((b) => b.marketValue != null);
+    final marketByFormat = <BottleFormat, double>{};
+    for (final b in bottles) {
+      if (b.marketValue != null && !marketByFormat.containsKey(b.format)) {
+        marketByFormat[b.format] = b.marketValue!;
+      }
+    }
     final totalValue = bottles.fold<double>(
       0,
       (s, b) => s + (b.marketValue ?? b.purchasePrice ?? 0),
@@ -236,15 +270,23 @@ class _DialogBody extends StatelessWidget {
       _StatTileData(label: 'Bouteilles', value: '$qty'),
       if (wine.rating != null)
         _StatTileData(label: 'Note', value: '${wine.rating}', suffix: '/100'),
+      for (final e in marketByFormat.entries)
+        _StatTileData(
+          label: marketByFormat.length > 1
+              ? 'Val. ${e.key.label}'
+              : 'Val. marché',
+          value: e.value.toStringAsFixed(0),
+          suffix: ' \$',
+        ),
       if (avgPrice != null && avgPrice > 0)
         _StatTileData(
-          label: 'Prix moyen',
+          label: 'Prix payé moy.',
           value: avgPrice.toStringAsFixed(0),
           suffix: ' \$',
         ),
-      if (totalValue > 0)
+      if (totalValue > 0 && qty > 1)
         _StatTileData(
-          label: 'Valeur',
+          label: 'Valeur totale',
           value: totalValue.toStringAsFixed(0),
           suffix: ' \$',
         ),
@@ -296,6 +338,17 @@ class _DialogBody extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               _StatsRow(stats: stats),
+              if (!hasMarket) ...[
+                const SizedBox(height: 10),
+                _EstimateMarketButton(
+                  loading: _loadingMarket,
+                  onTap: () async {
+                    setState(() => _loadingMarket = true);
+                    await ActualisationService.refreshMarketValue(wine);
+                    if (mounted) setState(() => _loadingMarket = false);
+                  },
+                ),
+              ],
               const SizedBox(height: 24),
               _OriginSection(wine: wine, bottles: bottles),
               if (_hasGarde(wine)) ...[
@@ -490,6 +543,43 @@ class _StatTileData {
   final String value;
   final String? suffix;
   _StatTileData({required this.label, required this.value, this.suffix});
+}
+
+class _EstimateMarketButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onTap;
+  const _EstimateMarketButton({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (loading)
+              const SizedBox(
+                width: 14, height: 14,
+                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold),
+              )
+            else
+              const Icon(Icons.trending_up, size: 15, color: AppColors.gold),
+            const SizedBox(width: 8),
+            Text(
+              loading ? 'Estimation...' : 'Estimer la valeur marchande',
+              style: const TextStyle(color: AppColors.gold, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _StatsRow extends StatelessWidget {
@@ -709,22 +799,52 @@ class _KvLine extends StatelessWidget {
   }
 }
 
-class _GardeSection extends StatelessWidget {
+class _GardeSection extends StatefulWidget {
   final Wine wine;
   const _GardeSection({required this.wine});
+
+  @override
+  State<_GardeSection> createState() => _GardeSectionState();
+}
+
+class _GardeSectionState extends State<_GardeSection> {
+  int _historyCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final entries = await ActualisationService.getGardeHistory(widget.wine.id);
+    if (mounted) setState(() => _historyCount = entries.length);
+  }
 
   @override
   Widget build(BuildContext context) {
     return _Section(
       title: 'Période de garde',
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-        decoration: BoxDecoration(
-          color: AppColors.bg3,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: _GardeTimeline(wine: wine),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+            decoration: BoxDecoration(
+              color: AppColors.bg3,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: _GardeTimeline(wine: widget.wine),
+          ),
+          if (_historyCount > 1) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Moyenne de $_historyCount estimations',
+              style: AppText.sans(color: AppColors.text3, fontSize: 11),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -754,6 +874,13 @@ class _GardeTimeline extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, c) {
         final w = c.maxWidth;
+        final nowX = pos(now) * w;
+        final markerXs = [
+          if (from != null) pos(from) * w,
+          if (peak != null) pos(peak) * w,
+          if (to != null) pos(to) * w,
+        ];
+        final nowLabelAbove = markerXs.any((mx) => (nowX - mx).abs() < 55);
         return SizedBox(
           height: 90,
           child: Stack(
@@ -791,7 +918,7 @@ class _GardeTimeline extends StatelessWidget {
                   ),
                 ),
               Positioned(
-                left: pos(now) * w - 1,
+                left: nowX - 1,
                 top: 24,
                 child: Container(
                   width: 2,
@@ -831,8 +958,8 @@ class _GardeTimeline extends StatelessWidget {
                   color: const Color(0xFFC62828),
                 ),
               Positioned(
-                left: pos(now) * w - 35,
-                top: 60,
+                left: nowX - 35,
+                top: nowLabelAbove ? 4 : 60,
                 child: SizedBox(
                   width: 70,
                   child: Text(
@@ -1195,189 +1322,208 @@ class _BottleCard extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       decoration: BoxDecoration(
         color: AppColors.bg3,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.bg4,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border2),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$index',
-              style: AppText.serif(
-                color: AppColors.gold2,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.place_outlined,
-                      size: 13,
-                      color: AppColors.text3,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      b.location.isNotEmpty
-                          ? 'Emplacement ${b.location}'
-                          : 'Sans emplacement',
-                      style: AppText.sans(
-                        color: AppColors.text,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+          // Ligne principale : numéro + contenu + prix
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.bg4,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.border2),
                 ),
-                const SizedBox(height: 3),
-                if (metaParts.isNotEmpty)
-                  Text(
-                    metaParts.join(' · '),
-                    style: AppText.sans(
-                      color: AppColors.text3,
-                      fontSize: 11,
-                    ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$index',
+                  style: AppText.serif(
+                    color: AppColors.gold2,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
-                if (b.isGift && (b.giftFrom.isNotEmpty || b.giftOccasion.isNotEmpty || b.giftDate != null))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0x26C9A84C),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        [
-                          'CADEAU',
-                          if (b.giftFrom.isNotEmpty) 'de ${b.giftFrom}',
-                          if (b.giftOccasion.isNotEmpty) b.giftOccasion,
-                          if (b.giftDate != null) fmtDate(b.giftDate!),
-                        ].join(' · '),
-                        style: AppText.sans(
-                          color: AppColors.gold2,
-                          fontSize: 9,
-                          letterSpacing: 0.7,
-                          fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.place_outlined, size: 13, color: AppColors.text3),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            b.location.isNotEmpty
+                                ? 'Emplacement ${b.location}'
+                                : 'Sans emplacement',
+                            style: AppText.sans(
+                              color: AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-                if (b.status == BottleStatus.drunk)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0x1A8B5CF6),
-                        borderRadius: BorderRadius.circular(4),
+                    if (metaParts.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        metaParts.join(' · '),
+                        style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                    ],
+                    if (b.isGift && (b.giftFrom.isNotEmpty || b.giftOccasion.isNotEmpty || b.giftDate != null))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0x26C9A84C),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
                             [
-                              'BUE',
-                              if (b.drunkAt != null) fmtDate(b.drunkAt!),
-                              if (b.drunkRating != null) '${b.drunkRating}/100',
-                              if (b.drunkLocation != null && b.drunkLocation!.isNotEmpty) b.drunkLocation!,
+                              'CADEAU',
+                              if (b.giftFrom.isNotEmpty) 'de ${b.giftFrom}',
+                              if (b.giftOccasion.isNotEmpty) b.giftOccasion,
+                              if (b.giftDate != null) fmtDate(b.giftDate!),
                             ].join(' · '),
                             style: AppText.sans(
-                              color: const Color(0xFF8B5CF6),
+                              color: AppColors.gold2,
                               fontSize: 9,
                               letterSpacing: 0.7,
                               fontWeight: FontWeight.w700,
                             ),
+                            softWrap: true,
                           ),
-                          if (b.drunkNote != null && b.drunkNote!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                b.drunkNote!,
-                                style: AppText.sans(
-                                  color: const Color(0xCC8B5CF6),
-                                  fontSize: 10,
-                                ),
+                        ),
+                      ),
+                    if (b.status == BottleStatus.drunk)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0x1A8B5CF6),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0x338B5CF6)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 2,
+                                children: [
+                                  _DrunkChip(label: 'BUE', icon: Icons.wine_bar),
+                                  if (b.drunkAt != null)
+                                    _DrunkChip(label: fmtDate(b.drunkAt!), icon: Icons.calendar_today_outlined),
+                                  if (b.drunkRating != null)
+                                    _DrunkChip(label: '${b.drunkRating}/100', icon: Icons.star_outline),
+                                  if (b.drunkLocation != null && b.drunkLocation!.isNotEmpty)
+                                    _DrunkChip(label: b.drunkLocation!, icon: Icons.location_on_outlined),
+                                ],
                               ),
-                            ),
-                        ],
+                              if (b.drunkNote != null && b.drunkNote!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    b.drunkNote!,
+                                    style: AppText.sans(color: const Color(0xCC8B5CF6), fontSize: 11),
+                                    softWrap: true,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (b.purchasePrice != null) ...[
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${b.purchasePrice!.toStringAsFixed(0)} \$',
+                      style: AppText.serif(
+                        color: AppColors.gold2,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          if (b.purchasePrice != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${b.purchasePrice!.toStringAsFixed(0)} \$',
-                  style: AppText.serif(
-                    color: AppColors.gold2,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                    if (b.marketValue != null && b.marketValue != b.purchasePrice)
+                      Text(
+                        'val. ${b.marketValue!.toStringAsFixed(0)} \$',
+                        style: AppText.sans(color: AppColors.text3, fontSize: 10),
+                      ),
+                  ],
                 ),
-                if (b.marketValue != null && b.marketValue != b.purchasePrice)
-                  Text(
-                    'val. ${b.marketValue!.toStringAsFixed(0)} \$',
-                    style: AppText.sans(
-                      color: AppColors.text3,
-                      fontSize: 10,
-                    ),
-                  ),
               ],
-            ),
-          const SizedBox(width: 12),
-          if (bottle.status != BottleStatus.drunk) ...[
-            _BottleAction(
-              icon: Icons.wine_bar_outlined,
-              tooltip: 'Bue',
-              onTap: onDrink,
-            ),
-            const SizedBox(width: 6),
-          ] else ...[
-            _BottleAction(
-              icon: Icons.rate_review_outlined,
-              tooltip: 'Modifier dégustation',
-              onTap: onDrink,
-            ),
-            const SizedBox(width: 6),
-          ],
-          _BottleAction(
-            icon: Icons.edit_outlined,
-            tooltip: 'Modifier',
-            onTap: onEdit,
+            ],
           ),
-          const SizedBox(width: 6),
-          _BottleAction(
-            icon: Icons.delete_outline,
-            tooltip: 'Supprimer',
-            danger: true,
-            onTap: onDelete,
+          // Ligne d'actions en bas à droite
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (bottle.status != BottleStatus.drunk)
+                _BottleAction(
+                  icon: Icons.wine_bar_outlined,
+                  tooltip: 'Bue',
+                  onTap: onDrink,
+                )
+              else
+                _BottleAction(
+                  icon: Icons.rate_review_outlined,
+                  tooltip: 'Modifier dégustation',
+                  onTap: onDrink,
+                ),
+              const SizedBox(width: 6),
+              _BottleAction(icon: Icons.edit_outlined, tooltip: 'Modifier', onTap: onEdit),
+              const SizedBox(width: 6),
+              _BottleAction(icon: Icons.delete_outline, tooltip: 'Supprimer', danger: true, onTap: onDelete),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DrunkChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _DrunkChip({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 11, color: const Color(0xFF8B5CF6)),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: AppText.sans(color: const Color(0xFF8B5CF6), fontSize: 11),
+        ),
+      ],
     );
   }
 }

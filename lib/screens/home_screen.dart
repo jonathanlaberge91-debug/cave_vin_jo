@@ -16,6 +16,7 @@ import 'pairing_screen.dart';
 import 'carte_screen.dart';
 import 'stats_screen.dart';
 import 'wine_cellar_screen.dart';
+import 'govee_sensors_screen.dart';
 import '../dialogs/drink_bottle_dialog.dart';
 import '../dialogs/sommelier_dialog.dart';
 import '../theme/date_format.dart';
@@ -26,6 +27,7 @@ import '../models/wish_column.dart';
 import '../services/wishlist_service.dart';
 import '../dialogs/add_wish_dialog.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/cascade_filter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   bool _mobileSearchOpen = false;
   int _settingsSub = 0;
+  CascadeFilterState _cascadeFilter = const CascadeFilterState();
 
   static const _settingsSubs = [
     (Icons.table_chart_outlined, 'Cave'),
@@ -48,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.favorite_border, 'Liste de souhaits'),
     (Icons.bar_chart_outlined, 'Statistiques'),
     (Icons.key_outlined, 'Clés API'),
+    (Icons.refresh_outlined, 'Actualisation'),
   ];
 
   final List<_NavEntry> _entries = [
@@ -58,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavEntry.item(icon: Icons.local_bar_outlined, label: 'Bouteilles bues'),
     _NavEntry.item(icon: Icons.restaurant_outlined, label: 'Accords mets-vins'),
     _NavEntry.item(icon: Icons.thermostat_outlined, label: 'Wine CellR'),
+    _NavEntry.item(icon: Icons.sensors_outlined, label: 'Capteurs Govee'),
     _NavEntry.item(icon: Icons.bar_chart_outlined, label: 'Statistiques'),
     _NavEntry.item(icon: Icons.map_outlined, label: 'Carte des domaines'),
     _NavEntry.item(icon: Icons.favorite_border, label: 'Liste de souhaits'),
@@ -394,10 +399,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContent() {
     final label = _items[_selectedIndex].label!;
     if (label == 'Ma Cave') return _buildCavePage();
-    if (label == 'Cellier') return const CellierScreen();
+    if (label == 'Cellier') return CellierScreen(filter: _cascadeFilter, onFilterChanged: (f) => setState(() => _cascadeFilter = f));
     if (label == 'Bouteilles bues') return _buildDrunkPage();
     if (label == 'Accords mets-vins') return const PairingScreen();
     if (label == 'Wine CellR') return const WineCellarScreen();
+    if (label == 'Capteurs Govee') return const GoveeSensorsScreen();
     if (label == 'Statistiques') return const StatsScreen();
     if (label == 'Carte des domaines') return const CarteScreen();
     if (label == 'Liste de souhaits') return const _WishlistPage();
@@ -452,6 +458,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
             var rows = grouped.values.toList();
 
+            final allFilterData = rows.map((r) => CascadeFilterData(
+              country: r.wine.country,
+              region: r.wine.region,
+              appellation: r.wine.appellation,
+              climat: r.wine.climat,
+            )).toList();
+
             if (_searchQuery.isNotEmpty) {
               rows = rows.where((r) {
                 final w = r.wine;
@@ -468,96 +481,125 @@ class _HomeScreenState extends State<HomeScreen> {
               }).toList();
             }
 
+            if (!_cascadeFilter.isEmpty) {
+              rows = rows.where((r) => _cascadeFilter.matchesWine(
+                country: r.wine.country,
+                region: r.wine.region,
+                appellation: r.wine.appellation,
+                climat: r.wine.climat,
+              )).toList();
+            }
+
             final isMobile = MediaQuery.of(context).size.width < 600;
-            return Padding(
-              padding: EdgeInsets.all(isMobile ? 0 : 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isMobile ? Colors.transparent : AppColors.bg2,
-                  borderRadius: BorderRadius.circular(isMobile ? 0 : 14),
-                  border: isMobile ? null : Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    if (!isMobile)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: AppColors.border),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Cave',
-                              style: AppText.serif(
-                                color: AppColors.gold2,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
+            final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasFilterData)
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.bg2,
+                      border: Border(bottom: BorderSide(color: AppColors.border)),
+                    ),
+                    child: CascadeFilterBar(
+                      filter: _cascadeFilter,
+                      allItems: allFilterData,
+                      onChanged: (f) => setState(() => _cascadeFilter = f),
+                    ),
+                  ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(isMobile ? 0 : 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isMobile ? Colors.transparent : AppColors.bg2,
+                        borderRadius: BorderRadius.circular(isMobile ? 0 : 14),
+                        border: isMobile ? null : Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        children: [
+                          if (!isMobile)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.bg3,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: AppColors.border2),
+                                horizontal: 18,
+                                vertical: 14,
                               ),
-                              child: Text(
-                                '${rows.length} vin${rows.length > 1 ? 's' : ''}',
-                                style: AppText.sans(
-                                  color: AppColors.text2,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: AppColors.border),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (rows.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.wine_bar, size: 48, color: AppColors.text3),
-                            const SizedBox(height: 14),
-                            Text(
-                              'Aucun vin dans la cave',
-                              style: AppText.serif(
-                                color: AppColors.text2,
-                                fontSize: 22,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'Cave',
+                                    style: AppText.serif(
+                                      color: AppColors.gold2,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.bg3,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: AppColors.border2),
+                                    ),
+                                    child: Text(
+                                      '${rows.length} vin${rows.length > 1 ? 's' : ''}',
+                                      style: AppText.sans(
+                                        color: AppColors.text2,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth < 600) {
-                              return CaveCardList(
-                                rows: rows,
-                                onTap: _openWineDetail,
-                                gardeFor: _gardeLabel,
-                                onDrink: (bottle) => showDrinkBottleDialog(context, bottle),
-                                onSommelier: (wine) => showSommelierDialog(context, wine),
-                              );
-                            }
-                            return _buildCaveTable(rows);
-                          },
-                        ),
+                          if (rows.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(40),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.wine_bar, size: 48, color: AppColors.text3),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'Aucun vin dans la cave',
+                                    style: AppText.serif(
+                                      color: AppColors.text2,
+                                      fontSize: 22,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Expanded(
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  if (constraints.maxWidth < 600) {
+                                    return CaveCardList(
+                                      rows: rows,
+                                      onTap: _openWineDetail,
+                                      gardeFor: _gardeLabel,
+                                      onDrink: (bottle) => showDrinkBottleDialog(context, bottle),
+                                      onSommelier: (wine) => showSommelierDialog(context, wine),
+                                    );
+                                  }
+                                  return _buildCaveTable(rows);
+                                },
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             );
           },
         );
@@ -622,11 +664,14 @@ class _HomeScreenState extends State<HomeScreen> {
       fontWeight: FontWeight.w700,
       letterSpacing: 1.1,
     );
-    return cols.map((c) {
+    final cells = cols.map((c) {
       final text = Text(c.label, style: headerStyle);
       if (c.width != null) return SizedBox(width: c.width, child: text);
       return Expanded(flex: c.flex ?? 1, child: text);
     }).toList();
+    cells.add(const SizedBox(width: 30));
+    cells.add(const SizedBox(width: 30));
+    return cells;
   }
 
   GardeInfo? _gardeLabel(Wine w) => GardeInfo.fromWine(w);
@@ -809,6 +854,7 @@ class _DrunkPage extends StatefulWidget {
 class _DrunkPageState extends State<_DrunkPage> {
   late final Stream<List<Wine>> _wineStream;
   late final Stream<List<Bottle>> _bottleStream;
+  CascadeFilterState _cascadeFilter = const CascadeFilterState();
 
   @override
   void initState() {
@@ -834,9 +880,33 @@ class _DrunkPageState extends State<_DrunkPage> {
                 child: CircularProgressIndicator(color: AppColors.gold),
               );
             }
-            final bottles = bottleSnap.data ?? [];
+            var bottles = bottleSnap.data ?? [];
 
-            if (bottles.isEmpty) {
+            final allFilterData = bottles
+                .map((b) => winesById[b.wineId])
+                .whereType<Wine>()
+                .map((w) => CascadeFilterData(
+                      country: w.country,
+                      region: w.region,
+                      appellation: w.appellation,
+                      climat: w.climat,
+                    ))
+                .toList();
+
+            if (!_cascadeFilter.isEmpty) {
+              bottles = bottles.where((b) {
+                final w = winesById[b.wineId];
+                if (w == null) return false;
+                return _cascadeFilter.matchesWine(
+                  country: w.country,
+                  region: w.region,
+                  appellation: w.appellation,
+                  climat: w.climat,
+                );
+              }).toList();
+            }
+
+            if (bottles.isEmpty && (bottleSnap.data ?? []).isEmpty) {
               return Padding(
                 padding: const EdgeInsets.only(top: 80),
                 child: Center(
@@ -858,11 +928,25 @@ class _DrunkPageState extends State<_DrunkPage> {
             return ValueListenableBuilder<Set<DrunkColumn>>(
               valueListenable: CavePreferencesService.drunkVisible,
               builder: (context, visibleCols, _) {
-                final cols = DrunkColumn.values
-                    .where((c) => visibleCols.contains(c))
-                    .toList();
+                final isMobile = MediaQuery.of(context).size.width < 600;
+                final cols = isMobile
+                    ? [DrunkColumn.photo, DrunkColumn.name, DrunkColumn.drunkRating, DrunkColumn.drunkDate]
+                    : DrunkColumn.values.where((c) => visibleCols.contains(c)).toList();
+                final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
                 return Column(
                   children: [
+                    if (hasFilterData)
+                      Container(
+                        decoration: const BoxDecoration(
+                          color: AppColors.bg2,
+                          border: Border(bottom: BorderSide(color: AppColors.border)),
+                        ),
+                        child: CascadeFilterBar(
+                          filter: _cascadeFilter,
+                          allItems: allFilterData,
+                          onChanged: (f) => setState(() => _cascadeFilter = f),
+                        ),
+                      ),
                     Container(
                       color: AppColors.bg2,
                       padding: const EdgeInsets.symmetric(
@@ -884,8 +968,9 @@ class _DrunkPageState extends State<_DrunkPage> {
                                 ? () => showWineDetail(context,
                                     wine: w,
                                     bottles: bottles
-                                        .where((x) => x.wineId == w.id)
-                                        .toList())
+                                        .where((x) => x.wineId == w.id && x.format == b.format)
+                                        .toList(),
+                                    format: b.format)
                                 : null,
                           );
                         },
@@ -911,6 +996,7 @@ class _WishlistPage extends StatefulWidget {
 
 class _WishlistPageState extends State<_WishlistPage> {
   late final Stream<List<WishWine>> _stream;
+  CascadeFilterState _cascadeFilter = const CascadeFilterState();
 
   @override
   void initState() {
@@ -929,7 +1015,24 @@ class _WishlistPageState extends State<_WishlistPage> {
             child: CircularProgressIndicator(color: AppColors.gold),
           );
         }
-        final wishes = snap.data ?? [];
+        final allWishes = snap.data ?? [];
+
+        final allFilterData = allWishes.map((w) => CascadeFilterData(
+          country: w.country,
+          region: w.region,
+          appellation: w.appellation,
+          climat: w.climat,
+        )).toList();
+
+        var wishes = allWishes;
+        if (!_cascadeFilter.isEmpty) {
+          wishes = wishes.where((w) => _cascadeFilter.matchesWine(
+            country: w.country,
+            region: w.region,
+            appellation: w.appellation,
+            climat: w.climat,
+          )).toList();
+        }
 
         return ValueListenableBuilder<Set<WishColumn>>(
           valueListenable: CavePreferencesService.wishVisible,
@@ -937,8 +1040,21 @@ class _WishlistPageState extends State<_WishlistPage> {
             final cols = WishColumn.values
                 .where((c) => visibleCols.contains(c))
                 .toList();
+            final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
             return Column(
               children: [
+                if (hasFilterData)
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.bg2,
+                      border: Border(bottom: BorderSide(color: AppColors.border)),
+                    ),
+                    child: CascadeFilterBar(
+                      filter: _cascadeFilter,
+                      allItems: allFilterData,
+                      onChanged: (f) => setState(() => _cascadeFilter = f),
+                    ),
+                  ),
                 Container(
                   color: AppColors.bg2,
                   padding: const EdgeInsets.symmetric(
@@ -1325,6 +1441,8 @@ class _DrunkHeader extends StatelessWidget {
   Widget _hdr(String label) {
     return Text(
       label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: AppText.sans(
         color: AppColors.text3,
         fontSize: 10,
@@ -1665,7 +1783,12 @@ class _AppBranding extends StatelessWidget {
 
     return Row(
       children: [
-        Image.asset('assets/images/logo.png', height: logoH),
+        Image.asset(
+          'assets/images/logo_small.png',
+          height: logoH,
+          filterQuality: FilterQuality.high,
+          isAntiAlias: true,
+        ),
         SizedBox(width: compact ? 10 : 12),
         Expanded(
           child: Text(
