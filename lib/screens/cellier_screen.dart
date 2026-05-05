@@ -9,12 +9,14 @@ import '../models/wine.dart';
 import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
+import '../services/govee_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import '../theme/wine_type_helpers.dart';
 import '../widgets/cave_table.dart' show GardeInfo;
 import '../widgets/native_image.dart';
 import '../dialogs/cellar_form_dialog.dart';
+import '../widgets/cascade_filter.dart';
 import 'slot_picker.dart';
 import 'wine_cellar_screen.dart' show CellarStatus;
 import 'wine_detail_screen.dart';
@@ -22,7 +24,9 @@ import 'wine_detail_screen.dart';
 double _cellSizeFromZoom(int zoom) => 14.0 + (zoom - 1) * 3.5;
 
 class CellierScreen extends StatefulWidget {
-  const CellierScreen({super.key});
+  final CascadeFilterState filter;
+  final ValueChanged<CascadeFilterState> onFilterChanged;
+  const CellierScreen({super.key, required this.filter, required this.onFilterChanged});
 
   @override
   State<CellierScreen> createState() => _CellierScreenState();
@@ -36,18 +40,41 @@ class _CellierScreenState extends State<CellierScreen> {
   bool _useCloud = false;
   Timer? _bridgeTimer;
   final Set<int> _sending = {};
+  List<GoveeSensor>? _goveeSensors;
+  Timer? _goveeTimer;
 
   @override
   void initState() {
     super.initState();
+    _loadCachedTuya();
     _loadBridge();
+    _loadCachedGovee();
+    _goveeTimer = Timer.periodic(const Duration(seconds: 60), (_) => _fetchGovee());
   }
 
   @override
   void dispose() {
+    _goveeTimer?.cancel();
     _bridgeTimer?.cancel();
     _isDragging.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCachedTuya() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('cellier_tuya_cache');
+    if (raw == null) return;
+    try {
+      final list = (jsonDecode(raw) as List)
+          .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (mounted && list.isNotEmpty) setState(() => _physical = list);
+    } catch (_) {}
+  }
+
+  Future<void> _saveTuyaCache(String jsonBody) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cellier_tuya_cache', jsonBody);
   }
 
   Future<void> _loadBridge() async {
@@ -69,6 +96,7 @@ class _CellierScreenState extends State<CellierScreen> {
               .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
               .toList();
           if (mounted) setState(() { _physical = list; _useCloud = false; });
+          _saveTuyaCache(res.body);
           return;
         }
       } catch (_) {}
@@ -80,6 +108,7 @@ class _CellierScreenState extends State<CellierScreen> {
             .map((e) => CellarStatus.fromJson(e as Map<String, dynamic>))
             .toList();
         if (mounted) setState(() { _physical = list; _useCloud = true; });
+        _saveTuyaCache(res.body);
       }
     } catch (_) {}
   }
@@ -94,18 +123,184 @@ class _CellierScreenState extends State<CellierScreen> {
     return null;
   }
 
+  Future<http.Response> _rawPost(int idx, String dps, dynamic value) {
+    return http.post(
+      Uri.parse('$_activeUrl/set/$idx'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'dps': dps, 'value': value}),
+    ).timeout(const Duration(seconds: 15));
+  }
+
   Future<void> _sendDps(int idx, String dps, dynamic value) async {
     if (_sending.contains(idx)) return;
     setState(() => _sending.add(idx));
     try {
-      await http.post(
-        Uri.parse('$_activeUrl/set/$idx'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'dps': dps, 'value': value}),
-      ).timeout(const Duration(seconds: 15));
+      final needsUnlock = dps == '106' || dps == '107' || dps == '102';
+      final wasLocked = _physical != null && idx < _physical!.length && _physical![idx].keyLock;
+      if (needsUnlock && wasLocked) {
+        await _rawPost(idx, '5', false);
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
+      final res = await _rawPost(idx, dps, value);
+      if (res.statusCode != 200 && mounted) {
+        String error = 'Erreur ${res.statusCode}';
+        try {
+          final body = jsonDecode(res.body);
+          error = body['error']?.toString() ?? error;
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error, style: AppText.sans(color: AppColors.text)), backgroundColor: const Color(0xFF6E2A20)),
+        );
+      }
+      if (needsUnlock && wasLocked) {
+        await Future.delayed(const Duration(milliseconds: 1500));
+        await _rawPost(idx, '5', true);
+      }
     } catch (_) {}
     if (mounted) setState(() => _sending.remove(idx));
     _fetchBridge();
+  }
+
+  Future<void> _loadCachedGovee() async {
+    final cached = await GoveeService.loadCache();
+    if (mounted && cached.isNotEmpty) {
+      setState(() => _goveeSensors = cached);
+    }
+    _fetchGovee();
+  }
+
+  Future<void> _fetchGovee() async {
+    if (!GoveeService.isConfigured) return;
+    try {
+      final devices = await GoveeService.fetchDevices();
+      if (devices.isEmpty) {
+        if (mounted) setState(() => _goveeSensors = []);
+        return;
+      }
+      final statuses = await Future.wait(
+        devices.map((d) => GoveeService.fetchStatus(d.device, d.sku, d.name)),
+      );
+      final results = statuses.whereType<GoveeSensor>().toList();
+      if (mounted && results.isNotEmpty) {
+        setState(() => _goveeSensors = results);
+        GoveeService.saveCache(results);
+      }
+    } catch (_) {}
+  }
+
+  static double? _goveeTemp(double? raw) {
+    if (raw == null) return null;
+    if (raw > 1000) return raw / 100;
+    if (raw > 45) return (raw - 32) * 5 / 9;
+    return raw;
+  }
+
+  Widget _buildGoveeSection({bool compact = false}) {
+    if (_goveeSensors == null || _goveeSensors!.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 8 : 20, compact ? 6 : 8, compact ? 8 : 20, compact ? 4 : 8,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                const Icon(Icons.sensors, size: 12, color: AppColors.text3),
+                const SizedBox(width: 5),
+                Text(
+                  'CAPTEURS GOVEE',
+                  style: AppText.sans(
+                    color: AppColors.text3,
+                    fontSize: 9,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final s in _goveeSensors!)
+                _buildSensorCard(s),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSensorCard(GoveeSensor sensor) {
+    final tempC = _goveeTemp(sensor.temperature);
+    final hum = sensor.humidity;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7, height: 7,
+            decoration: BoxDecoration(
+              color: sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: (sensor.online ? const Color(0xFF7CD492) : const Color(0xFFE8667A)).withValues(alpha: 0.5),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                sensor.name,
+                style: AppText.sans(color: AppColors.text2, fontSize: 10),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tempC != null) ...[
+                    const Icon(Icons.thermostat, size: 13, color: AppColors.gold2),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${tempC.toStringAsFixed(1)}°C',
+                      style: AppText.sans(color: AppColors.gold2, fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                  if (tempC != null && hum != null) const SizedBox(width: 10),
+                  if (hum != null) ...[
+                    const Icon(Icons.water_drop_outlined, size: 11, color: Color(0xFF70B8E8)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${hum.toStringAsFixed(0)}%',
+                      style: AppText.sans(color: const Color(0xFF70B8E8), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                  if (tempC == null && hum == null)
+                    Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -127,40 +322,81 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
+  List<CascadeFilterData> _buildFilterData(List<Wine> wines) {
+    return wines
+        .where((w) => w.country.isNotEmpty || w.region.isNotEmpty)
+        .map((w) => CascadeFilterData(
+              country: w.country,
+              region: w.region,
+              appellation: w.appellation,
+              climat: w.climat,
+            ))
+        .toList();
+  }
+
+  bool _wineMatchesFilter(Wine? wine) {
+    if (widget.filter.isEmpty) return true;
+    if (wine == null) return false;
+    return widget.filter.matchesWine(
+      country: wine.country,
+      region: wine.region,
+      appellation: wine.appellation,
+      climat: wine.climat,
+    );
+  }
+
   Widget _buildDesktopLayout(List<Cellar> cellars) {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Column(
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                children: [
-                  _buildHeader(cellars),
-                  if (cellars.isEmpty)
-                    Expanded(child: _buildEmpty())
-                  else
-                    Expanded(child: _buildAllCellars(cellars)),
-                ],
-              ),
-            ),
+          StreamBuilder<List<Wine>>(
+            stream: CaveService.wines(),
+            builder: (context, wSnap) {
+              final wines = wSnap.data ?? [];
+              if (wines.isEmpty) return const SizedBox.shrink();
+              return CascadeFilterBar(
+                filter: widget.filter,
+                allItems: _buildFilterData(wines),
+                onChanged: widget.onFilterChanged,
+              );
+            },
           ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 480,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: _buildUnplacedBar(),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.bg2,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildHeader(cellars),
+                        if (cellars.isEmpty)
+                          Expanded(child: _buildEmpty())
+                        else
+                          Expanded(child: _buildAllCellars(cellars)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 480,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.bg2,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: _buildUnplacedBar(),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -171,6 +407,18 @@ class _CellierScreenState extends State<CellierScreen> {
   Widget _buildMobileLayout(List<Cellar> cellars) {
     return Column(
       children: [
+        StreamBuilder<List<Wine>>(
+          stream: CaveService.wines(),
+          builder: (context, wSnap) {
+            final wines = wSnap.data ?? [];
+            if (wines.isEmpty) return const SizedBox.shrink();
+            return CascadeFilterBar(
+              filter: widget.filter,
+              allItems: _buildFilterData(wines),
+              onChanged: widget.onFilterChanged,
+            );
+          },
+        ),
         Expanded(
           child: cellars.isEmpty
               ? _buildEmpty()
@@ -197,10 +445,11 @@ class _CellierScreenState extends State<CellierScreen> {
           itemCount: cellars.length + 1,
           itemBuilder: (context, i) {
             if (i == 0) return _buildMobileAddCellarBtn(cellars);
-            final c = cellars[i - 1];
+            final ai = i;
+            final c = cellars[ai - 1];
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _buildMobileCellarCard(c, winesById, 0, cellarIndex: i - 1),
+              child: _buildMobileCellarCard(c, winesById, 0, cellarIndex: ai - 1),
             );
           },
         );
@@ -262,6 +511,7 @@ class _CellierScreenState extends State<CellierScreen> {
         final status = pIdx != null ? _physical![pIdx] : null;
 
         return Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: AppColors.bg2,
             borderRadius: BorderRadius.circular(12),
@@ -270,8 +520,9 @@ class _CellierScreenState extends State<CellierScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildTopLedBar(status: status, physicalIdx: pIdx, height: 6),
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+                padding: const EdgeInsets.fromLTRB(14, 6, 10, 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -284,8 +535,6 @@ class _CellierScreenState extends State<CellierScreen> {
                         ),
                       ),
                     ),
-                    if (status != null) _buildTempControls(status, pIdx!),
-                    if (status != null) const SizedBox(width: 10),
                     Text(
                       '$occupiedCount/${c.totalSlots}',
                       style: AppText.sans(color: AppColors.text3, fontSize: 11),
@@ -293,17 +542,30 @@ class _CellierScreenState extends State<CellierScreen> {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    const labelW = 24.0;
-                    const gap = 1.0;
-                    final availW = constraints.maxWidth - labelW;
-                    final fitCellSize = (availW - gap * (c.cols - 1)) / c.cols;
-                    final mobileCellSize = fitCellSize.clamp(8.0, 44.0);
-                    return _buildGridStatic(c, occupied, winesById, cellSize: mobileCellSize, anchors: anchors);
-                  },
+              _buildTempStrip(c, compact: true),
+              if (status != null) _buildCellarControls(status, pIdx!, compact: true),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildLightBar(isLeft: true, status: status, physicalIdx: pIdx, width: 6),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            const labelW = 24.0;
+                            const gap = 1.0;
+                            final availW = constraints.maxWidth - labelW;
+                            final fitCellSize = (availW - gap * (c.cols - 1)) / c.cols;
+                            final mobileCellSize = fitCellSize.clamp(8.0, 44.0);
+                            return _buildGridStatic(c, occupied, winesById, cellSize: mobileCellSize, anchors: anchors);
+                          },
+                        ),
+                      ),
+                    ),
+                    _buildLightBar(isLeft: false, status: status, physicalIdx: pIdx, width: 6),
+                  ],
                 ),
               ),
             ],
@@ -324,23 +586,26 @@ class _CellierScreenState extends State<CellierScreen> {
             final wines = winesSnap.data ?? [];
             final winesById = {for (final w in wines) w.id: w};
 
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(20),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = 0; i < cellars.length; i++) ...[
-                      SizedBox(
-                        width: _cardWidth(cellars[i], cellSize),
-                        child: _buildCellarCard(cellars[i], winesById, cellSize, cellarIndex: i),
-                      ),
-                      if (i < cellars.length - 1) const SizedBox(width: 20),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < cellars.length; i++) ...[
+                        SizedBox(
+                          width: _cardWidth(cellars[i], cellSize),
+                          height: constraints.maxHeight - 40,
+                          child: _buildCellarCard(cellars[i], winesById, cellSize, cellarIndex: i),
+                        ),
+                        if (i < cellars.length - 1) const SizedBox(width: 20),
+                      ],
                     ],
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         );
@@ -378,6 +643,7 @@ class _CellierScreenState extends State<CellierScreen> {
         final status = pIdx != null ? _physical![pIdx] : null;
 
         return Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: AppColors.bg3,
             borderRadius: BorderRadius.circular(12),
@@ -386,8 +652,9 @@ class _CellierScreenState extends State<CellierScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildTopLedBar(status: status, physicalIdx: pIdx, height: 12),
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
+                padding: const EdgeInsets.fromLTRB(18, 10, 14, 12),
                 child: Row(
                   children: [
                     Text(
@@ -399,8 +666,6 @@ class _CellierScreenState extends State<CellierScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    if (status != null) _buildTempControls(status, pIdx!),
-                    if (status != null) const SizedBox(width: 10),
                     Text(
                       '$occupiedCount/${c.totalSlots} bouteilles',
                       style: AppText.sans(
@@ -411,9 +676,22 @@ class _CellierScreenState extends State<CellierScreen> {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                child: _buildGridStatic(c, occupied, winesById, cellSize: cellSize, anchors: anchors),
+              _buildTempStrip(c),
+              if (status != null) _buildCellarControls(status, pIdx!),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildLightBar(isLeft: true, status: status, physicalIdx: pIdx),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+                        child: _buildGridStatic(c, occupied, winesById, cellSize: cellSize, anchors: anchors),
+                      ),
+                    ),
+                    _buildLightBar(isLeft: false, status: status, physicalIdx: pIdx),
+                  ],
+                ),
               ),
             ],
           ),
@@ -422,53 +700,494 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
-  Widget _buildTempControls(CellarStatus status, int idx) {
+  GoveeSensor? _findSensorByDevice(String? device) {
+    if (device == null || device.isEmpty || _goveeSensors == null) return null;
+    try {
+      return _goveeSensors!.firstWhere((s) => s.device == device);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildTempStrip(Cellar c, {bool compact = false}) {
+    final topSensor = _findSensorByDevice(c.goveeTopDevice);
+    final bottomSensor = _findSensorByDevice(c.goveeBottomDevice);
+    final hasTop = c.goveeTopDevice != null && c.goveeTopDevice!.isNotEmpty;
+    final hasBottom = c.goveeBottomDevice != null && c.goveeBottomDevice!.isNotEmpty;
+
+    final topTemp = _goveeTemp(topSensor?.temperature);
+    final topHum = topSensor?.humidity;
+    final bottomTemp = _goveeTemp(bottomSensor?.temperature);
+    final bottomHum = bottomSensor?.humidity;
+
+    Widget zone({
+      required bool isTop,
+      required double? temp,
+      required double? hum,
+      required bool assigned,
+    }) {
+      final color = isTop ? const Color(0xFFE8A04C) : const Color(0xFF70B8E8);
+      final emptyColor = const Color(0xFF6A6050);
+      final hasData = temp != null;
+      final c = hasData ? color : emptyColor;
+
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: compact ? 20 : 24,
+            height: compact ? 20 : 24,
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: c.withValues(alpha: 0.4)),
+            ),
+            child: Center(
+              child: Text(
+                isTop ? '▲' : '▼',
+                style: TextStyle(
+                  color: c,
+                  fontSize: compact ? 8 : 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: compact ? 6 : 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isTop ? 'HAUT' : 'BAS',
+                style: AppText.sans(
+                  color: AppColors.text3,
+                  fontSize: compact ? 7 : 9,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    hasData ? '${temp.toStringAsFixed(1)}°C' : '—',
+                    style: AppText.sans(
+                      color: c,
+                      fontSize: compact ? 12 : 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (hum != null) ...[
+                    SizedBox(width: compact ? 6 : 8),
+                    Text(
+                      '${hum.toStringAsFixed(0)}%',
+                      style: AppText.sans(
+                        color: AppColors.text3,
+                        fontSize: compact ? 9 : 10,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 18,
+        vertical: compact ? 4 : 6,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0x991A1710),
+        border: Border(
+          top: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          zone(isTop: true, temp: topTemp, hum: topHum, assigned: hasTop),
+          SizedBox(width: compact ? 12 : 24),
+          Container(
+            width: 1,
+            height: compact ? 20 : 24,
+            color: AppColors.border,
+          ),
+          SizedBox(width: compact ? 12 : 24),
+          zone(isTop: false, temp: bottomTemp, hum: bottomHum, assigned: hasBottom),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCellarControls(CellarStatus status, int idx, {bool compact = false}) {
+    final busy = _sending.contains(idx);
     final isCelsius = status.tempUnit == 'c';
     final current = isCelsius ? status.currentTemp : status.currentTempF;
     final target = isCelsius ? status.targetTemp : status.targetTempF;
     final unit = isCelsius ? '°C' : '°F';
-    final busy = _sending.contains(idx);
-    final dps = isCelsius ? '2' : '104';
+    final powerColor = status.power ? const Color(0xFF7CD492) : const Color(0xFFE8667A);
+    final lockColor = status.keyLock ? const Color(0xFFE8667A) : const Color(0xFF7CD492);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$current$unit', style: AppText.sans(color: AppColors.text2, fontSize: 11)),
-        const SizedBox(width: 8),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: busy ? null : () => _sendDps(idx, dps, target - 1),
-            child: Container(
-              width: 22, height: 22,
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.border2),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(compact ? 10 : 14, 0, compact ? 10 : 14, compact ? 6 : 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.bg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            _ctrlTap(
+              onTap: busy ? null : () => _sendDps(idx, '1', !status.power),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: powerColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: powerColor.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.power_settings_new, size: 10, color: powerColor),
+                    const SizedBox(width: 3),
+                    Text(status.power ? 'ON' : 'OFF', style: AppText.sans(color: powerColor, fontSize: 9, fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
-              child: const Icon(Icons.remove, size: 12, color: AppColors.text2),
+            ),
+            const SizedBox(width: 8),
+            _ctrlTap(
+              onTap: busy ? null : () => _sendDps(idx, '2', target - 1),
+              child: Container(
+                width: 20, height: 20,
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.border2),
+                ),
+                child: const Icon(Icons.remove, size: 11, color: AppColors.text2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text('$target$unit', style: AppText.sans(color: AppColors.gold2, fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
+            _ctrlTap(
+              onTap: busy ? null : () => _sendDps(idx, '2', target + 1),
+              child: Container(
+                width: 20, height: 20,
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.border2),
+                ),
+                child: const Icon(Icons.add, size: 11, color: AppColors.text2),
+              ),
+            ),
+            const Spacer(),
+            if (status.door) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8A04C).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFE8A04C).withValues(alpha: 0.4)),
+                ),
+                child: const Icon(Icons.door_front_door_outlined, size: 12, color: Color(0xFFE8A04C)),
+              ),
+              const SizedBox(width: 6),
+            ],
+            _ctrlTap(
+              onTap: busy ? null : () => _sendDps(idx, '5', !status.keyLock),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: lockColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: lockColor.withValues(alpha: 0.3)),
+                ),
+                child: Icon(
+                  status.keyLock ? Icons.lock_outline : Icons.lock_open_outlined,
+                  size: 12,
+                  color: lockColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _ctrlTap(
+              onTap: busy ? null : () => _sendDps(idx, '4', isCelsius ? 'f' : 'c'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.border2),
+                ),
+                child: Text(unit, style: AppText.sans(color: AppColors.gold2, fontSize: 10, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            if (busy) ...[
+              const SizedBox(width: 6),
+              const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _ctrlTap({required VoidCallback? onTap, required Widget child}) {
+    return MouseRegion(
+      cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(onTap: onTap, child: child),
+    );
+  }
+
+  Widget _buildLightBar({
+    required bool isLeft,
+    CellarStatus? status,
+    int? physicalIdx,
+    double width = 12,
+  }) {
+    final sideLight = status?.sideLight ?? 0;
+    final isBlue = status?.sideLightColor ?? false;
+    final isOn = sideLight > 0;
+
+    List<Color> gradientColors;
+    List<BoxShadow> shadows;
+
+    if (!isOn) {
+      gradientColors = const [Color(0xFF2A2520), Color(0xFF242018), Color(0xFF2A2520)];
+      shadows = const [];
+    } else if (isBlue) {
+      switch (sideLight) {
+        case 25:
+          gradientColors = const [Color(0xFF2A3A48), Color(0xFF253545), Color(0xFF202E3A), Color(0xFF253545), Color(0xFF2A3A48)];
+          shadows = [BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.06), blurRadius: 4)];
+        case 50:
+          gradientColors = const [Color(0xFF3A5A70), Color(0xFF305060), Color(0xFF284858), Color(0xFF305060), Color(0xFF3A5A70)];
+          shadows = [BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.15), blurRadius: 8)];
+        case 75:
+          gradientColors = const [Color(0xFF5A90B0), Color(0xFF4A80A0), Color(0xFF3A7090), Color(0xFF4A80A0), Color(0xFF5A90B0)];
+          shadows = [
+            BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.3), blurRadius: 14),
+            BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.12), blurRadius: 28),
+          ];
+        default:
+          gradientColors = const [Color(0xFF90D0F8), Color(0xFF70B8E8), Color(0xFF5A9DD8), Color(0xFF70B8E8), Color(0xFF90D0F8)];
+          shadows = [
+            BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.55), blurRadius: 20),
+            BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.2), blurRadius: 40),
+          ];
+      }
+    } else {
+      switch (sideLight) {
+        case 25:
+          gradientColors = const [Color(0xFF5A5540), Color(0xFF504A38), Color(0xFF454030), Color(0xFF504A38), Color(0xFF5A5540)];
+          shadows = [BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.06), blurRadius: 4)];
+        case 50:
+          gradientColors = const [Color(0xFF8A8468), Color(0xFF7A7858), Color(0xFF6A6850), Color(0xFF7A7858), Color(0xFF8A8468)];
+          shadows = [BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.15), blurRadius: 8)];
+        case 75:
+          gradientColors = const [Color(0xFFD0C8A0), Color(0xFFC0B890), Color(0xFFB0A878), Color(0xFFC0B890), Color(0xFFD0C8A0)];
+          shadows = [
+            BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.3), blurRadius: 14),
+            BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.12), blurRadius: 28),
+          ];
+        default:
+          gradientColors = const [Color(0xFFFFFDE8), Color(0xFFF5ECD0), Color(0xFFE8DDB8), Color(0xFFF5ECD0), Color(0xFFFFFDE8)];
+          shadows = [
+            BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.5), blurRadius: 20),
+            BoxShadow(color: const Color(0xFFF5ECD0).withValues(alpha: 0.2), blurRadius: 40),
+          ];
+      }
+    }
+
+    final borderRadius = BorderRadius.only(
+      topRight: isLeft ? const Radius.circular(6) : Radius.zero,
+      bottomRight: isLeft ? const Radius.circular(6) : Radius.zero,
+      topLeft: !isLeft ? const Radius.circular(6) : Radius.zero,
+      bottomLeft: !isLeft ? const Radius.circular(6) : Radius.zero,
+    );
+
+    return MouseRegion(
+      cursor: physicalIdx != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: physicalIdx != null && status != null
+            ? () => _showLightPicker(status, physicalIdx)
+            : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: width,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: gradientColors,
+            ),
+            boxShadow: shadows,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLightPicker(CellarStatus status, int idx) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _LightPickerDialog(
+        currentIntensity: status.sideLight,
+        isBlue: status.sideLightColor,
+        onChanged: (dps, value) => _sendDps(idx, dps, value),
+      ),
+    );
+  }
+
+  Widget _buildTopLedBar({
+    CellarStatus? status,
+    int? physicalIdx,
+    double height = 12,
+  }) {
+    final topLed = status?.topLed ?? 'OFF';
+    final isOff = topLed == 'OFF';
+    final isRed = topLed == 'red';
+
+    Color barColor;
+    List<BoxShadow> shadows;
+
+    if (isOff) {
+      barColor = const Color(0xFF2A2520);
+      shadows = const [];
+    } else if (isRed) {
+      barColor = const Color(0xFFE8667A);
+      shadows = [
+        BoxShadow(color: const Color(0xFFE8667A).withValues(alpha: 0.5), blurRadius: 16),
+        BoxShadow(color: const Color(0xFFE8667A).withValues(alpha: 0.2), blurRadius: 32),
+      ];
+    } else {
+      barColor = const Color(0xFF70B8E8);
+      shadows = [
+        BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.5), blurRadius: 16),
+        BoxShadow(color: const Color(0xFF70B8E8).withValues(alpha: 0.2), blurRadius: 32),
+      ];
+    }
+
+    return Align(
+      alignment: Alignment.center,
+      child: MouseRegion(
+        cursor: physicalIdx != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: GestureDetector(
+          onTap: physicalIdx != null && status != null
+              ? () => _showTopLedPicker(status, physicalIdx)
+              : null,
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: height,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(height / 2)),
+                boxShadow: shadows,
+              ),
             ),
           ),
         ),
-        const SizedBox(width: 6),
-        Text('$target$unit', style: AppText.sans(color: AppColors.gold2, fontSize: 12, fontWeight: FontWeight.w700)),
-        const SizedBox(width: 6),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: busy ? null : () => _sendDps(idx, dps, target + 1),
-            child: Container(
-              width: 22, height: 22,
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.border2),
-              ),
-              child: const Icon(Icons.add, size: 12, color: AppColors.text2),
-            ),
+      ),
+    );
+  }
+
+  void _showTopLedPicker(CellarStatus status, int idx) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final options = [
+          ('red', 'Rouge', const Color(0xFFE8667A)),
+          ('blue', 'Bleu', const Color(0xFF70B8E8)),
+          ('OFF', 'Éteinte', const Color(0xFF6A6050)),
+        ];
+        return AlertDialog(
+          backgroundColor: AppColors.bg2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: AppColors.border),
           ),
-        ),
-      ],
+          title: Text('LEDs du haut',
+              style: AppText.serif(color: AppColors.gold2, fontSize: 18)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final o in options)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        _sendDps(idx, '102', o.$1);
+                        Navigator.pop(ctx);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: status.topLed == o.$1
+                              ? o.$3.withValues(alpha: 0.15)
+                              : AppColors.bg3,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: status.topLed == o.$1
+                                ? o.$3.withValues(alpha: 0.5)
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: o.$3,
+                                borderRadius: BorderRadius.circular(3),
+                                boxShadow: o.$1 != 'OFF'
+                                    ? [BoxShadow(color: o.$3.withValues(alpha: 0.4), blurRadius: 6)]
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              o.$2,
+                              style: AppText.sans(
+                                color: status.topLed == o.$1 ? o.$3 : AppColors.text2,
+                                fontSize: 14,
+                                fontWeight: status.topLed == o.$1
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (status.topLed == o.$1)
+                              Icon(Icons.check, size: 16, color: o.$3),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -480,47 +1199,46 @@ class _CellierScreenState extends State<CellierScreen> {
     Map<String, Bottle>? anchors,
   }) {
     final anchorMap = anchors ?? occupied;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const labelW = 24.0;
-        const headerH = 18.0;
-        const gap = 1.0;
+    const labelW = 24.0;
+    const headerH = 18.0;
+    const gap = 1.0;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const SizedBox(width: labelW),
-                for (var col = 0; col < c.cols; col++) ...[
-                  SizedBox(
-                    width: cellSize,
-                    height: headerH,
-                    child: Center(
-                      child: Text(
-                        '${col + 1}',
-                        style: AppText.sans(
-                          color: AppColors.text3,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+            const SizedBox(width: labelW),
+            for (var col = 0; col < c.cols; col++) ...[
+              SizedBox(
+                width: cellSize,
+                height: headerH,
+                child: Center(
+                  child: Text(
+                    '${col + 1}',
+                    style: AppText.sans(
+                      color: AppColors.text3,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (col < c.cols - 1) const SizedBox(width: gap),
-                ],
-              ],
-            ),
-            for (var row = 0; row < c.rows; row++) ...[
-              _buildGridRow(
-                c: c, row: row, cellSize: cellSize, gap: gap, labelW: labelW,
-                occupied: occupied, anchorMap: anchorMap, winesById: winesById,
+                ),
               ),
-              if (row < c.rows - 1) const SizedBox(height: gap),
+              if (col < c.cols - 1) const SizedBox(width: gap),
             ],
           ],
-        );
-      },
+        ),
+        for (var row = 0; row < c.rows; row++) ...[
+          _buildGridRow(
+            c: c, row: row, cellSize: cellSize, gap: gap, labelW: labelW,
+            occupied: occupied, anchorMap: anchorMap, winesById: winesById,
+            isDimmed: widget.filter.isEmpty ? null : (wine) => !_wineMatchesFilter(wine),
+          ),
+          if (row < c.rows - 1) const SizedBox(height: gap),
+        ],
+      ],
     );
   }
 
@@ -533,6 +1251,7 @@ class _CellierScreenState extends State<CellierScreen> {
     required Map<String, Bottle> occupied,
     required Map<String, Bottle> anchorMap,
     required Map<String, Wine> winesById,
+    bool Function(Wine?)? isDimmed,
   }) {
     final children = <Widget>[
       SizedBox(
@@ -562,6 +1281,7 @@ class _CellierScreenState extends State<CellierScreen> {
       if (anchor != null) {
         final span = anchor.format.slotSpan;
         final w = cellSize * span + gap * (span - 1);
+        final wine = winesById[anchor.wineId];
         children.add(
           _SlotCell(
             size: cellSize,
@@ -570,7 +1290,8 @@ class _CellierScreenState extends State<CellierScreen> {
             label: formatFullSlotLabel(c.number, row, currentCol),
             shortLabel: '${formatRowLetter(row)}${currentCol + 1}',
             bottle: anchor,
-            wine: winesById[anchor.wineId],
+            wine: wine,
+            dimmed: isDimmed?.call(wine) ?? false,
             isDragging: _isDragging,
             totalCols: c.cols,
             onTapWine: (wine, b) => _openWineDetail(wine, b),
@@ -602,10 +1323,11 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Future<void> _openWineDetail(Wine wine, Bottle bottle) async {
     final allBottles = await CaveService.bottlesInCave().first;
-    final wineBottles =
-        allBottles.where((b) => b.wineId == wine.id).toList();
+    final wineBottles = allBottles
+        .where((b) => b.wineId == wine.id && b.format == bottle.format)
+        .toList();
     if (!mounted) return;
-    showWineDetail(context, wine: wine, bottles: wineBottles);
+    showWineDetail(context, wine: wine, bottles: wineBottles, format: bottle.format);
   }
 
   Widget _buildUnplacedBar() {
@@ -848,6 +1570,7 @@ class _CellierScreenState extends State<CellierScreen> {
         initialName: '',
         initialCols: 10,
         initialRows: 20,
+        goveeSensors: _goveeSensors ?? [],
       ),
     );
     if (result == null) return;
@@ -862,73 +1585,9 @@ class _CellierScreenState extends State<CellierScreen> {
       name: result.name,
       cols: result.cols,
       rows: result.rows,
+      goveeTopDevice: result.goveeTopDevice,
+      goveeBottomDevice: result.goveeBottomDevice,
     );
-  }
-
-  Future<void> _onEdit(Cellar c) async {
-    final result = await showDialog<CellarFormResult>(
-      context: context,
-      builder: (_) => CellarFormDialog(
-        title: 'Modifier le cellier',
-        initialNumber: c.number,
-        initialName: c.name,
-        initialCols: c.cols,
-        initialRows: c.rows,
-      ),
-    );
-    if (result == null) return;
-    if (result.number != c.number) {
-      final taken = await CellarService.isNumberTaken(
-        result.number,
-        exceptId: c.id,
-      );
-      if (!mounted) return;
-      if (taken) {
-        _showError('Le numéro ${result.number} est déjà utilisé.');
-        return;
-      }
-    }
-    await CellarService.update(
-      c.id,
-      number: result.number,
-      name: result.name,
-      cols: result.cols,
-      rows: result.rows,
-    );
-  }
-
-  Future<void> _onDelete(Cellar c) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bg2,
-        title: Text(
-          'Supprimer le cellier ?',
-          style: AppText.serif(color: AppColors.gold2, fontSize: 18),
-        ),
-        content: Text(
-          'Le cellier ${c.number}${c.name.isEmpty ? '' : ' (${c.name})'} sera supprimé. Cette action est irréversible.',
-          style: AppText.sans(color: AppColors.text2, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Annuler',
-                style: AppText.sans(color: AppColors.text2, fontSize: 13)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Supprimer',
-                style: AppText.sans(
-                    color: const Color(0xFFE07060),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await CellarService.delete(c.id);
   }
 
   void _showError(String msg) {
@@ -962,30 +1621,6 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
-  Widget _smallButton(String label,
-      {required VoidCallback onTap, bool danger = false}) {
-    final color = danger ? const Color(0xFFE07060) : AppColors.text2;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.bg3,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border2),
-        ),
-        child: Text(
-          label,
-          style: AppText.sans(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _SlotCell extends StatefulWidget {
@@ -997,6 +1632,7 @@ class _SlotCell extends StatefulWidget {
   final String shortLabel;
   final Bottle? bottle;
   final Wine? wine;
+  final bool dimmed;
   final ValueNotifier<bool> isDragging;
   final void Function(Wine wine, Bottle bottle)? onTapWine;
   final void Function(Bottle bottle)? onDrop;
@@ -1010,6 +1646,7 @@ class _SlotCell extends StatefulWidget {
     required this.shortLabel,
     this.bottle,
     this.wine,
+    this.dimmed = false,
     required this.isDragging,
     this.onTapWine,
     this.onDrop,
@@ -1170,6 +1807,9 @@ class _SlotCellState extends State<_SlotCell> {
 
         if (isOccupied) {
           Widget child = cellFor(highlight: highlighted, hovered: _hover);
+          if (widget.dimmed) {
+            child = Opacity(opacity: 0.2, child: child);
+          }
           if (widget.wine != null && widget.onTapWine != null) {
             child = InkWell(
               onTap: () => widget.onTapWine!(widget.wine!, widget.bottle!),
@@ -2227,6 +2867,224 @@ class _MobileUnplacedItem extends StatelessWidget {
             GestureDetector(
               onTap: onOpenDetail,
               child: const Icon(Icons.chevron_right, size: 18, color: AppColors.text3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LightPickerDialog extends StatefulWidget {
+  final int currentIntensity;
+  final bool isBlue;
+  final void Function(String dps, dynamic value) onChanged;
+
+  const _LightPickerDialog({
+    required this.currentIntensity,
+    required this.isBlue,
+    required this.onChanged,
+  });
+
+  @override
+  State<_LightPickerDialog> createState() => _LightPickerDialogState();
+}
+
+class _LightPickerDialogState extends State<_LightPickerDialog> {
+  late int _intensity;
+  late bool _isBlue;
+
+  @override
+  void initState() {
+    super.initState();
+    _intensity = widget.currentIntensity;
+    _isBlue = widget.isBlue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = _isBlue ? const Color(0xFF70B8E8) : const Color(0xFFF5ECD0);
+
+    return AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      title: Text('Éclairage latéral',
+          style: AppText.serif(color: AppColors.gold2, fontSize: 18)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _colorOption(
+                  label: 'Blanc',
+                  selected: !_isBlue,
+                  color: const Color(0xFFF5ECD0),
+                  barGradient: const [Color(0xFFE8DDB8), Color(0xFFF5ECD0)],
+                  onTap: () {
+                    setState(() => _isBlue = false);
+                    widget.onChanged('107', false);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _colorOption(
+                  label: 'Bleu',
+                  selected: _isBlue,
+                  color: const Color(0xFF70B8E8),
+                  barGradient: const [Color(0xFF5A9DD8), Color(0xFF70B8E8)],
+                  onTap: () {
+                    setState(() => _isBlue = true);
+                    widget.onChanged('107', true);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text('INTENSITÉ',
+              style: AppText.sans(
+                  color: AppColors.text3,
+                  fontSize: 10,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.bg3,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (final entry in [(0, 'OFF'), (25, '25%'), (50, '50%'), (75, '75%'), (100, '100%')]) ...[
+                  if (entry.$1 > 0) const SizedBox(width: 4),
+                  Expanded(
+                    child: _intensityBar(
+                      value: entry.$1,
+                      label: entry.$2,
+                      selected: _intensity == entry.$1,
+                      activeColor: activeColor,
+                      onTap: () {
+                        setState(() => _intensity = entry.$1);
+                        widget.onChanged('106', entry.$1);
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _colorOption({
+    required String label,
+    required bool selected,
+    required Color color,
+    required List<Color> barGradient,
+    required VoidCallback onTap,
+  }) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.1) : AppColors.bg3,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? color.withValues(alpha: 0.5) : AppColors.border,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 6,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  gradient: LinearGradient(colors: barGradient),
+                  boxShadow: selected
+                      ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6)]
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: AppText.sans(
+                  color: selected ? color : AppColors.text3,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _intensityBar({
+    required int value,
+    required String label,
+    required bool selected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    final fraction = value / 100.0;
+    final barHeight = value == 0 ? 4.0 : 8.0 + 28.0 * fraction;
+
+    Color barColor;
+    if (value == 0) {
+      barColor = selected ? const Color(0xFF5A5040) : const Color(0xFF3A3428);
+    } else if (selected) {
+      barColor = activeColor;
+    } else {
+      barColor = activeColor.withValues(alpha: 0.2 + 0.15 * fraction);
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: barHeight,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                border: selected
+                    ? Border.all(color: activeColor.withValues(alpha: 0.6))
+                    : Border.all(color: AppColors.border),
+                boxShadow: selected && value > 0
+                    ? [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 6)]
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppText.sans(
+                color: selected ? AppColors.gold2 : AppColors.text3,
+                fontSize: 9,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ],
         ),
