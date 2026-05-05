@@ -443,29 +443,35 @@ class _CellierScreenState extends State<CellierScreen> {
             children: [
               _buildTopLedBar(status: status, physicalIdx: pIdx, height: 6),
               _buildCellarHeader(c, occupiedCount, status, pIdx, compact: true),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildLightBar(isLeft: true, status: status, physicalIdx: pIdx, width: 6),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            const labelW = 24.0;
-                            const gap = 1.0;
-                            final availW = constraints.maxWidth - labelW;
-                            final fitCellSize = (availW - gap * (c.cols - 1)) / c.cols;
-                            final mobileCellSize = fitCellSize.clamp(8.0, 44.0);
-                            return _buildGridStatic(c, occupied, winesById, cellSize: mobileCellSize, anchors: anchors);
-                          },
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const labelW = 24.0;
+                  const gap = 1.0;
+                  const headerH = 18.0;
+                  const lightBarW = 6.0;
+                  const hPad = 8.0; // 4 left + 4 right padding
+                  const vPad = 10.0; // bottom padding
+                  final availW = constraints.maxWidth - lightBarW * 2 - hPad - labelW;
+                  final fitCellSize = (availW - gap * (c.cols - 1)) / c.cols;
+                  final mobileCellSize = fitCellSize.clamp(8.0, 44.0);
+                  final gridH = headerH + mobileCellSize * c.rows + gap * (c.rows - 1) + vPad;
+                  return SizedBox(
+                    height: gridH,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildLightBar(isLeft: true, status: status, physicalIdx: pIdx, width: lightBarW),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 0, 4, vPad),
+                            child: _buildGridStatic(c, occupied, winesById, cellSize: mobileCellSize, anchors: anchors),
+                          ),
                         ),
-                      ),
+                        _buildLightBar(isLeft: false, status: status, physicalIdx: pIdx, width: lightBarW),
+                      ],
                     ),
-                    _buildLightBar(isLeft: false, status: status, physicalIdx: pIdx, width: 6),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ),
