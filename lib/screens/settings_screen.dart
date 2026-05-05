@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/bottle.dart';
 import '../models/cave_column.dart';
 import '../models/cellar.dart';
 import '../models/drunk_column.dart';
@@ -1514,6 +1515,13 @@ class _StatItemChip extends StatelessWidget {
   }
 }
 
+class _WineEntry {
+  final Wine wine;
+  final BottleFormat format;
+  final List<Bottle> bottles;
+  _WineEntry({required this.wine, required this.format, required this.bottles});
+}
+
 class _ActualisationContent extends StatefulWidget {
   const _ActualisationContent();
 
@@ -1525,7 +1533,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
-  List<Wine> _wines = [];
+  List<_WineEntry> _rows = [];
   final Map<String, MarketHistoryEntry?> _latestMarket = {};
   final Map<String, GardeHistoryEntry?> _latestGarde = {};
   bool _loading = true;
@@ -1562,18 +1570,41 @@ class _ActualisationContentState extends State<_ActualisationContent>
     super.dispose();
   }
 
+  List<Wine> get _uniqueWines {
+    final seen = <String>{};
+    return _rows.where((r) => seen.add(r.wine.id)).map((r) => r.wine).toList();
+  }
+
   Future<void> _load() async {
-    final wineSnap = await CaveService.wines().first;
+    final (wineSnap, bottleSnap) = await (
+      CaveService.wines().first,
+      CaveService.bottlesInCave().first,
+    ).wait;
+
+    final rows = <_WineEntry>[];
+    for (final wine in wineSnap) {
+      final wineBottles = bottleSnap.where((b) => b.wineId == wine.id).toList();
+      if (wineBottles.isEmpty) continue;
+      final byFormat = <BottleFormat, List<Bottle>>{};
+      for (final b in wineBottles) {
+        byFormat.putIfAbsent(b.format, () => []).add(b);
+      }
+      for (final entry in byFormat.entries) {
+        rows.add(_WineEntry(wine: wine, format: entry.key, bottles: entry.value));
+      }
+    }
+
+    final uniqueIds = rows.map((r) => r.wine.id).toSet().toList();
     final (marketList, gardeList) = await (
-      Future.wait(wineSnap.map((w) => ActualisationService.getMarketHistory(w.id))),
-      Future.wait(wineSnap.map((w) => ActualisationService.getGardeHistory(w.id))),
+      Future.wait(uniqueIds.map((id) => ActualisationService.getMarketHistory(id))),
+      Future.wait(uniqueIds.map((id) => ActualisationService.getGardeHistory(id))),
     ).wait;
     if (!mounted) return;
     setState(() {
-      _wines = wineSnap;
-      for (var i = 0; i < wineSnap.length; i++) {
-        _latestMarket[wineSnap[i].id] = marketList[i].isNotEmpty ? marketList[i].first : null;
-        _latestGarde[wineSnap[i].id] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
+      _rows = rows;
+      for (var i = 0; i < uniqueIds.length; i++) {
+        _latestMarket[uniqueIds[i]] = marketList[i].isNotEmpty ? marketList[i].first : null;
+        _latestGarde[uniqueIds[i]] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
       }
       _loading = false;
     });
@@ -1598,22 +1629,23 @@ class _ActualisationContentState extends State<_ActualisationContent>
   }
 
   Future<void> _bulkRefreshMarket() async {
+    final wines = _uniqueWines;
     setState(() {
       _bulkMarketRunning = true;
       _bulkMarketDone = 0;
-      _bulkMarketTotal = _wines.length;
+      _bulkMarketTotal = wines.length;
     });
     await ActualisationService.refreshAllMarketValues(
-      _wines,
+      wines,
       onProgress: (done, _) {
         if (mounted) setState(() => _bulkMarketDone = done);
       },
     );
-    final marketList = await Future.wait(_wines.map((w) => ActualisationService.getMarketHistory(w.id)));
+    final marketList = await Future.wait(wines.map((w) => ActualisationService.getMarketHistory(w.id)));
     if (mounted) {
       setState(() {
-        for (var i = 0; i < _wines.length; i++) {
-          _latestMarket[_wines[i].id] = marketList[i].isNotEmpty ? marketList[i].first : null;
+        for (var i = 0; i < wines.length; i++) {
+          _latestMarket[wines[i].id] = marketList[i].isNotEmpty ? marketList[i].first : null;
         }
         _bulkMarketRunning = false;
       });
@@ -1621,22 +1653,23 @@ class _ActualisationContentState extends State<_ActualisationContent>
   }
 
   Future<void> _bulkRefreshGarde() async {
+    final wines = _uniqueWines;
     setState(() {
       _bulkGardeRunning = true;
       _bulkGardeDone = 0;
-      _bulkGardeTotal = _wines.length;
+      _bulkGardeTotal = wines.length;
     });
     await ActualisationService.refreshAllGarde(
-      _wines,
+      wines,
       onProgress: (done, _) {
         if (mounted) setState(() => _bulkGardeDone = done);
       },
     );
-    final gardeList = await Future.wait(_wines.map((w) => ActualisationService.getGardeHistory(w.id)));
+    final gardeList = await Future.wait(wines.map((w) => ActualisationService.getGardeHistory(w.id)));
     if (mounted) {
       setState(() {
-        for (var i = 0; i < _wines.length; i++) {
-          _latestGarde[_wines[i].id] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
+        for (var i = 0; i < wines.length; i++) {
+          _latestGarde[wines[i].id] = gardeList[i].isNotEmpty ? gardeList[i].first : null;
         }
         _bulkGardeRunning = false;
       });
@@ -1646,15 +1679,29 @@ class _ActualisationContentState extends State<_ActualisationContent>
   String _formatDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-  String? _marketSubtitle(MarketHistoryEntry? e) =>
-      e != null ? '${e.value.toStringAsFixed(2)} \$ · ${_formatDate(e.timestamp)}' : null;
+  double _marketMultiplier(BottleFormat f) {
+    switch (f) {
+      case BottleFormat.ml375:  return 0.55;
+      case BottleFormat.ml750:  return 1.0;
+      case BottleFormat.ml1500: return 2.5;
+      case BottleFormat.ml3000: return 6.0;
+      case BottleFormat.ml6000: return 14.0;
+    }
+  }
 
-  String? _gardeSubtitle(GardeHistoryEntry? e) {
+  String? _marketSubtitle(MarketHistoryEntry? e, BottleFormat format) {
     if (e == null) return null;
+    final val = (e.value * _marketMultiplier(format)).toStringAsFixed(0);
+    return '$val \$ · ${_formatDate(e.timestamp)}';
+  }
+
+  String? _gardeSubtitle(GardeHistoryEntry? e, BottleFormat format) {
+    if (e == null) return null;
+    final offset = format.gardeOffset;
     final parts = <String>[];
-    if (e.drinkFrom != null) parts.add('De ${e.drinkFrom}');
-    if (e.drinkPeak != null) parts.add('Apogée ${e.drinkPeak}');
-    if (e.drinkTo != null) parts.add('Jusqu\'à ${e.drinkTo}');
+    if (e.drinkFrom != null) parts.add('De ${e.drinkFrom! + offset}');
+    if (e.drinkPeak != null) parts.add('Apogée ${e.drinkPeak! + offset}');
+    if (e.drinkTo != null) parts.add('Jusqu\'à ${e.drinkTo! + offset}');
     return '${parts.isEmpty ? '—' : parts.join(' · ')} · ${_formatDate(e.timestamp)}';
   }
 
@@ -1727,17 +1774,18 @@ class _ActualisationContentState extends State<_ActualisationContent>
           _progressBar(bulkDone, bulkTotal),
           const SizedBox(height: 12),
         ],
-        for (var i = 0; i < _wines.length; i++) ...[
+        for (var i = 0; i < _rows.length; i++) ...[
           _HistoryWineRow(
-            wine: _wines[i],
+            wine: _rows[i].wine,
+            format: _rows[i].format,
             subtitle: isMarket
-                ? _marketSubtitle(_latestMarket[_wines[i].id])
-                : _gardeSubtitle(_latestGarde[_wines[i].id]),
-            refreshing: refreshing.contains(_wines[i].id),
+                ? _marketSubtitle(_latestMarket[_rows[i].wine.id], _rows[i].format)
+                : _gardeSubtitle(_latestGarde[_rows[i].wine.id], _rows[i].format),
+            refreshing: refreshing.contains(_rows[i].wine.id),
             isMarket: isMarket,
-            onRefresh: () => _refreshOne(_wines[i], isMarket: isMarket),
+            onRefresh: () => _refreshOne(_rows[i].wine, isMarket: isMarket),
           ),
-          if (i < _wines.length - 1) const SizedBox(height: 6),
+          if (i < _rows.length - 1) const SizedBox(height: 6),
         ],
       ],
     );
@@ -1907,6 +1955,7 @@ class _ActualisationContentState extends State<_ActualisationContent>
 
 class _HistoryWineRow extends StatefulWidget {
   final Wine wine;
+  final BottleFormat format;
   final String? subtitle;
   final bool refreshing;
   final bool isMarket;
@@ -1914,6 +1963,7 @@ class _HistoryWineRow extends StatefulWidget {
 
   const _HistoryWineRow({
     required this.wine,
+    required this.format,
     required this.subtitle,
     required this.refreshing,
     required this.isMarket,
@@ -1942,6 +1992,16 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
     }
   }
 
+  double _formatMultiplier(BottleFormat f) {
+    switch (f) {
+      case BottleFormat.ml375:  return 0.55;
+      case BottleFormat.ml750:  return 1.0;
+      case BottleFormat.ml1500: return 2.5;
+      case BottleFormat.ml3000: return 6.0;
+      case BottleFormat.ml6000: return 14.0;
+    }
+  }
+
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
@@ -1967,7 +2027,7 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''}',
+                        '${widget.wine.name}${widget.wine.vintage != null ? ' ${widget.wine.vintage}' : ''} · ${widget.format.label}',
                         style: AppText.serif(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2031,6 +2091,7 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
                           prev: i + 1 < _marketHistory.length ? _marketHistory[i + 1] : null,
                           date: _fmtDate(_marketHistory[i].timestamp),
                           source: _fmtSource(_marketHistory[i].source),
+                          formatMultiplier: _formatMultiplier(widget.format),
                         ),
                       ],
                     ])
@@ -2044,6 +2105,7 @@ class _HistoryWineRowState extends State<_HistoryWineRow> {
                           entry: _gardeHistory[i],
                           date: _fmtDate(_gardeHistory[i].timestamp),
                           source: _fmtSource(_gardeHistory[i].source),
+                          gardeOffset: widget.format.gardeOffset,
                         ),
                       ],
                     ]),
@@ -2064,17 +2126,21 @@ class _MarketHistoryRow extends StatelessWidget {
   final MarketHistoryEntry? prev;
   final String date;
   final String source;
+  final double formatMultiplier;
 
   const _MarketHistoryRow({
     required this.entry,
     required this.date,
     required this.source,
     this.prev,
+    this.formatMultiplier = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final delta = prev != null ? entry.value - prev!.value : null;
+    final val = entry.value * formatMultiplier;
+    final prevVal = prev != null ? prev!.value * formatMultiplier : null;
+    final delta = prevVal != null ? val - prevVal : null;
     final up = delta != null && delta > 0;
 
     return Padding(
@@ -2109,7 +2175,7 @@ class _MarketHistoryRow extends StatelessWidget {
             const SizedBox(width: 10),
           ],
           Text(
-            '${entry.value.toStringAsFixed(0)} \$',
+            '${val.toStringAsFixed(0)} \$',
             style: AppText.serif(color: AppColors.gold2, fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
@@ -2122,19 +2188,22 @@ class _GardeHistoryRow extends StatelessWidget {
   final GardeHistoryEntry entry;
   final String date;
   final String source;
+  final int gardeOffset;
 
   const _GardeHistoryRow({
     required this.entry,
     required this.date,
     required this.source,
+    this.gardeOffset = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    int? shift(int? v) => v != null ? v + gardeOffset : null;
     final parts = <String>[
-      if (entry.drinkFrom != null) '${entry.drinkFrom}',
-      if (entry.drinkPeak != null) '${entry.drinkPeak}',
-      if (entry.drinkTo != null) '${entry.drinkTo}',
+      if (entry.drinkFrom != null) '${shift(entry.drinkFrom)}',
+      if (entry.drinkPeak != null) '${shift(entry.drinkPeak)}',
+      if (entry.drinkTo != null) '${shift(entry.drinkTo)}',
     ];
     final range = parts.join(' → ');
 
