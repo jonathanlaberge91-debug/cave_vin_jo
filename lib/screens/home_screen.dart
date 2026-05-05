@@ -1897,21 +1897,18 @@ class _AppBranding extends StatelessWidget {
       ),
     );
 
-    if (compact) return logo;
-
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         logo,
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Cave de\nJonathan Laberge',
-            style: AppText.serif(
-              color: AppColors.gold2,
-              fontSize: 20,
-              height: 1.15,
-              fontWeight: FontWeight.w500,
-            ),
+        const SizedBox(width: 10),
+        Text(
+          'Cave de\nJonathan Laberge',
+          style: AppText.serif(
+            color: AppColors.gold2,
+            fontSize: compact ? 14 : 20,
+            height: 1.15,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
