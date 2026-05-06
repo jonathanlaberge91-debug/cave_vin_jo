@@ -1651,9 +1651,7 @@ class _SlotCellState extends State<_SlotCell> {
     final isOccupied = widget.bottle != null;
     final garde = widget.wine != null ? GardeInfo.fromWine(widget.wine!) : null;
     final isApogee = garde?.label == 'Apogée';
-    final cellColor = isApogee
-        ? const Color(0xFFB8860B)
-        : (garde?.color ?? wineTypeColor(widget.wine?.type ?? WineType.rouge));
+    final cellColor = garde?.color ?? wineTypeColor(widget.wine?.type ?? WineType.rouge);
     final vintageText = widget.wine?.vintage != null
         ? '${widget.wine!.vintage! % 100}'.padLeft(2, '0')
         : '';
@@ -1665,22 +1663,37 @@ class _SlotCellState extends State<_SlotCell> {
         width: cellW,
         height: widget.size,
         decoration: BoxDecoration(
-          color: dragging
-              ? cellColor.withValues(alpha: 0.10)
-              : isOccupied
-                  ? cellColor.withValues(alpha: hovered ? 0.45 : 0.30)
-                  : showGold
-                      ? const Color(0x33C9A84C)
-                      : AppColors.bg3,
+          gradient: isApogee && isOccupied && !dragging
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFFB8860B).withValues(alpha: hovered ? 0.65 : 0.45),
+                    const Color(0xFFD4A843).withValues(alpha: hovered ? 0.50 : 0.32),
+                    const Color(0xFFF5E6A3).withValues(alpha: hovered ? 0.28 : 0.16),
+                  ],
+                )
+              : null,
+          color: isApogee && isOccupied && !dragging
+              ? null
+              : dragging
+                  ? cellColor.withValues(alpha: 0.10)
+                  : isOccupied
+                      ? cellColor.withValues(alpha: hovered ? 0.45 : 0.30)
+                      : showGold
+                          ? const Color(0x33C9A84C)
+                          : AppColors.bg3,
           borderRadius: BorderRadius.circular(3),
           border: Border.all(
             color: dragging
                 ? cellColor.withValues(alpha: 0.25)
-                : showGold
-                    ? AppColors.gold
-                    : isOccupied
-                        ? cellColor.withValues(alpha: 0.65)
-                        : AppColors.border,
+                : isApogee && isOccupied
+                    ? const Color(0xFFD4A843).withValues(alpha: 0.80)
+                    : showGold
+                        ? AppColors.gold
+                        : isOccupied
+                            ? cellColor.withValues(alpha: 0.65)
+                            : AppColors.border,
             width: showGold ? 1.5 : 1,
           ),
         ),
