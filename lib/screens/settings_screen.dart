@@ -273,6 +273,38 @@ class _SettingsSubsectionState extends State<_SettingsSubsection> {
   }
 }
 
+Future<void> _confirmReset(BuildContext context, VoidCallback onConfirm) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.border2),
+      ),
+      title: Text(
+        'Réinitialiser les colonnes ?',
+        style: AppText.serif(color: AppColors.gold2, fontSize: 18),
+      ),
+      content: Text(
+        'Les colonnes affichées seront remises aux valeurs par défaut.',
+        style: AppText.sans(color: AppColors.text2, fontSize: 13),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Annuler', style: AppText.sans(color: AppColors.text2, fontSize: 13)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text('Réinitialiser', style: AppText.sans(color: const Color(0xFFE07060), fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+      ],
+    ),
+  );
+  if (ok == true) onConfirm();
+}
+
 class _ApiKeysContent extends StatefulWidget {
   const _ApiKeysContent();
 
@@ -501,7 +533,7 @@ class _CaveContent extends StatelessWidget {
           collapsible: true,
           trailing: [
             TextButton(
-              onPressed: () => CavePreferencesService.resetToDefaults(),
+              onPressed: () => _confirmReset(context, CavePreferencesService.resetToDefaults),
               child: Text(
                 'Réinitialiser',
                 style: AppText.sans(
@@ -652,7 +684,7 @@ class _DrunkColumnsContent extends StatelessWidget {
           collapsible: true,
           trailing: [
             TextButton(
-              onPressed: () => CavePreferencesService.resetDrunkToDefaults(),
+              onPressed: () => _confirmReset(context, CavePreferencesService.resetDrunkToDefaults),
               child: Text(
                 'Réinitialiser',
                 style: AppText.sans(
@@ -797,7 +829,7 @@ class _WishColumnsContent extends StatelessWidget {
           collapsible: true,
           trailing: [
             TextButton(
-              onPressed: () => CavePreferencesService.resetWishToDefaults(),
+              onPressed: () => _confirmReset(context, CavePreferencesService.resetWishToDefaults),
               child: Text(
                 'Réinitialiser',
                 style: AppText.sans(
