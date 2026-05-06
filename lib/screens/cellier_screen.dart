@@ -1702,7 +1702,7 @@ class _SlotCellState extends State<_SlotCell> {
           dragging: dragging,
           hovered: hovered,
           vintageText: vintageText,
-          cellColor: cellColor,
+          cellColor: isApogee ? const Color(0xFF1A1408) : cellColor,
         ),
       );
     }
@@ -2554,14 +2554,23 @@ class _SlotHoverCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: garde.color.withValues(alpha: 0.18),
+                    gradient: garde.label == 'Apogée'
+                        ? const LinearGradient(
+                            colors: [Color(0xFFB8860B), Color(0xFFD4A843), Color(0xFFF5E6A3)],
+                          )
+                        : null,
+                    color: garde.label != 'Apogée' ? garde.color.withValues(alpha: 0.18) : null,
                     borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: garde.color.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: garde.label == 'Apogée'
+                          ? const Color(0xFFD4A843)
+                          : garde.color.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Text(
                     garde.label,
                     style: AppText.sans(
-                      color: garde.color,
+                      color: garde.label == 'Apogée' ? const Color(0xFF1A1408) : garde.color,
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
                     ),
