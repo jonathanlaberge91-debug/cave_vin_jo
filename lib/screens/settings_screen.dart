@@ -162,49 +162,113 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-class _SettingsSubsection extends StatelessWidget {
+class _SettingsSubsection extends StatefulWidget {
   final String title;
   final String? description;
   final Widget child;
   final List<Widget> trailing;
+  final bool collapsible;
 
   const _SettingsSubsection({
     required this.title,
     this.description,
     required this.child,
     this.trailing = const [],
+    this.collapsible = false,
   });
 
   @override
+  State<_SettingsSubsection> createState() => _SettingsSubsectionState();
+}
+
+class _SettingsSubsectionState extends State<_SettingsSubsection> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: AppText.serif(
-                  color: AppColors.gold2,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+    if (!widget.collapsible) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: AppText.serif(color: AppColors.gold2, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
-            ),
-            ...trailing,
-          ],
-        ),
-        if (description != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            description!,
-            style: AppText.sans(color: AppColors.text3, fontSize: 12),
+              ...widget.trailing,
+            ],
           ),
+          if (widget.description != null) ...[
+            const SizedBox(height: 4),
+            Text(widget.description!, style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+          ],
+          const SizedBox(height: 12),
+          widget.child,
         ],
-        const SizedBox(height: 12),
-        child,
-      ],
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: _expanded
+                ? const BorderRadius.vertical(top: Radius.circular(10))
+                : BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: AppText.serif(color: AppColors.gold2, fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        if (widget.description != null && !_expanded) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.description!,
+                            style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  ...widget.trailing,
+                  const SizedBox(width: 6),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 18,
+                    color: AppColors.text3,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            Divider(height: 1, color: AppColors.border),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: widget.child,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -434,6 +498,7 @@ class _CaveContent extends StatelessWidget {
           title: 'Colonnes du tableau',
           description:
               'Active les colonnes que tu veux voir. Photo, Vin et Qté sont toujours affichées.',
+          collapsible: true,
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetToDefaults(),
@@ -584,6 +649,7 @@ class _DrunkColumnsContent extends StatelessWidget {
           title: 'Colonnes du tableau',
           description:
               'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
+          collapsible: true,
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetDrunkToDefaults(),
@@ -728,6 +794,7 @@ class _WishColumnsContent extends StatelessWidget {
           title: 'Colonnes du tableau',
           description:
               'Active les colonnes que tu veux voir. Photo et Vin sont toujours affichées.',
+          collapsible: true,
           trailing: [
             TextButton(
               onPressed: () => CavePreferencesService.resetWishToDefaults(),
