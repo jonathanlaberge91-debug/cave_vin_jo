@@ -9,12 +9,15 @@ import '../models/stat_item.dart';
 import '../models/wine.dart';
 import '../models/wish_column.dart';
 import '../services/actualisation_service.dart';
+import '../services/backup_service.dart';
 import '../services/cave_preferences_service.dart';
+import '../services/drive_backup_service.dart';
 import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
 import '../services/gemini_service.dart';
 import '../services/govee_service.dart';
 import '../services/maps_service.dart';
+import '../services/wine_pdf_service.dart';
 import '../dialogs/cellar_form_dialog.dart';
 import '../theme/app_text.dart';
 import '../theme/app_colors.dart';
@@ -67,6 +70,13 @@ class SettingsScreen extends StatelessWidget {
             description:
                 'Services tiers utilisés par l\'application (analyse de photos, recherche, etc.).',
             child: _ApiKeysContent(),
+          ),
+        9 => const _SettingsSection(
+            title: 'Export',
+            icon: Icons.download_outlined,
+            description:
+                'Exporte l\'inventaire de ta cave en CSV (tableur) ou en PDF (rapport imprimable).',
+            child: _ExportContent(),
           ),
         _ => const _SettingsSection(
             title: 'Actualisation',
@@ -853,6 +863,44 @@ class _WishColumnChip extends StatelessWidget {
 class _CellarSettingsContent extends StatelessWidget {
   const _CellarSettingsContent();
 
+  Future<void> _onAdd(BuildContext context, List<Cellar> cellars) async {
+    int nextNumber = 1;
+    for (final c in cellars) {
+      if (c.number >= nextNumber) nextNumber = c.number + 1;
+    }
+    final result = await showDialog<CellarFormResult>(
+      context: context,
+      builder: (_) => CellarFormDialog(
+        title: 'Ajouter un cellier',
+        initialNumber: nextNumber,
+        initialName: '',
+        initialCols: 12,
+        initialRows: 8,
+      ),
+    );
+    if (result == null) return;
+    final taken = await CellarService.isNumberTaken(result.number);
+    if (!context.mounted) return;
+    if (taken) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF6E2A20),
+          content: Text(
+            'Le numéro ${result.number} est déjà utilisé.',
+            style: AppText.sans(color: AppColors.text),
+          ),
+        ),
+      );
+      return;
+    }
+    await CellarService.add(
+      number: result.number,
+      name: result.name,
+      cols: result.cols,
+      rows: result.rows,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -864,17 +912,39 @@ class _CellarSettingsContent extends StatelessWidget {
           stream: CellarService.watch(),
           builder: (context, snap) {
             final cellars = snap.data ?? [];
-            if (cellars.isEmpty) {
-              return Text(
-                'Aucun cellier configuré.',
-                style: AppText.sans(color: AppColors.text3, fontSize: 13),
-              );
-            }
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < cellars.length; i++) ...[
-                  _CellarSettingsRow(cellar: cellars[i]),
-                  if (i < cellars.length - 1) const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: () => _onAdd(context, cellars),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: Text(
+                    'Ajouter un cellier',
+                    style: AppText.sans(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold.withValues(alpha: 0.15),
+                    foregroundColor: AppColors.gold2,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: AppColors.gold.withValues(alpha: 0.3)),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+                if (cellars.isEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Aucun cellier configuré.',
+                    style: AppText.sans(color: AppColors.text3, fontSize: 13),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 14),
+                  for (var i = 0; i < cellars.length; i++) ...[
+                    _CellarSettingsRow(cellar: cellars[i]),
+                    if (i < cellars.length - 1) const SizedBox(height: 10),
+                  ],
                 ],
               ],
             );
@@ -974,64 +1044,149 @@ class _CellarSettingsRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0x1FC9A84C),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0x40C9A84C)),
-              ),
-              child: Text(
-                'N°${c.number}',
-                style: AppText.sans(
-                  color: AppColors.gold2,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
-                    style: AppText.serif(
-                      color: AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0x1FC9A84C),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0x40C9A84C)),
+                  ),
+                  child: Text(
+                    'N°${c.number}',
+                    style: AppText.sans(
+                      color: AppColors.gold2,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Text(
-                    '${c.cols} colonnes × ${c.rows} rangées · ${c.totalSlots} cases',
-                    style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        c.name.isEmpty ? 'Cellier ${c.number}' : c.name,
+                        style: AppText.serif(
+                          color: AppColors.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '${c.cols} colonnes × ${c.rows} rangées · ${c.totalSlots} cases',
+                        style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                _actionButton(
+                  context: context,
+                  icon: Icons.edit_outlined,
+                  tooltip: 'Modifier',
+                  onTap: () => _onEdit(context, c),
+                ),
+                const SizedBox(width: 6),
+                _actionButton(
+                  context: context,
+                  icon: Icons.delete_outline,
+                  tooltip: 'Supprimer',
+                  danger: true,
+                  onTap: () => _onDelete(context, c),
+                ),
+              ],
             ),
-            _actionButton(
-              context: context,
-              icon: Icons.edit_outlined,
-              tooltip: 'Modifier',
-              onTap: () => _onEdit(context, c),
+          ),
+          Divider(height: 1, color: AppColors.border),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Infos',
+                  style: AppText.sans(
+                    color: AppColors.text3,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _infoGrid(c),
+              ],
             ),
-            const SizedBox(width: 6),
-            _actionButton(
-              context: context,
-              icon: Icons.delete_outline,
-              tooltip: 'Supprimer',
-              danger: true,
-              onTap: () => _onDelete(context, c),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _infoGrid(Cellar c) {
+    final rows = <({String label, String value})>[
+      (label: 'ID Firestore', value: c.id),
+      (label: 'Numéro', value: '${c.number}'),
+      (label: 'Nom', value: c.name.isEmpty ? '—' : c.name),
+      (label: 'Colonnes', value: '${c.cols}'),
+      (label: 'Rangées', value: '${c.rows}'),
+      (label: 'Cases totales', value: '${c.totalSlots}'),
+      (label: 'Créé le', value: _formatDate(c.createdAt)),
+      if (c.goveeTopDevice != null)
+        (label: 'Govee haut', value: c.goveeTopDevice!),
+      if (c.goveeBottomDevice != null)
+        (label: 'Govee bas', value: c.goveeBottomDevice!),
+      if (c.goveeTopDevice == null && c.goveeBottomDevice == null)
+        (label: 'Capteurs Govee', value: 'Aucun'),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 6,
+      children: [
+        for (final r in rows)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.bg4,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.border2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${r.label} ',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 10),
+                ),
+                Text(
+                  r.value,
+                  style: AppText.sans(
+                    color: AppColors.text2,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime dt) {
+    final y = dt.year;
+    final mo = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final h = dt.hour.toString().padLeft(2, '0');
+    final mi = dt.minute.toString().padLeft(2, '0');
+    return '$d/$mo/$y $h:$mi';
   }
 
   Widget _actionButton({
@@ -2236,6 +2391,311 @@ class _GardeHistoryRow extends StatelessWidget {
   }
 }
 
+class _ExportContent extends StatefulWidget {
+  const _ExportContent();
+
+  @override
+  State<_ExportContent> createState() => _ExportContentState();
+}
+
+class _ExportContentState extends State<_ExportContent> {
+  bool _exportingCsv = false;
+  bool _exportingPdf = false;
+  bool _backingUp = false;
+
+  Future<void> _doExportCsv() async {
+    setState(() => _exportingCsv = true);
+    try {
+      final (wines, bottles) = await (
+        CaveService.wines().first,
+        CaveService.bottlesInCave().first,
+      ).wait;
+      exportInventoryCsv(wines, bottles);
+    } finally {
+      if (mounted) setState(() => _exportingCsv = false);
+    }
+  }
+
+  Future<void> _doExportPdf() async {
+    setState(() => _exportingPdf = true);
+    try {
+      final (wines, bottles) = await (
+        CaveService.wines().first,
+        CaveService.bottlesInCave().first,
+      ).wait;
+      exportInventoryPdf(wines, bottles);
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
+    }
+  }
+
+  Future<void> _doBackup() async {
+    setState(() => _backingUp = true);
+    try {
+      final result = await BackupService.performBackup();
+      if (!mounted) return;
+      String msg;
+      Color color;
+      switch (result) {
+        case BackupResult.driveUploaded:
+          msg = 'Backup uploadé sur Google Drive.';
+          color = AppColors.gold;
+          break;
+        case BackupResult.downloaded:
+          msg = 'Backup téléchargé localement.';
+          color = AppColors.gold;
+          break;
+        case BackupResult.failed:
+          msg = 'Échec du backup.';
+          color = const Color(0xFFB23A48);
+          break;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: color,
+          content: Text(msg,
+              style: TextStyle(
+                  color: result == BackupResult.failed
+                      ? Colors.white
+                      : const Color(0xFF1A1408))),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFB23A48),
+          content: Text(
+            'Erreur backup : $e',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _exportButton(
+          icon: Icons.table_chart_outlined,
+          title: 'Exporter CSV',
+          subtitle: 'Tableur compatible Excel, Google Sheets…',
+          loading: _exportingCsv,
+          onTap: _doExportCsv,
+        ),
+        const SizedBox(height: 12),
+        _exportButton(
+          icon: Icons.picture_as_pdf_outlined,
+          title: 'Exporter PDF inventaire',
+          subtitle: 'Tableau imprimable, format A4 paysage',
+          loading: _exportingPdf,
+          onTap: _doExportPdf,
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.bg3,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.cloud_download_outlined,
+                      size: 18, color: AppColors.gold),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Backup complet (JSON)',
+                    style: AppText.serif(
+                      color: AppColors.gold2,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Sauvegarde tous tes vins, bouteilles, celliers, wishlist et paramètres dans un seul fichier JSON. Connecte Google Drive ci-dessous pour un upload automatique dans le dossier "Cave a Vin Backups".',
+                style: AppText.sans(color: AppColors.text3, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              const _DriveConnectPanel(),
+              const SizedBox(height: 14),
+              ValueListenableBuilder<DateTime?>(
+                valueListenable: BackupService.lastBackupAt,
+                builder: (_, last, __) {
+                  final txt = last == null
+                      ? 'Aucun backup effectué'
+                      : 'Dernier backup : ${_relTime(last)}';
+                  return Text(
+                    txt,
+                    style: AppText.sans(
+                        color: AppColors.text3, fontSize: 11),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _exportButton(
+                      icon: Icons.download_outlined,
+                      title: 'Sauvegarder maintenant',
+                      subtitle: 'Télécharge un fichier .json',
+                      loading: _backingUp,
+                      onTap: _doBackup,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ValueListenableBuilder<bool>(
+                valueListenable: BackupService.autoBackupEnabled,
+                builder: (_, enabled, __) {
+                  return InkWell(
+                    onTap: () => BackupService.setAutoBackup(!enabled),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.bg2,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            enabled
+                                ? Icons.toggle_on
+                                : Icons.toggle_off_outlined,
+                            color: enabled
+                                ? AppColors.gold
+                                : AppColors.text3,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Backup automatique quotidien',
+                                  style: AppText.sans(
+                                    color: AppColors.text,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Au lancement de l\'app, si > 24 h depuis le dernier backup',
+                                  style: AppText.sans(
+                                      color: AppColors.text3,
+                                      fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _relTime(DateTime t) {
+    final now = DateTime.now();
+    final diff = now.difference(t);
+    if (diff.inMinutes < 1) return 'à l\'instant';
+    if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
+    if (diff.inDays < 30) return 'il y a ${diff.inDays} j';
+    return '${t.day}/${t.month}/${t.year}';
+  }
+
+  Widget _exportButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool loading,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: loading ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+              ),
+              child: loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+                    )
+                  : Icon(icon, size: 20, color: AppColors.gold),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppText.serif(
+                      color: AppColors.gold2,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppText.sans(color: AppColors.text3, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 13,
+              color: loading ? AppColors.text3 : AppColors.text2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 Widget _refreshButton({required bool refreshing, required VoidCallback onTap}) {
   return InkWell(
     onTap: refreshing ? null : onTap,
@@ -2256,4 +2716,344 @@ Widget _refreshButton({required bool refreshing, required VoidCallback onTap}) {
           : const Icon(Icons.refresh, size: 15, color: AppColors.text2),
     ),
   );
+}
+
+class _DriveConnectPanel extends StatefulWidget {
+  const _DriveConnectPanel();
+  @override
+  State<_DriveConnectPanel> createState() => _DriveConnectPanelState();
+}
+
+class _DriveConnectPanelState extends State<_DriveConnectPanel> {
+  late final TextEditingController _ctrl;
+  bool _saving = false;
+  bool _connecting = false;
+  bool _showHelp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: DriveBackupService.clientId ?? '');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveClientId() async {
+    setState(() => _saving = true);
+    try {
+      await DriveBackupService.setClientId(_ctrl.text);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.gold,
+          content: Text(
+            _ctrl.text.trim().isEmpty
+                ? 'Client ID effacé.'
+                : 'Client ID enregistré. Clique sur Connecter.',
+            style: const TextStyle(color: Color(0xFF1A1408)),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _connect() async {
+    setState(() => _connecting = true);
+    try {
+      final ok = await DriveBackupService.connect();
+      if (!mounted) return;
+      final err = DriveBackupService.lastError.value;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: ok ? AppColors.gold : const Color(0xFFB23A48),
+          duration: Duration(seconds: ok ? 3 : 10),
+          content: Text(
+            ok
+                ? 'Connecté à Google Drive.'
+                : 'Connexion échouée — ${err ?? "raison inconnue"}',
+            style: TextStyle(
+                color: ok ? const Color(0xFF1A1408) : Colors.white),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _connecting = false);
+    }
+  }
+
+  Future<void> _disconnect() async {
+    await DriveBackupService.disconnect();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Color(0xFF7C7468),
+        content: Text('Déconnecté de Google Drive.',
+            style: TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.cloud_outlined,
+                size: 16, color: AppColors.gold),
+            const SizedBox(width: 6),
+            Text(
+              'Google Drive',
+              style: AppText.sans(
+                color: AppColors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const Spacer(),
+            ValueListenableBuilder<bool>(
+              valueListenable: DriveBackupService.isConnected,
+              builder: (_, connected, __) {
+                return ValueListenableBuilder<String?>(
+                  valueListenable: DriveBackupService.currentEmail,
+                  builder: (_, email, __) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: connected
+                            ? const Color(0x227CD492)
+                            : AppColors.bg3,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: connected
+                              ? const Color(0xFF7CD492)
+                              : AppColors.border2,
+                        ),
+                      ),
+                      child: Text(
+                        connected
+                            ? (email ?? 'connecté')
+                            : 'non connecté',
+                        style: AppText.sans(
+                          color: connected
+                              ? const Color(0xFF7CD492)
+                              : AppColors.text3,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ]),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _ctrl,
+            style: AppText.sans(color: AppColors.text, fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'OAuth Client ID (...apps.googleusercontent.com)',
+              hintStyle:
+                  AppText.sans(color: AppColors.text3, fontSize: 11),
+              filled: true,
+              fillColor: AppColors.bg3,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: AppColors.gold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            _miniBtn(
+              label: _saving ? '…' : 'Enregistrer',
+              icon: Icons.save_outlined,
+              onTap: _saving ? null : _saveClientId,
+            ),
+            const SizedBox(width: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: DriveBackupService.isConfigured,
+              builder: (_, configured, __) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: DriveBackupService.isConnected,
+                  builder: (_, connected, __) {
+                    if (connected) {
+                      return _miniBtn(
+                        label: 'Déconnecter',
+                        icon: Icons.logout,
+                        onTap: _disconnect,
+                      );
+                    }
+                    return _miniBtn(
+                      label: _connecting ? '…' : 'Connecter',
+                      icon: Icons.login,
+                      primary: true,
+                      onTap: (configured && !_connecting) ? _connect : null,
+                    );
+                  },
+                );
+              },
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => setState(() => _showHelp = !_showHelp),
+              child: Row(
+                children: [
+                  Icon(_showHelp
+                      ? Icons.help
+                      : Icons.help_outline,
+                      size: 14, color: AppColors.text3),
+                  const SizedBox(width: 3),
+                  Text('Aide',
+                      style: AppText.sans(
+                          color: AppColors.text3, fontSize: 11)),
+                ],
+              ),
+            ),
+          ]),
+          if (_showHelp) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Setup Google Drive (5 min)',
+                      style: AppText.sans(
+                          color: AppColors.gold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 6),
+                  _helpStep('1.',
+                      'Va sur console.cloud.google.com → APIs & Services → Library → cherche "Google Drive API" → Enable'),
+                  _helpStep('2.',
+                      'Va dans OAuth consent screen → choisis "External" → remplis nom + email → ajoute toi-même comme test user'),
+                  _helpStep('3.',
+                      'Va dans Credentials → Create Credentials → OAuth Client ID → Type: Web application'),
+                  _helpStep(
+                      '4.',
+                      'Authorized JavaScript origins : https://cave-vin-jo.web.app et http://localhost'),
+                  _helpStep('5.',
+                      'Copie le Client ID (xxx.apps.googleusercontent.com) et colle-le ici'),
+                  _helpStep('6.',
+                      'Enregistre, recharge la page (l\'init du SDK Google se fait au démarrage), puis clique Connecter'),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _helpStep(String num, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 16,
+            child: Text(num,
+                style: AppText.sans(
+                    color: AppColors.gold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700)),
+          ),
+          Expanded(
+            child: Text(text,
+                style: AppText.sans(
+                    color: AppColors.text2, fontSize: 11, height: 1.4)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniBtn({
+    required String label,
+    required IconData icon,
+    VoidCallback? onTap,
+    bool primary = false,
+  }) {
+    final disabled = onTap == null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: disabled
+              ? AppColors.bg3
+              : primary
+                  ? AppColors.gold.withValues(alpha: 0.15)
+                  : AppColors.bg3,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: disabled
+                ? AppColors.border2
+                : primary
+                    ? AppColors.gold
+                    : AppColors.border,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon,
+              size: 12,
+              color: disabled
+                  ? AppColors.text3
+                  : primary
+                      ? AppColors.gold
+                      : AppColors.text2),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppText.sans(
+              color: disabled
+                  ? AppColors.text3
+                  : primary
+                      ? AppColors.gold
+                      : AppColors.text2,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
 }
