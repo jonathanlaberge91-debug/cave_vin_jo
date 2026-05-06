@@ -26,7 +26,8 @@ double _cellSizeFromZoom(int zoom) => 14.0 + (zoom - 1) * 3.5;
 class CellierScreen extends StatefulWidget {
   final CascadeFilterState filter;
   final ValueChanged<CascadeFilterState> onFilterChanged;
-  const CellierScreen({super.key, required this.filter, required this.onFilterChanged});
+  final String searchQuery;
+  const CellierScreen({super.key, required this.filter, required this.onFilterChanged, this.searchQuery = ''});
 
   @override
   State<CellierScreen> createState() => _CellierScreenState();
@@ -240,8 +241,20 @@ class _CellierScreenState extends State<CellierScreen> {
   }
 
   bool _wineMatchesFilter(Wine? wine) {
-    if (widget.filter.isEmpty) return true;
     if (wine == null) return false;
+    if (widget.searchQuery.isNotEmpty) {
+      final q = widget.searchQuery;
+      final matches = wine.name.toLowerCase().contains(q) ||
+          wine.producer.toLowerCase().contains(q) ||
+          wine.country.toLowerCase().contains(q) ||
+          wine.region.toLowerCase().contains(q) ||
+          wine.appellation.toLowerCase().contains(q) ||
+          wine.grapes.toLowerCase().contains(q) ||
+          wine.domaine.toLowerCase().contains(q) ||
+          (wine.vintage?.toString().contains(q) ?? false);
+      if (!matches) return false;
+    }
+    if (widget.filter.isEmpty) return true;
     return widget.filter.matchesWine(
       country: wine.country,
       region: wine.region,
@@ -1110,7 +1123,7 @@ class _CellierScreenState extends State<CellierScreen> {
           _buildGridRow(
             c: c, row: row, cellSize: cellSize, gap: gap, labelW: labelW,
             occupied: occupied, anchorMap: anchorMap, winesById: winesById,
-            isDimmed: widget.filter.isEmpty ? null : (wine) => !_wineMatchesFilter(wine),
+            isDimmed: (widget.filter.isEmpty && widget.searchQuery.isEmpty) ? null : (wine) => !_wineMatchesFilter(wine),
           ),
           if (row < c.rows - 1) const SizedBox(height: gap),
         ],

@@ -35,6 +35,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static bool _splitMigrationDone = false;
   int _selectedIndex = 0;
   String _searchQuery = '';
   final _searchController = TextEditingController();
@@ -73,6 +74,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openAddWine() {
     showAddWineDialog(context);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_splitMigrationDone) {
+      _splitMigrationDone = true;
+      CaveService.splitMixedFormatWines();
+    }
   }
 
   @override
@@ -310,14 +320,75 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMain() {
+    final isWide = MediaQuery.of(context).size.width > 900;
+    final isSettings = _items[_selectedIndex].label == 'Paramètres';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTopbar(),
+        if (!isWide && isSettings) _buildMobileSettingsNav(),
         Expanded(
           child: _buildContent(),
         ),
       ],
+    );
+  }
+
+  Widget _buildMobileSettingsNav() {
+    return Container(
+      height: 44,
+      decoration: const BoxDecoration(
+        color: AppColors.bg2,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        itemCount: _settingsSubs.length,
+        itemBuilder: (context, i) {
+          final selected = _settingsSub == i;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => setState(() => _settingsSub = i),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.gold.withValues(alpha: 0.15)
+                      : AppColors.bg3,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: selected
+                        ? AppColors.gold.withValues(alpha: 0.5)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _settingsSubs[i].$1,
+                      size: 12,
+                      color: selected ? AppColors.gold : AppColors.text3,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _settingsSubs[i].$2,
+                      style: AppText.sans(
+                        color: selected ? AppColors.gold2 : AppColors.text3,
+                        fontSize: 11,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -332,7 +403,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             _items[_selectedIndex].label == 'Paramètres'
-                ? 'Paramètres — ${_settingsSubs[_settingsSub].$2}'
+                ? (MediaQuery.of(context).size.width > 900
+                    ? 'Paramètres — ${_settingsSubs[_settingsSub].$2}'
+                    : 'Paramètres')
                 : _items[_selectedIndex].label!,
             style: AppText.serif(
               color: AppColors.gold2,
@@ -402,12 +475,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContent() {
     final label = _items[_selectedIndex].label!;
     if (label == 'Ma Cave') return _buildCavePage();
-    if (label == 'Cellier') return CellierScreen(filter: _cascadeFilter, onFilterChanged: (f) => setState(() => _cascadeFilter = f));
+    if (label == 'Cellier') return CellierScreen(filter: _cascadeFilter, onFilterChanged: (f) => setState(() => _cascadeFilter = f), searchQuery: _searchQuery);
     if (label == 'Bouteilles bues') return _buildDrunkPage();
     if (label == 'Accords mets-vins') return const PairingScreen();
     if (label == 'Statistiques') return const StatsScreen();
     if (label == 'Carte des domaines') return const CarteScreen();
-    if (label == 'Liste de souhaits') return const _WishlistPage();
+    if (label == 'Liste de souhaits') return _WishlistPage(searchQuery: _searchQuery);
     if (label == 'Paramètres') return SettingsScreen(section: _settingsSub);
     return Padding(
       padding: const EdgeInsets.only(top: 80),
@@ -423,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDrunkPage() => const _DrunkPage();
+  Widget _buildDrunkPage() => _DrunkPage(searchQuery: _searchQuery);
 
   Widget _buildCavePage() {
     return StreamBuilder<List<Wine>>(
@@ -846,7 +919,8 @@ class _NavSubItemState extends State<_NavSubItem> {
 }
 
 class _DrunkPage extends StatefulWidget {
-  const _DrunkPage();
+  final String searchQuery;
+  const _DrunkPage({this.searchQuery = ''});
 
   @override
   State<_DrunkPage> createState() => _DrunkPageState();
@@ -862,6 +936,12 @@ class _DrunkPageState extends State<_DrunkPage> {
     super.initState();
     _wineStream = CaveService.wines();
     _bottleStream = CaveService.bottlesDrunk();
+  }
+
+  @override
+  void didUpdateWidget(_DrunkPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery) setState(() {});
   }
 
   @override
@@ -904,6 +984,22 @@ class _DrunkPageState extends State<_DrunkPage> {
                   appellation: w.appellation,
                   climat: w.climat,
                 );
+              }).toList();
+            }
+
+            if (widget.searchQuery.isNotEmpty) {
+              final q = widget.searchQuery;
+              bottles = bottles.where((b) {
+                final w = winesById[b.wineId];
+                if (w == null) return false;
+                return w.name.toLowerCase().contains(q) ||
+                    w.producer.toLowerCase().contains(q) ||
+                    w.country.toLowerCase().contains(q) ||
+                    w.region.toLowerCase().contains(q) ||
+                    w.appellation.toLowerCase().contains(q) ||
+                    w.grapes.toLowerCase().contains(q) ||
+                    w.domaine.toLowerCase().contains(q) ||
+                    (w.vintage?.toString().contains(q) ?? false);
               }).toList();
             }
 
@@ -1007,7 +1103,8 @@ class _DrunkPageState extends State<_DrunkPage> {
 }
 
 class _WishlistPage extends StatefulWidget {
-  const _WishlistPage();
+  final String searchQuery;
+  const _WishlistPage({this.searchQuery = ''});
 
   @override
   State<_WishlistPage> createState() => _WishlistPageState();
@@ -1021,6 +1118,12 @@ class _WishlistPageState extends State<_WishlistPage> {
   void initState() {
     super.initState();
     _stream = WishlistService.wishes();
+  }
+
+  @override
+  void didUpdateWidget(_WishlistPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery) setState(() {});
   }
 
   @override
@@ -1051,6 +1154,11 @@ class _WishlistPageState extends State<_WishlistPage> {
             appellation: w.appellation,
             climat: w.climat,
           )).toList();
+        }
+
+        if (widget.searchQuery.isNotEmpty) {
+          final q = widget.searchQuery;
+          wishes = wishes.where((w) => w.name.toLowerCase().contains(q)).toList();
         }
 
         return ValueListenableBuilder<Set<WishColumn>>(
