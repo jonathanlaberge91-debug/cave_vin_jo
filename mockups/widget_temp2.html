@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Température Cellier v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    background-image: radial-gradient(ellipse at 20% 50%, #16213e 0%, #0f0f23 100%);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 60px;
+  }
+  .screen { width: 100%; max-width: 900px; }
+  h2 {
+    color: #ffffff66;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .widgets-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  /* ── Lumière dot ── */
+  .light-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .light-off   { background: #333; }
+  .light-blue1 { background: #3A5A70; box-shadow: 0 0 4px #70B8E866; }
+  .light-blue2 { background: #4A80A0; box-shadow: 0 0 6px #70B8E8AA; }
+  .light-blue3 { background: #5A90B0; box-shadow: 0 0 10px #70B8E8CC; }
+  .light-blue4 { background: #90D0F8; box-shadow: 0 0 14px #70B8E8FF, 0 0 28px #70B8E855; }
+  .light-warm1 { background: #5A5540; box-shadow: 0 0 4px #F5ECD066; }
+  .light-warm2 { background: #8A8050; box-shadow: 0 0 6px #F5ECD0AA; }
+  .light-warm3 { background: #C0A060; box-shadow: 0 0 10px #F5ECD0CC; }
+  .light-warm4 { background: #F5D080; box-shadow: 0 0 14px #F5ECD0FF, 0 0 28px #F5D08055; }
+
+  /* ─────────────────────────────────────────────
+     OPTION A — 4×2 compact
+     Chaque cellier = colonne, haut/bas = rangées
+  ───────────────────────────────────────────── */
+  .wa {
+    width: 340px;
+    height: 170px;
+    background: linear-gradient(150deg, #1C1710 0%, #191410 100%);
+    border-radius: 22px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px 10px;
+    gap: 8px;
+    box-shadow: 0 8px 32px #00000077;
+    position: relative;
+    overflow: hidden;
+  }
+  .wa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .wa-title { font-size: 8px; color: #C9A84C88; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+  .wa-time  { font-size: 7px; color: #ffffff22; }
+  .wa-cols  { display: flex; gap: 8px; flex: 1; }
+  .wa-col   {
+    flex: 1;
+    background: #ffffff05;
+    border-radius: 12px;
+    border: 1px solid #ffffff0D;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wa-col.d { border-color: #E8A04C1A; }
+  .wa-col.g { border-color: #70B8E81A; }
+  .wa-col-title {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wa-col-name { font-size: 7px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+  .wa-col.d .wa-col-name { color: #E8A04C; }
+  .wa-col.g .wa-col-name { color: #70B8E8; }
+  .wa-light-row { display: flex; align-items: center; gap: 3px; }
+  .wa-light-label { font-size: 6px; color: #ffffff33; letter-spacing: 0.5px; }
+  .wa-zone { display: flex; align-items: center; justify-content: space-between; }
+  .wa-zone-label { font-size: 7px; color: #ffffff44; }
+  .wa-zone-right { display: flex; flex-direction: column; align-items: flex-end; }
+  .wa-temp { font-size: 18px; font-weight: 700; color: #F5E6C8; line-height: 1; letter-spacing: -0.5px; }
+  .wa-hum  { font-size: 7px; color: #70B8E877; }
+  .wa-sep  { height: 1px; background: #ffffff0A; }
+
+  /* ─────────────────────────────────────────────
+     OPTION B — 4×3 plus grand, plus aéré
+  ───────────────────────────────────────────── */
+  .wb {
+    width: 340px;
+    height: 240px;
+    background: linear-gradient(150deg, #1C1710 0%, #181310 100%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px 12px;
+    gap: 10px;
+    box-shadow: 0 8px 32px #00000077;
+  }
+  .wb-header {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .wb-title { font-size: 8px; color: #C9A84C88; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+  .wb-time  { font-size: 7px; color: #ffffff22; }
+  .wb-cols  { display: flex; gap: 10px; flex: 1; }
+  .wb-col   {
+    flex: 1; border-radius: 14px;
+    border: 1px solid #ffffff0D;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .wb-col.d { border-color: #E8A04C22; background: linear-gradient(160deg, #201608 0%, #191310 100%); }
+  .wb-col.g { border-color: #70B8E822; background: linear-gradient(160deg, #081622 0%, #101318 100%); }
+  .wb-col-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .wb-col-name { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+  .wb-col.d .wb-col-name { color: #E8A04C; }
+  .wb-col.g .wb-col-name { color: #70B8E8; }
+  .wb-light-pill {
+    display: flex; align-items: center; gap: 3px;
+    background: #ffffff08; border-radius: 20px;
+    padding: 2px 6px 2px 4px;
+  }
+  .wb-light-text { font-size: 7px; color: #ffffff44; }
+  .wb-zone-block { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; }
+  .wb-zone-block + .wb-zone-block { border-top: 1px solid #ffffff0A; }
+  .wb-zone-label { font-size: 7px; color: #ffffff33; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+  .wb-temp-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .wb-temp { font-size: 26px; font-weight: 700; color: #F5E6C8; line-height: 1; letter-spacing: -1px; }
+  .wb-unit { font-size: 10px; color: #C9A84C; font-weight: 600; }
+  .wb-col.g .wb-unit { color: #70B8E8; }
+  .wb-hum  { font-size: 8px; color: #70B8E877; }
+
+  /* ─────────────────────────────────────────────
+     OPTION C — Vertical 2×4 (un cellier par widget)
+  ───────────────────────────────────────────── */
+  .wc {
+    width: 160px;
+    height: 240px;
+    background: linear-gradient(160deg, #1C1710 0%, #161210 100%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    gap: 8px;
+    box-shadow: 0 8px 32px #00000077;
+  }
+  .wc-header { display: flex; flex-direction: column; gap: 4px; }
+  .wc-name { font-size: 8px; color: #E8A04C; letter-spacing: 1px; text-transform: uppercase; font-weight: 800; }
+  .wc-light-row { display: flex; align-items: center; gap: 4px; }
+  .wc-light-label { font-size: 7px; color: #ffffff44; }
+  .wc-sep { height: 1px; background: linear-gradient(to right, transparent, #C9A84C33, transparent); }
+  .wc-zone { display: flex; flex-direction: column; gap: 3px; flex: 1; justify-content: center; }
+  .wc-zone-label { font-size: 7px; color: #ffffff44; text-transform: uppercase; letter-spacing: 1px; }
+  .wc-temp-row { display: flex; align-items: baseline; gap: 2px; }
+  .wc-temp { font-size: 32px; font-weight: 700; color: #F5E6C8; line-height: 1; letter-spacing: -1.5px; }
+  .wc-unit { font-size: 12px; color: #C9A84C; font-weight: 600; }
+  .wc-hum  { font-size: 9px; color: #70B8E877; }
+  .wc-bar  { height: 2px; background: #ffffff10; border-radius: 1px; overflow: hidden; margin-top: 3px; }
+  .wc-bar-fill { height: 100%; border-radius: 1px; background: linear-gradient(to right, #70B8E8, #A0D8F8); }
+
+  /* ─────────────────────────────────────────────
+     OPTION D — 4×2 lignes horizontales
+  ───────────────────────────────────────────── */
+  .wd {
+    width: 340px;
+    height: 200px;
+    background: linear-gradient(150deg, #1C1710 0%, #181310 100%);
+    border-radius: 22px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    gap: 0;
+    box-shadow: 0 8px 32px #00000077;
+    overflow: hidden;
+  }
+  .wd-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; }
+  .wd-title { font-size: 8px; color: #C9A84C88; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+  .wd-time  { font-size: 7px; color: #ffffff22; }
+  .wd-row {
+    display: flex; align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid #ffffff08;
+    gap: 10px;
+  }
+  .wd-cellar-tag {
+    width: 38px; flex-shrink: 0;
+    font-size: 7px; font-weight: 800; letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: right;
+  }
+  .wd-zone-tag {
+    width: 22px; flex-shrink: 0;
+    font-size: 7px; color: #ffffff44;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .wd-temp-val {
+    font-size: 20px; font-weight: 700; color: #F5E6C8;
+    letter-spacing: -0.5px; line-height: 1;
+    flex: 1;
+  }
+  .wd-hum { font-size: 8px; color: #70B8E877; }
+  .wd-light { display: flex; align-items: center; gap: 3px; }
+  .wd-light-txt { font-size: 7px; color: #ffffff33; }
+</style>
+</head>
+<body>
+
+<!-- OPTION A -->
+<div class="screen">
+  <h2>Option A — 4×2 Compact, haut/bas + lumière</h2>
+  <div class="widgets-row">
+
+    <!-- Lumières bleues pour D, warm pour G -->
+    <div class="wa">
+      <div class="wa-header">
+        <div class="wa-title">🍷 Celliers</div>
+        <div class="wa-time">mis à jour 12:34</div>
+      </div>
+      <div class="wa-cols">
+
+        <div class="wa-col d">
+          <div class="wa-col-title">
+            <div class="wa-col-name">CellR D</div>
+            <div class="wa-light-row">
+              <div class="light-dot light-blue3"></div>
+              <div class="wa-light-label">Bleu 75%</div>
+            </div>
+          </div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▲ Haut</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">12.4°</div>
+              <div class="wa-hum">💧 58%</div>
+            </div>
+          </div>
+          <div class="wa-sep"></div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▼ Bas</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.9°</div>
+              <div class="wa-hum">💧 60%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wa-col g">
+          <div class="wa-col-title">
+            <div class="wa-col-name" style="color:#70B8E8;">CellR G</div>
+            <div class="wa-light-row">
+              <div class="light-dot light-off"></div>
+              <div class="wa-light-label">Éteint</div>
+            </div>
+          </div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▲ Haut</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.8°</div>
+              <div class="wa-hum">💧 61%</div>
+            </div>
+          </div>
+          <div class="wa-sep"></div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▼ Bas</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.5°</div>
+              <div class="wa-hum">💧 63%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Lumières warm pour les deux -->
+    <div class="wa">
+      <div class="wa-header">
+        <div class="wa-title">🍷 Celliers</div>
+        <div class="wa-time">mis à jour 12:34</div>
+      </div>
+      <div class="wa-cols">
+
+        <div class="wa-col d">
+          <div class="wa-col-title">
+            <div class="wa-col-name">CellR D</div>
+            <div class="wa-light-row">
+              <div class="light-dot light-warm4"></div>
+              <div class="wa-light-label">Chaud 100%</div>
+            </div>
+          </div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▲ Haut</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">12.4°</div>
+              <div class="wa-hum">💧 58%</div>
+            </div>
+          </div>
+          <div class="wa-sep"></div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▼ Bas</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.9°</div>
+              <div class="wa-hum">💧 60%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wa-col g">
+          <div class="wa-col-title">
+            <div class="wa-col-name" style="color:#70B8E8;">CellR G</div>
+            <div class="wa-light-row">
+              <div class="light-dot light-blue4"></div>
+              <div class="wa-light-label">Bleu 100%</div>
+            </div>
+          </div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▲ Haut</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.8°</div>
+              <div class="wa-hum">💧 61%</div>
+            </div>
+          </div>
+          <div class="wa-sep"></div>
+          <div class="wa-zone">
+            <div class="wa-zone-label">▼ Bas</div>
+            <div class="wa-zone-right">
+              <div class="wa-temp">11.5°</div>
+              <div class="wa-hum">💧 63%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPTION B -->
+<div class="screen">
+  <h2>Option B — 4×3 Plus grand, pill lumière</h2>
+  <div class="widgets-row">
+
+    <div class="wb">
+      <div class="wb-header">
+        <div class="wb-title">🍷 Celliers</div>
+        <div class="wb-time">12:34</div>
+      </div>
+      <div class="wb-cols">
+
+        <div class="wb-col d">
+          <div class="wb-col-header">
+            <div class="wb-col-name">CellR D</div>
+            <div class="wb-light-pill">
+              <div class="light-dot light-blue3"></div>
+              <div class="wb-light-text">75%</div>
+            </div>
+          </div>
+          <div class="wb-zone-block">
+            <div class="wb-zone-label">▲ Haut</div>
+            <div class="wb-temp-row">
+              <div style="display:flex;align-items:baseline;gap:1px;">
+                <div class="wb-temp">12.4</div>
+                <div class="wb-unit">°</div>
+              </div>
+              <div class="wb-hum">💧 58%</div>
+            </div>
+          </div>
+          <div class="wb-zone-block">
+            <div class="wb-zone-label">▼ Bas</div>
+            <div class="wb-temp-row">
+              <div style="display:flex;align-items:baseline;gap:1px;">
+                <div class="wb-temp">11.9</div>
+                <div class="wb-unit">°</div>
+              </div>
+              <div class="wb-hum">💧 60%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wb-col g">
+          <div class="wb-col-header">
+            <div class="wb-col-name">CellR G</div>
+            <div class="wb-light-pill">
+              <div class="light-dot light-off"></div>
+              <div class="wb-light-text">Off</div>
+            </div>
+          </div>
+          <div class="wb-zone-block">
+            <div class="wb-zone-label">▲ Haut</div>
+            <div class="wb-temp-row">
+              <div style="display:flex;align-items:baseline;gap:1px;">
+                <div class="wb-temp">11.8</div>
+                <div class="wb-unit">°</div>
+              </div>
+              <div class="wb-hum">💧 61%</div>
+            </div>
+          </div>
+          <div class="wb-zone-block">
+            <div class="wb-zone-label">▼ Bas</div>
+            <div class="wb-temp-row">
+              <div style="display:flex;align-items:baseline;gap:1px;">
+                <div class="wb-temp">11.5</div>
+                <div class="wb-unit">°</div>
+              </div>
+              <div class="wb-hum">💧 63%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPTION C -->
+<div class="screen">
+  <h2>Option C — 2×4 Vertical par cellier (2 widgets séparés)</h2>
+  <div class="widgets-row">
+
+    <div class="wc">
+      <div class="wc-header">
+        <div class="wc-name">Wine CellR D</div>
+        <div class="wc-light-row">
+          <div class="light-dot light-warm3"></div>
+          <div class="wc-light-label">Lumière chaude 75%</div>
+        </div>
+      </div>
+      <div class="wc-sep"></div>
+      <div class="wc-zone">
+        <div class="wc-zone-label">▲ Haut</div>
+        <div class="wc-temp-row">
+          <div class="wc-temp">12.4</div>
+          <div class="wc-unit">°C</div>
+        </div>
+        <div class="wc-hum">💧 58%</div>
+        <div class="wc-bar"><div class="wc-bar-fill" style="width:58%; background: linear-gradient(to right, #C9A84C, #F5D060);"></div></div>
+      </div>
+      <div class="wc-sep"></div>
+      <div class="wc-zone">
+        <div class="wc-zone-label">▼ Bas</div>
+        <div class="wc-temp-row">
+          <div class="wc-temp">11.9</div>
+          <div class="wc-unit">°C</div>
+        </div>
+        <div class="wc-hum">💧 60%</div>
+        <div class="wc-bar"><div class="wc-bar-fill" style="width:60%;"></div></div>
+      </div>
+    </div>
+
+    <div class="wc" style="border-color:#70B8E833;">
+      <div class="wc-header">
+        <div class="wc-name" style="color:#70B8E8;">Wine CellR G</div>
+        <div class="wc-light-row">
+          <div class="light-dot light-blue2"></div>
+          <div class="wc-light-label">Lumière bleue 50%</div>
+        </div>
+      </div>
+      <div class="wc-sep"></div>
+      <div class="wc-zone">
+        <div class="wc-zone-label">▲ Haut</div>
+        <div class="wc-temp-row">
+          <div class="wc-temp">11.8</div>
+          <div class="wc-unit" style="color:#70B8E8;">°C</div>
+        </div>
+        <div class="wc-hum">💧 61%</div>
+        <div class="wc-bar"><div class="wc-bar-fill" style="width:61%;"></div></div>
+      </div>
+      <div class="wc-sep"></div>
+      <div class="wc-zone">
+        <div class="wc-zone-label">▼ Bas</div>
+        <div class="wc-temp-row">
+          <div class="wc-temp">11.5</div>
+          <div class="wc-unit" style="color:#70B8E8;">°C</div>
+        </div>
+        <div class="wc-hum">💧 63%</div>
+        <div class="wc-bar"><div class="wc-bar-fill" style="width:63%;"></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPTION D -->
+<div class="screen">
+  <h2>Option D — 4×2 Lignes horizontales, lecture rapide</h2>
+  <div class="widgets-row">
+
+    <div class="wd">
+      <div class="wd-header">
+        <div class="wd-title">🍷 Celliers</div>
+        <div class="wd-time">12:34</div>
+      </div>
+
+      <div class="wd-row">
+        <div class="wd-cellar-tag" style="color:#E8A04C;">CellR D</div>
+        <div class="wd-zone-tag">▲ Haut</div>
+        <div class="wd-temp-val">12.4°</div>
+        <div class="wd-hum">💧 58%</div>
+        <div class="wd-light">
+          <div class="light-dot light-blue3"></div>
+          <div class="wd-light-txt">bleu 75%</div>
+        </div>
+      </div>
+
+      <div class="wd-row">
+        <div class="wd-cellar-tag" style="color:#E8A04C;"></div>
+        <div class="wd-zone-tag">▼ Bas</div>
+        <div class="wd-temp-val">11.9°</div>
+        <div class="wd-hum">💧 60%</div>
+        <div class="wd-light" style="visibility:hidden;">
+          <div class="light-dot"></div>
+          <div class="wd-light-txt"></div>
+        </div>
+      </div>
+
+      <div class="wd-row">
+        <div class="wd-cellar-tag" style="color:#70B8E8;">CellR G</div>
+        <div class="wd-zone-tag">▲ Haut</div>
+        <div class="wd-temp-val">11.8°</div>
+        <div class="wd-hum">💧 61%</div>
+        <div class="wd-light">
+          <div class="light-dot light-off"></div>
+          <div class="wd-light-txt">éteint</div>
+        </div>
+      </div>
+
+      <div class="wd-row">
+        <div class="wd-cellar-tag" style="color:#70B8E8;"></div>
+        <div class="wd-zone-tag">▼ Bas</div>
+        <div class="wd-temp-val">11.5°</div>
+        <div class="wd-hum">💧 63%</div>
+        <div class="wd-light" style="visibility:hidden;">
+          <div class="light-dot"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

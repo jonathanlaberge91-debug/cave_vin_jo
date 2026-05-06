@@ -12,6 +12,9 @@ import '../services/actualisation_service.dart';
 import '../services/backup_service.dart';
 import '../services/cave_preferences_service.dart';
 import '../services/drive_backup_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
@@ -95,6 +98,13 @@ class SettingsScreen extends StatelessWidget {
             description:
                 'Verrouille l\'app avec ton empreinte ou Face ID au démarrage.',
             child: _SecurityContent(),
+          ),
+        12 => const _SettingsSection(
+            title: 'Compte',
+            icon: Icons.account_circle_outlined,
+            description:
+                'Compte Google connecté à cette cave.',
+            child: _AccountContent(),
           ),
         _ => const _SettingsSection(
             title: 'Actualisation',
@@ -3607,6 +3617,155 @@ class _SecurityContentState extends State<_SecurityContent> {
           onChanged: _busy ? (_) {} : _onChange,
         );
       },
+    );
+  }
+}
+
+class _AccountContent extends StatefulWidget {
+  const _AccountContent();
+
+  @override
+  State<_AccountContent> createState() => _AccountContentState();
+}
+
+class _AccountContentState extends State<_AccountContent> {
+  bool _signingOut = false;
+
+  Future<void> _signOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border2),
+        ),
+        title: Text(
+          'Se déconnecter ?',
+          style: AppText.serif(color: AppColors.gold2, fontSize: 18),
+        ),
+        content: Text(
+          'Tu devras te reconnecter avec Google pour retrouver ta cave. '
+          'Les données restent dans Firebase.',
+          style: AppText.sans(color: AppColors.text2, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annuler',
+                style: AppText.sans(color: AppColors.text2, fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Se déconnecter',
+              style: AppText.sans(
+                color: const Color(0xFFE07060),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _signingOut = true);
+    try {
+      await AuthService.signOut();
+    } catch (_) {
+      if (mounted) setState(() => _signingOut = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email ?? '—';
+    final name = user?.displayName ?? '';
+    final photoUrl = user?.photoURL;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.bg3,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.bg2,
+                backgroundImage:
+                    photoUrl != null ? NetworkImage(photoUrl) : null,
+                child: photoUrl == null
+                    ? const Icon(Icons.person,
+                        color: AppColors.text3, size: 22)
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (name.isNotEmpty)
+                      Text(
+                        name,
+                        style: AppText.serif(
+                          color: AppColors.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    Text(
+                      email,
+                      style: AppText.sans(
+                        color: AppColors.text3,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+            onPressed: _signingOut ? null : _signOut,
+            icon: _signingOut
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.logout, size: 16),
+            label: Text(
+              'Se déconnecter',
+              style:
+                  AppText.sans(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB23A48),
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

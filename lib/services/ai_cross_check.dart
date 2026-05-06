@@ -68,10 +68,22 @@ class AiCrossCheck {
 
   /// Recherche par photo : Gemini + Groq + Mistral (Pixtral) selon dispo.
   /// Pré-traite avec OCR Tesseract.js (web) pour fournir un hint texte aux IA.
-  static Future<CrossCheckResult> searchByPhoto(Uint8List bytes) async {
-    // OCR en arrière-plan pour fournir un hint texte aux IA. Si OCR échoue
-    // ou n'est pas dispo (mobile), on continue sans hint.
-    final ocrHint = await OcrService.recognize(bytes);
+  /// [ocrFuture] : Future OCR déjà lancé (idéalement dès le crop de la photo
+  /// pour qu'il tourne en parallèle des actions utilisateur). Si null, OCR
+  /// est démarré ici en bloquant.
+  static Future<CrossCheckResult> searchByPhoto(
+    Uint8List bytes, {
+    Future<String?>? ocrFuture,
+  }) async {
+    // Bound le temps d'attente OCR pour ne pas bloquer trop longtemps.
+    // Si déjà fini (ocrFuture lancé tôt), on récupère instantanément.
+    String? ocrHint;
+    try {
+      final f = ocrFuture ?? OcrService.recognize(bytes);
+      ocrHint = await f.timeout(const Duration(seconds: 6));
+    } catch (_) {
+      ocrHint = null;
+    }
 
     final futures = <AiSource, Future<GeminiResult>>{
       AiSource.gemini:
@@ -120,25 +132,17 @@ class AiCrossCheck {
     }
 
     final cc = _merge(sources, errors);
-    final ccValidated = await _validatePass(cc);
-    return _resolveRemainingConflicts(ccValidated);
+    return _crossCheckPass(cc);
   }
 
-  /// Pour chaque conflit restant (3 IA divergentes ou validation), demande
-  /// à Gemini grounded de pré-choisir la bonne option par recherche web.
-  /// Le dialog s'ouvre quand même mais avec le choix IA pré-sélectionné.
-  static Future<CrossCheckResult> _resolveRemainingConflicts(
-      CrossCheckResult cc) async {
-    if (cc.disagreements.isEmpty) return cc;
-
+  /// Pass unifié : un seul appel Gemini grounded qui à la fois
+  /// (a) vérifie les valeurs consensus contre des sources web et
+  /// (b) choisit la meilleure option parmi les conflits existants.
+  static Future<CrossCheckResult> _crossCheckPass(CrossCheckResult cc) async {
     final m = cc.merged;
-    final identity = <String>[
-      if (m.producer.isNotEmpty) m.producer,
-      if (m.name.isNotEmpty) m.name,
-      if (m.vintage != null) m.vintage.toString(),
-    ].join(' ');
-    if (identity.trim().isEmpty) return cc;
 
+    // Champs en conflit (déjà dans disagreements)
+    final conflictKeys = <String>{for (final d in cc.disagreements) d.fieldKey};
     final conflicts = <String, Map<String, String>>{};
     for (final d in cc.disagreements) {
       conflicts[d.fieldKey] = {
@@ -146,58 +150,90 @@ class AiCrossCheck {
       };
     }
 
-    Map<String, String> resolutions;
+    // Construire l'identité du vin : si producer/name/vintage sont en
+    // conflit, lister tous les candidats au lieu de prendre la valeur
+    // Gemini par défaut (qui peut être fausse).
+    String identityFor(
+        String key, String? singleValue, String label) {
+      if (conflictKeys.contains(key)) {
+        final candidates = conflicts[key]!
+            .values
+            .where((v) => v.trim().isNotEmpty)
+            .toSet()
+            .join(' / ');
+        return candidates.isEmpty ? '' : '[$label candidats : $candidates]';
+      }
+      return singleValue ?? '';
+    }
+
+    final identityParts = <String>[
+      identityFor('producer', m.producer, 'producteur'),
+      identityFor('name', m.name, 'nom'),
+      identityFor('vintage', m.vintage?.toString(), 'millésime'),
+    ].where((s) => s.isNotEmpty).toList();
+    final identity = identityParts.join(' ');
+    if (identity.trim().isEmpty) return cc;
+
+    // Champs consensus = tous les autres champs vérifiables
+    final consensusFields = <(String, String, String, bool, bool)>[
+      ('name', 'Nom', m.name, false, false),
+      ('producer', 'Producteur', m.producer, false, false),
+      ('vintage', 'Millésime', m.vintage?.toString() ?? '', false, false),
+      ('appellation', 'Appellation', m.appellation, false, false),
+      ('country', 'Pays', m.country, false, false),
+      ('region', 'Région', m.region, false, false),
+      ('climat', 'Climat', m.climat, false, false),
+      ('domaine', 'Domaine', m.domaine, false, false),
+      ('village', 'Village', m.village, false, false),
+      ('domainAddress', 'Adresse domaine', m.domainAddress, true, false),
+      ('grapes', 'Cépages', m.grapes, true, true),
+      ('alcohol', 'Alcool %', m.alcohol?.toString() ?? '', false, false),
+      ('type', 'Type', m.type, false, false),
+      ('drinkFrom', 'À boire dès', m.drinkFrom?.toString() ?? '', false, false),
+      ('drinkPeak', 'Apogée', m.drinkPeak?.toString() ?? '', false, false),
+      ('drinkTo', 'Fin de garde', m.drinkTo?.toString() ?? '', false, false),
+      ('marketValue', 'Valeur marchande', m.marketValue?.toString() ?? '',
+          false, false),
+    ];
+
+    final consensus = <String, String>{};
+    final labels = <String, String>{};
+    final modes = <String, (bool, bool)>{};
+    for (final f in consensusFields) {
+      labels[f.$1] = f.$2;
+      modes[f.$1] = (f.$4, f.$5);
+      if (conflictKeys.contains(f.$1)) continue;
+      if (f.$3.trim().isEmpty) continue;
+      consensus[f.$1] = f.$3;
+    }
+
+    Map<String, String> corrections;
     try {
-      resolutions = await GeminiService.resolveConflicts(
+      corrections = await GeminiService.crossCheck(
         wineIdentity: identity,
+        consensus: consensus,
         conflicts: conflicts,
       );
     } catch (_) {
       return cc;
     }
 
-    if (resolutions.isEmpty) return cc;
-
-    for (final d in cc.disagreements) {
-      final chosenName = resolutions[d.fieldKey];
-      if (chosenName == null) continue;
-      AiSource? matched;
-      for (final src in d.values.keys) {
-        if (src.name == chosenName) {
-          matched = src;
-          break;
-        }
-      }
-      if (matched != null) {
-        d.chosen = matched;
-      }
-    }
-
-    return cc;
-  }
-
-  /// Phase de validation : envoie le résultat consensus à Gemini en mode
-  /// fact-checking grounded. Toute correction trouvée est ajoutée comme
-  /// désaccord pour confirmation utilisateur.
-  static Future<CrossCheckResult> _validatePass(CrossCheckResult cc) async {
-    Map<String, String> corrections;
-    try {
-      corrections = await GeminiService.validateWine(cc.merged);
-    } catch (_) {
-      return cc;
-    }
     if (corrections.isEmpty) return cc;
 
-    final m = cc.merged;
     final disagreements = List<FieldDisagreement>.from(cc.disagreements);
 
-    void addCorrection(String key, String label, String currentValue) {
-      final corrected = corrections[key];
-      if (corrected == null || corrected.trim().isEmpty) return;
-      // Ne pas re-flagger si déjà identique au consensus
-      if (_normalize(corrected) == _normalize(currentValue)) return;
+    String norm(String v, String key) {
+      final mode = modes[key] ?? (false, false);
+      return mode.$1
+          ? _normalizeUnordered(v, stripNumbers: mode.$2)
+          : _normalize(v);
+    }
 
-      // Si déjà dans les disagreements, ajoute juste la valeur validator
+    for (final entry in corrections.entries) {
+      final key = entry.key;
+      final corrected = entry.value;
+
+      // Trouver disagreement existant ?
       FieldDisagreement? existing;
       for (final d in disagreements) {
         if (d.fieldKey == key) {
@@ -205,41 +241,38 @@ class AiCrossCheck {
           break;
         }
       }
+
       if (existing != null) {
-        existing.values[AiSource.validator] = corrected;
-        existing.chosen = AiSource.validator;
+        // C'est un conflit. Voir si la valeur du validator matche une option.
+        AiSource? matched;
+        for (final e in existing.values.entries) {
+          if (norm(e.value, key) == norm(corrected, key)) {
+            matched = e.key;
+            break;
+          }
+        }
+        if (matched != null) {
+          existing.chosen = matched;
+        } else {
+          existing.values[AiSource.validator] = corrected;
+          existing.chosen = AiSource.validator;
+        }
       } else {
+        // C'est un consensus : la validation propose une correction.
+        final currentValue = consensus[key] ?? '';
+        if (currentValue.isEmpty) continue;
+        if (norm(corrected, key) == norm(currentValue, key)) continue;
         disagreements.add(FieldDisagreement(
           fieldKey: key,
-          label: label,
+          label: labels[key] ?? key,
           values: {
             AiSource.consensus: currentValue,
             AiSource.validator: corrected,
           },
-          chosen: AiSource.validator, // par défaut on suggère la correction
+          chosen: AiSource.validator,
         ));
       }
     }
-
-    addCorrection('name', 'Nom', m.name);
-    addCorrection('producer', 'Producteur', m.producer);
-    addCorrection('vintage', 'Millésime', m.vintage?.toString() ?? '');
-    addCorrection('appellation', 'Appellation', m.appellation);
-    addCorrection('country', 'Pays', m.country);
-    addCorrection('region', 'Région', m.region);
-    addCorrection('climat', 'Climat', m.climat);
-    addCorrection('domaine', 'Domaine', m.domaine);
-    addCorrection('village', 'Village', m.village);
-    addCorrection('domainAddress', 'Adresse domaine', m.domainAddress);
-    addCorrection('grapes', 'Cépages', m.grapes);
-    addCorrection('alcohol', 'Alcool %', m.alcohol?.toString() ?? '');
-    addCorrection('type', 'Type', m.type);
-    addCorrection('drinkFrom', 'À boire dès',
-        m.drinkFrom?.toString() ?? '');
-    addCorrection('drinkPeak', 'Apogée', m.drinkPeak?.toString() ?? '');
-    addCorrection('drinkTo', 'Fin de garde', m.drinkTo?.toString() ?? '');
-    addCorrection('marketValue', 'Valeur marchande',
-        m.marketValue?.toString() ?? '');
 
     return CrossCheckResult(
       merged: cc.merged,
@@ -257,13 +290,14 @@ class AiCrossCheck {
     final gemini = sources[AiSource.gemini]!;
 
     String pickStr(String key, String label, String Function(GeminiResult) get,
-        {bool unordered = false}) {
+        {bool unordered = false, bool stripNumbers = false}) {
       return _voteString(
         key: key,
         label: label,
         values: {for (final e in sources.entries) e.key: get(e.value)},
         disagreements: disagreements,
         unordered: unordered,
+        stripNumbers: stripNumbers,
       );
     }
 
@@ -300,8 +334,8 @@ class AiCrossCheck {
       domainAddress: pickStr(
           'domainAddress', 'Adresse domaine', (r) => r.domainAddress,
           unordered: true),
-      grapes:
-          pickStr('grapes', 'Cépages', (r) => r.grapes, unordered: true),
+      grapes: pickStr('grapes', 'Cépages', (r) => r.grapes,
+          unordered: true, stripNumbers: true),
       alcohol: pickDouble('alcohol', 'Alcool %', (r) => r.alcohol),
       type: pickStr('type', 'Type', (r) => r.type),
       drinkFrom:
@@ -334,6 +368,7 @@ class AiCrossCheck {
     required Map<AiSource, String> values,
     required List<FieldDisagreement> disagreements,
     bool unordered = false,
+    bool stripNumbers = false,
   }) {
     // On garde uniquement les valeurs non vides pour le vote.
     final nonEmpty = <AiSource, String>{
@@ -345,8 +380,9 @@ class AiCrossCheck {
     if (nonEmpty.length == 1) return nonEmpty.values.first;
 
     // Group par valeur normalisée.
-    String norm(String v) =>
-        unordered ? _normalizeUnordered(v) : _normalize(v);
+    String norm(String v) => unordered
+        ? _normalizeUnordered(v, stripNumbers: stripNumbers)
+        : _normalize(v);
     final groups = <String, List<AiSource>>{};
     nonEmpty.forEach((src, v) {
       groups.putIfAbsent(norm(v), () => []).add(src);
@@ -499,9 +535,13 @@ class AiCrossCheck {
 
   /// Normalisation insensible à l'ordre des mots et aux mots vides courants
   /// (de, la, et, etc.). Utilisé pour cépages et adresses.
-  static String _normalizeUnordered(String s) {
-    final base = _normalize(s);
+  /// [stripNumbers] : retire les nombres (utile pour cépages avec/sans %).
+  static String _normalizeUnordered(String s, {bool stripNumbers = false}) {
+    var base = _normalize(s);
     if (base.isEmpty) return '';
+    if (stripNumbers) {
+      base = base.replaceAll(RegExp(r'\b\d+\b'), ' ');
+    }
     const stopWords = {
       'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd',
       'et', 'a', 'au', 'aux', 'en', 'sur', 'pres', 'rue',

@@ -300,6 +300,63 @@ LANGUE OBLIGATOIRE — TRÈS IMPORTANT : Toutes les valeurs textuelles du JSON d
     return GeminiResult.fromJson(json);
   }
 
+  /// Cross-check unifié : combine validation (vérifier les champs où les 3 IA
+  /// sont d'accord) et résolution (choisir parmi les options en conflit) en
+  /// un seul appel Gemini grounded. Retourne fieldKey → valeur correcte.
+  /// Si un champ est correct ou non vérifiable, il est absent de la réponse.
+  static Future<Map<String, String>> crossCheck({
+    required String wineIdentity,
+    required Map<String, String> consensus,
+    required Map<String, Map<String, String>> conflicts,
+  }) async {
+    if (!isConfigured) return const {};
+    if (consensus.isEmpty && conflicts.isEmpty) return const {};
+
+    final prompt = '''
+Tu es un sommelier expert et fact-checker. Pour le vin "$wineIdentity", utilise tes outils de recherche web (sites de domaines, SAQ, Wine-Searcher, RVF, Decanter) pour vérifier ces informations.
+
+CHAMPS CONSENSUS (les 3 IA ont la même valeur, à confirmer ou corriger) :
+${jsonEncode(consensus)}
+
+CHAMPS EN CONFLIT (plusieurs IA proposent des valeurs différentes, identifier la bonne) :
+${jsonEncode(conflicts)}
+
+Pour chaque champ :
+- Si un consensus est CORRECT : ne le mentionne PAS dans la réponse.
+- Si un consensus est FAUX : retourne la valeur correcte exacte.
+- Si un conflit a une bonne option : retourne la valeur exacte de cette option (sans la modifier).
+- Si un conflit n'a aucune bonne option : retourne la valeur correcte (qui sera proposée comme alternative).
+- Si tu ne peux PAS vérifier un champ : ne le mentionne PAS.
+
+Sois CONSERVATEUR : ne flagge un consensus que si tu trouves une preuve publiée claire qui contredit. Pour les fenêtres (drinkFrom/Peak/To) : tolère ±3 ans.
+
+Réponds UNIQUEMENT avec ce JSON, EN FRANÇAIS pour les valeurs textuelles :
+{
+  "corrections": {
+    "<fieldKey>": "<valeur correcte>"
+  }
+}
+''';
+
+    try {
+      final json = await _callGeminiJson([
+        {'text': prompt}
+      ], useGrounding: true);
+      final raw = json['corrections'];
+      if (raw is! Map) return const {};
+      final result = <String, String>{};
+      raw.forEach((k, v) {
+        if (k is String && v != null) {
+          final str = v.toString().trim();
+          if (str.isNotEmpty) result[k] = str;
+        }
+      });
+      return result;
+    } catch (_) {
+      return const {};
+    }
+  }
+
   /// Résolution de conflits : pour chaque champ avec plusieurs valeurs en
   /// conflit, demande à Gemini (recherche web) de choisir la bonne option.
   /// Retourne map fieldKey → nom de la source choisie (ex: 'gemini', 'groq').

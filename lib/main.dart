@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'services/actualisation_service.dart';
+import 'services/auth_service.dart';
 import 'services/backup_service.dart';
 import 'services/biometric_service.dart';
 import 'services/cave_preferences_service.dart';
@@ -27,16 +28,6 @@ void main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
-  // Auth anonyme : transparent pour l'utilisateur, mais permet de
-  // verrouiller les rules Firestore/Storage à `request.auth != null`.
-  // L'UID anonyme persiste dans le browser localStorage.
-  if (FirebaseAuth.instance.currentUser == null) {
-    try {
-      await FirebaseAuth.instance.signInAnonymously();
-    } catch (e) {
-      // Pas bloquer l'app si auth échoue — les rules feront leur job.
-    }
-  }
   await GeminiService.init();
   await GroqService.init();
   await MistralService.init();
@@ -48,16 +39,18 @@ void main() async {
   await BiometricService.init();
   runApp(const MyApp());
 
-  // Background auto-refresh: runs silently after app starts, doesn't block UI
+  // Background auto-refresh: ne tourne que si déjà signé en Google
   Future(() async {
+    if (!AuthService.isSignedIn) return;
     try {
       final wines = await CaveService.wines().first;
       await ActualisationService.runAutoRefreshIfDue(wines);
     } catch (_) {}
   });
 
-  // Auto-backup quotidien : déclenche un download si > 24h depuis le dernier
+  // Auto-backup quotidien
   Future.delayed(const Duration(seconds: 5), () async {
+    if (!AuthService.isSignedIn) return;
     try {
       await BackupService.tryAutoBackup();
     } catch (_) {}
@@ -81,25 +74,181 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'DMSans',
         textTheme: ThemeData.dark().textTheme.apply(
-          fontFamily: 'DMSans',
-          bodyColor: const Color(0xFFE8E0D0),
-          displayColor: const Color(0xFFE8C97A),
-        ),
+              fontFamily: 'DMSans',
+              bodyColor: const Color(0xFFE8E0D0),
+              displayColor: const Color(0xFFE8C97A),
+            ),
       ),
-      home: const _AuthGate(child: HomeScreen()),
+      home: const _AuthGate(),
     );
   }
 }
 
-class _AuthGate extends StatefulWidget {
-  final Widget child;
-  const _AuthGate({required this.child});
+/// Première grille : connexion Google (web + mobile).
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
 
   @override
-  State<_AuthGate> createState() => _AuthGateState();
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: AuthService.userChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _SplashScreen();
+        }
+        final user = snapshot.data;
+        if (user == null || user.isAnonymous) {
+          return const _SignInScreen();
+        }
+        return const _BiometricGate(child: HomeScreen());
+      },
+    );
+  }
 }
 
-class _AuthGateState extends State<_AuthGate> with WidgetsBindingObserver {
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.bg,
+      body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+    );
+  }
+}
+
+class _SignInScreen extends StatefulWidget {
+  const _SignInScreen();
+
+  @override
+  State<_SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<_SignInScreen> {
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _signIn() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await AuthService.signInWithGoogle();
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      if (e.code == 'cancelled' || e.code == 'popup-closed-by-user') {
+        setState(() {
+          _busy = false;
+          _error = null;
+        });
+        return;
+      }
+      setState(() {
+        _busy = false;
+        _error = e.message ?? e.code;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.wine_bar,
+                    color: AppColors.gold, size: 56),
+                const SizedBox(height: 18),
+                Text(
+                  'Cave à Vin',
+                  textAlign: TextAlign.center,
+                  style: AppText.serif(
+                    color: AppColors.gold2,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Connecte-toi pour accéder à ta cave depuis n\'importe quel appareil.',
+                  textAlign: TextAlign.center,
+                  style: AppText.sans(color: AppColors.text3, fontSize: 13),
+                ),
+                const SizedBox(height: 36),
+                ElevatedButton.icon(
+                  onPressed: _busy ? null : _signIn,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF1A1408),
+                          ),
+                        )
+                      : const Icon(Icons.login, size: 18),
+                  label: Text(
+                    'Se connecter avec Google',
+                    style: AppText.sans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: const Color(0xFF1A1408),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: AppText.sans(
+                      color: const Color(0xFFE07060),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Deuxième grille : biométrie (mobile uniquement, optionnelle).
+class _BiometricGate extends StatefulWidget {
+  final Widget child;
+  const _BiometricGate({required this.child});
+
+  @override
+  State<_BiometricGate> createState() => _BiometricGateState();
+}
+
+class _BiometricGateState extends State<_BiometricGate>
+    with WidgetsBindingObserver {
   bool _unlocked = false;
   bool _prompting = false;
 
@@ -196,8 +345,8 @@ class _LockScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.gold,
                 foregroundColor: const Color(0xFF1A1408),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 28, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -11,6 +11,7 @@ import '../services/cave_service.dart';
 import '../services/storage_service.dart';
 import '../services/gemini_service.dart';
 import '../services/ai_cross_check.dart';
+import '../services/ocr_service.dart';
 import '../dialogs/disagreement_dialog.dart';
 import '../theme/app_text.dart';
 import '../theme/app_colors.dart';
@@ -118,6 +119,9 @@ class _AddWineDialogState extends State<AddWineDialog> {
   bool _saving = false;
   bool _aiLoading = false;
   String? _error;
+  // OCR démarré en background dès le crop de la photo, pour que les IA
+  // n'aient pas à attendre quand l'utilisateur clique Analyser.
+  Future<String?>? _ocrFuture;
 
   bool get _editing => widget.wine != null;
 
@@ -346,12 +350,11 @@ class _AddWineDialogState extends State<AddWineDialog> {
     }
     final chosen = await showDisagreementDialog(context, cc.disagreements);
     if (!mounted) return;
-    if (chosen == null) {
-      // Annulé : on applique tout de même la version mergée (par défaut Gemini).
-      _applyGeminiResult(cc.merged);
-      return;
-    }
-    final finalResult = AiCrossCheck.applyChoices(cc, chosen);
+    // Si l'utilisateur a annulé/fermé : on applique quand même les choix
+    // pré-sélectionnés par l'IA (validator + résolution Gemini grounded).
+    // Sinon on perdrait toutes les corrections automatiques.
+    final finalResult =
+        AiCrossCheck.applyChoices(cc, chosen ?? cc.disagreements);
     _applyGeminiResult(finalResult);
   }
 

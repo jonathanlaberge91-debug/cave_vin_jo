@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Cellier v3</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    background-image: radial-gradient(ellipse at 20% 50%, #16213e 0%, #0f0f23 100%);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 56px;
+  }
+  .screen { width: 100%; max-width: 900px; }
+  h2 {
+    color: #ffffff55;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .row { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+
+  /* ── Widget shell ── */
+  .widget {
+    width: 340px;
+    background: linear-gradient(150deg, #1C1710 0%, #181310 100%);
+    border-radius: 22px;
+    border: 1px solid #C9A84C2A;
+    box-shadow: 0 8px 32px #00000077;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 10px 12px;
+    gap: 8px;
+  }
+
+  /* ── Widget header ── */
+  .w-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+  }
+  .w-title { font-size: 8px; color: #C9A84C77; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+  .w-time  { font-size: 7px; color: #ffffff1A; }
+
+  /* ── Body: two cellier columns ── */
+  .w-body { display: flex; gap: 8px; }
+
+  /* ── Each cellier: [side-bar] [col-wrapper] [side-bar] ── */
+  .cellier-col {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  /* Vertical side bars */
+  .side-bar {
+    width: 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* Wrapper: top-led row + content panel */
+  .col-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Top LED: centered, 5px tall, rounded bottom, sits on top of panel */
+  .top-led-row {
+    display: flex;
+    justify-content: center;
+    height: 5px;
+    flex-shrink: 0;
+  }
+  .top-led {
+    width: 50%;
+    height: 5px;
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* Content panel */
+  .col-inner {
+    flex: 1;
+    background: #ffffff05;
+    border-radius: 0 0 10px 10px;
+    border: 1px solid #ffffff08;
+    border-top: none;
+    padding: 8px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .col-inner.d { border-color: #E8A04C14; border-top: none; }
+  .col-inner.g { border-color: #70B8E814; border-top: none; }
+
+  /* Add top-only border on content when LED is off so panel looks complete */
+  .col-inner-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  /* top border of panel = thin line matching LED */
+  .col-top-edge {
+    height: 1px;
+    border-radius: 10px 10px 0 0;
+    flex-shrink: 0;
+  }
+
+  .col-name { font-size: 7px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 2px; }
+  .col-name.d { color: #E8A04C; }
+  .col-name.g { color: #70B8E8; }
+
+  .zone { display: flex; align-items: center; justify-content: space-between; }
+  .zone-label { font-size: 7px; color: #ffffff33; }
+  .zone-right { display: flex; flex-direction: column; align-items: flex-end; }
+  .zone-temp { font-size: 17px; font-weight: 700; color: #F5E6C8; line-height: 1; letter-spacing: -0.5px; }
+  .zone-hum  { font-size: 7px; color: #70B8E866; }
+  .zone-sep  { height: 1px; background: #ffffff08; }
+
+  /* ── Porte ouverte ── */
+  .door-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
+    background: #E8A04C1A;
+    border-top: 1px solid #E8A04C44;
+    border-bottom: 1px solid #E8A04C44;
+    margin: 0 -9px; /* bleed to edges of col-inner */
+    font-size: 7px;
+    color: #E8A04C;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  /* ══════════════════════════════════════════
+     LIGHT STATES — couleurs exactes de l'app
+  ══════════════════════════════════════════ */
+  .off    { background: linear-gradient(to bottom, #2A2520, #242018, #2A2520); }
+  .blue25 { background: linear-gradient(to bottom, #2A3A48, #253545, #202E3A, #253545, #2A3A48); box-shadow: 0 0 4px #70B8E810; }
+  .blue50 { background: linear-gradient(to bottom, #3A5A70, #305060, #284858, #305060, #3A5A70); box-shadow: 0 0 8px #70B8E826; }
+  .blue75 { background: linear-gradient(to bottom, #5A90B0, #4A80A0, #3A7090, #4A80A0, #5A90B0); box-shadow: 0 0 14px #70B8E84D, 0 0 28px #70B8E81F; }
+  .blue100{ background: linear-gradient(to bottom, #90D0F8, #70B8E8, #5A9DD8, #70B8E8, #90D0F8); box-shadow: 0 0 20px #70B8E88C, 0 0 40px #70B8E833; }
+  .warm25 { background: linear-gradient(to bottom, #5A5540, #504A38, #454030, #504A38, #5A5540); box-shadow: 0 0 4px #F5ECD010; }
+  .warm50 { background: linear-gradient(to bottom, #8A8468, #7A7858, #6A6850, #7A7858, #8A8468); box-shadow: 0 0 8px #F5ECD026; }
+  .warm75 { background: linear-gradient(to bottom, #D0C8A0, #C0B890, #B0A878, #C0B890, #D0C8A0); box-shadow: 0 0 14px #F5ECD04D, 0 0 28px #F5ECD01F; }
+  .warm100{ background: linear-gradient(to bottom, #FFFDE8, #F5ECD0, #E8DDB8, #F5ECD0, #FFFDE8); box-shadow: 0 0 20px #F5ECD080, 0 0 40px #F5ECD033; }
+
+  /* Top LED horizontal — même épaisseur 5px */
+  .led-off  { background: #2A2520; }
+  .led-blue { background: #70B8E8; box-shadow: 0 0 8px #70B8E880, 0 0 20px #70B8E833; }
+  .led-red  { background: #E8667A; box-shadow: 0 0 8px #E8667A80, 0 0 20px #E8667A33; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Macro pour un cellier (réutilisé 10x) ═══
+     Usage: copier/coller le bloc .cellier-col
+     en changeant les classes side-bar, top-led, col-name, col-inner
+-->
+
+<!-- ════════════════════════════════
+     MODÈLE 1 — D: Bleu 100% LED Bleu | G: Éteint LED Off
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 1 — CellR D : Bleu 100% · LED Bleu &nbsp;|&nbsp; CellR G : Éteint · LED Off</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar blue100"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-blue"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar blue100"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar off"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-off"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar off"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ════════════════════════════════
+     MODÈLE 2 — D: Chaud 75% LED Rouge | G: Bleu 75% LED Bleu
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 2 — CellR D : Chaud 75% · LED Rouge &nbsp;|&nbsp; CellR G : Bleu 75% · LED Bleu</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar warm75"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-red"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar warm75"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar blue75"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-blue"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar blue75"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ════════════════════════════════
+     MODÈLE 3 — Les deux éteints
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 3 — Les deux éteints (état mat)</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar off"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-off"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar off"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar off"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-off"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar off"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ════════════════════════════════
+     MODÈLE 4 — Chaud 100% les deux · LED Rouge
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 4 — Les deux Chaud 100% · LED Rouge</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar warm100"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-red"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar warm100"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar warm100"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-red"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar warm100"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ════════════════════════════════
+     MODÈLE 5 — D: Bleu 50% LED Bleu | G: Chaud 50% LED Off
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 5 — CellR D : Bleu 50% · LED Bleu &nbsp;|&nbsp; CellR G : Chaud 50% · LED Off</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar blue50"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-blue"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar blue50"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar warm50"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-off"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar warm50"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ════════════════════════════════
+     MODÈLE 6 — Porte ouverte sur CellR D
+════════════════════════════════ -->
+<div class="screen">
+  <h2>Modèle 6 — CellR D : Bleu 100% + Porte ouverte &nbsp;|&nbsp; CellR G : Éteint</h2>
+  <div class="row"><div class="widget">
+    <div class="w-header">
+      <div class="w-title">🍷 Celliers</div>
+      <div class="w-time">12:34</div>
+    </div>
+    <div class="w-body">
+
+      <div class="cellier-col">
+        <div class="side-bar blue100"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-blue"></div></div>
+          <div class="col-inner d">
+            <div class="col-name d">CellR D</div>
+            <div class="door-banner">🚪 Porte ouverte</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar blue100"></div>
+      </div>
+
+      <div class="cellier-col">
+        <div class="side-bar off"></div>
+        <div class="col-wrapper">
+          <div class="top-led-row"><div class="top-led led-off"></div></div>
+          <div class="col-inner g">
+            <div class="col-name g">CellR G</div>
+            <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
+            <div class="zone-sep"></div>
+            <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
+          </div>
+        </div>
+        <div class="side-bar off"></div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+
+</body>
+</html>

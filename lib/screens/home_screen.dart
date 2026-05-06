@@ -58,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.download_outlined, 'Export'),
     (Icons.history_outlined, 'Historique'),
     (Icons.lock_outline, 'Sécurité'),
+    (Icons.account_circle_outlined, 'Compte'),
   ];
 
   final List<_NavEntry> _entries = [
