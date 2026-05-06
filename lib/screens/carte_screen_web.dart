@@ -136,12 +136,12 @@ class _CarteScreenState extends State<CarteScreen> {
     try {
       final apiKey = MapsService.apiKey;
       if (apiKey == null || apiKey.isEmpty) {
-        setState(() {
-          _apiKeyMissing = true;
-          _loading = false;
-        });
+        setState(() { _apiKeyMissing = true; _loading = false; });
         return;
       }
+
+      // Start loading Maps API immediately — runs in parallel with data fetching
+      final mapsApiReady = _ensureMapsApiLoaded(apiKey);
 
       setState(() => _loadingStatus = 'Chargement des vins…');
       final wines = await CaveService.wines().first;
@@ -156,61 +156,52 @@ class _CarteScreenState extends State<CarteScreen> {
       }
 
       if (addressGroups.isEmpty) {
-        setState(() {
-          _loading = false;
-          _error = 'Aucun vin avec une adresse de domaine dans ta cave.';
-        });
+        setState(() { _loading = false; _error = 'Aucun vin avec une adresse de domaine dans ta cave.'; });
         return;
       }
 
-      final pins = <_DomainPin>[];
-      int i = 0;
-      for (final entry in addressGroups.entries) {
-        i++;
-        if (mounted) {
-          setState(() =>
-              _loadingStatus = 'Géolocalisation $i/${addressGroups.length}…');
-        }
+      // Geocode all addresses in parallel
+      final total = addressGroups.length;
+      var completed = 0;
+      if (mounted) setState(() => _loadingStatus = 'Géolocalisation $total domaine${total > 1 ? "s" : ""}…');
+
+      final pinFutures = addressGroups.entries.map((entry) async {
         final coord = await MapsService.geocode(entry.key);
-        if (coord != null) {
-          final formatEntries = <_WineFormatEntry>[];
-          int total = 0;
-          for (final w in entry.value) {
-            final wBottles = bottles.where((b) => b.wineId == w.id).toList();
-            if (wBottles.isEmpty) continue;
-            final byFormat = <String, int>{};
-            for (final b in wBottles) {
-              byFormat[b.format.label] = (byFormat[b.format.label] ?? 0) + 1;
-            }
-            for (final fe in byFormat.entries) {
-              formatEntries.add(_WineFormatEntry(
-                wine: w,
-                formatLabel: fe.key,
-                count: fe.value,
-              ));
-              total += fe.value;
-            }
+        completed++;
+        if (mounted) setState(() => _loadingStatus = 'Géolocalisation $completed/$total…');
+        if (coord == null) return null;
+
+        final formatEntries = <_WineFormatEntry>[];
+        int tot = 0;
+        for (final w in entry.value) {
+          final wBottles = bottles.where((b) => b.wineId == w.id).toList();
+          if (wBottles.isEmpty) continue;
+          final byFormat = <String, int>{};
+          for (final b in wBottles) {
+            byFormat[b.format.label] = (byFormat[b.format.label] ?? 0) + 1;
           }
-          if (formatEntries.isEmpty) continue;
-          final firstWine = formatEntries.first.wine;
-          pins.add(_DomainPin(
-            coord: coord,
-            address: entry.key,
-            domaine: firstWine.domaine.isNotEmpty
-                ? firstWine.domaine
-                : firstWine.name,
-            entries: formatEntries,
-            totalBottles: total,
-          ));
+          for (final fe in byFormat.entries) {
+            formatEntries.add(_WineFormatEntry(wine: w, formatLabel: fe.key, count: fe.value));
+            tot += fe.value;
+          }
         }
-      }
+        if (formatEntries.isEmpty) return null;
+
+        final firstWine = formatEntries.first.wine;
+        return _DomainPin(
+          coord: coord,
+          address: entry.key,
+          domaine: firstWine.domaine.isNotEmpty ? firstWine.domaine : firstWine.name,
+          entries: formatEntries,
+          totalBottles: tot,
+        );
+      }).toList();
+
+      final results = await Future.wait(pinFutures);
+      final pins = results.whereType<_DomainPin>().toList();
 
       if (pins.isEmpty) {
-        setState(() {
-          _loading = false;
-          _error =
-              'Aucune adresse n\'a pu être géolocalisée.\nVérifie ta clé API Google Maps et les adresses des domaines.';
-        });
+        setState(() { _loading = false; _error = 'Aucune adresse n\'a pu être géolocalisée.\nVérifie ta clé API Google Maps et les adresses des domaines.'; });
         return;
       }
 
@@ -218,25 +209,18 @@ class _CarteScreenState extends State<CarteScreen> {
       _pins = pins;
       _filterData = _buildFilterData(pins);
 
-      if (mounted) {
-        setState(() => _loadingStatus = 'Chargement de Google Maps…');
-      }
-      await _ensureMapsApiLoaded(apiKey);
+      if (mounted) setState(() => _loadingStatus = 'Chargement de Google Maps…');
+      await mapsApiReady;
 
       _registerWineCallback();
 
       if (!mounted) return;
       setState(() => _loading = false);
 
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 200));
       if (mounted) _initializeMap();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = 'Erreur : $e';
-        });
-      }
+      if (mounted) setState(() { _loading = false; _error = 'Erreur : $e'; });
     }
   }
 

@@ -16,6 +16,10 @@ class MapsService {
   static final _geocache =
       FirebaseFirestore.instance.collection('geocache');
   static String? _apiKey;
+  static SharedPreferences? _prefs;
+
+  // In-memory cache — persists across navigations within the same session
+  static final Map<String, GeoCoord> _memCache = {};
 
   static String? get apiKey => _apiKey;
   static bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
@@ -27,6 +31,7 @@ class MapsService {
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    _prefs = prefs;
     _apiKey = prefs.getString(_keyPref);
     try {
       final snap = await _settingsDoc.get();
@@ -62,17 +67,42 @@ class MapsService {
     if (!isConfigured) return null;
 
     final cacheId = _cacheId(address);
+
+    // 1. In-memory cache (instant)
+    final inMem = _memCache[cacheId];
+    if (inMem != null) return inMem;
+
+    // 2. Local cache via SharedPreferences / localStorage (no network)
+    final spKey = 'geocache_$cacheId';
+    final spVal = _prefs?.getString(spKey);
+    if (spVal != null) {
+      try {
+        final j = jsonDecode(spVal) as Map<String, dynamic>;
+        final coord = GeoCoord(
+          (j['lat'] as num).toDouble(),
+          (j['lng'] as num).toDouble(),
+        );
+        _memCache[cacheId] = coord;
+        return coord;
+      } catch (_) {}
+    }
+
+    // 3. Firestore cache
     try {
       final doc = await _geocache.doc(cacheId).get();
       if (doc.exists) {
         final d = doc.data()!;
-        return GeoCoord(
+        final coord = GeoCoord(
           (d['lat'] as num).toDouble(),
           (d['lng'] as num).toDouble(),
         );
+        _memCache[cacheId] = coord;
+        _prefs?.setString(spKey, jsonEncode({'lat': coord.lat, 'lng': coord.lng}));
+        return coord;
       }
     } catch (_) {}
 
+    // 4. HTTP geocoding API
     try {
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/geocode/json'
@@ -91,6 +121,10 @@ class MapsService {
       final lat = (loc['lat'] as num).toDouble();
       final lng = (loc['lng'] as num).toDouble();
 
+      final coord = GeoCoord(lat, lng);
+      _memCache[cacheId] = coord;
+      _prefs?.setString(spKey, jsonEncode({'lat': lat, 'lng': lng}));
+
       try {
         await _geocache.doc(cacheId).set({
           'address': address,
@@ -99,7 +133,7 @@ class MapsService {
         });
       } catch (_) {}
 
-      return GeoCoord(lat, lng);
+      return coord;
     } catch (_) {
       return null;
     }
