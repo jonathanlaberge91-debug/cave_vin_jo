@@ -153,22 +153,41 @@ class _CaveCard extends StatelessWidget {
                       ],
                       if (garde != null) ...[
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: garde!.color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            garde!.label,
-                            style: AppText.sans(
-                              color: garde!.color,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                        () {
+                          final g = garde!;
+                          final isApogee = g.label == 'Apogée';
+                          const goldDeep = Color(0xFFB8860B);
+                          const goldMid = Color(0xFFD4A843);
+                          const goldLight = Color(0xFFF5E6A3);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isApogee
+                                    ? [goldDeep, goldMid, goldLight]
+                                    : [
+                                        g.color.withValues(alpha: 0.25),
+                                        g.color.withValues(alpha: 0.08),
+                                      ],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isApogee
+                                    ? goldMid.withValues(alpha: 0.7)
+                                    : g.color.withValues(alpha: 0.3),
+                              ),
                             ),
-                          ),
-                        ),
+                            child: Text(
+                              g.label,
+                              style: AppText.sans(
+                                color: isApogee ? const Color(0xFF1A1408) : g.color,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          );
+                        }(),
                       ],
                       const Spacer(),
                       if (w.rating != null)
