@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="10dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingBottom="6dp">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🍷 Celliers"
+            android:textColor="#77C9A84C"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"/>
+        <TextView
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--:--"
+            android:textColor="#1AFFFFFF"
+            android:textSize="7sp"/>
+    </LinearLayout>
+
+    <!-- Body: two cellier columns -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <!-- ══ CellR D ══ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- Left side bar D -->
+            <View
+                android:id="@+id/celld_side_left"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/side_off"/>
+
+            <!-- Col wrapper D -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Top LED D -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:orientation="horizontal">
+                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                    <View
+                        android:id="@+id/celld_top_led"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="2"
+                        android:background="@drawable/top_led_off"/>
+                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                </LinearLayout>
+
+                <!-- Panel D -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_panel_d"
+                    android:orientation="vertical"
+                    android:padding="7dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/celld_name"
+                        android:text="CellR D"
+                        android:textColor="#FFE8A04C"
+                        android:textSize="7sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:paddingBottom="3dp"/>
+
+                    <!-- Door badge D -->
+                    <TextView
+                        android:id="@+id/celld_door"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🚪 Porte fermée"
+                        android:textColor="#FF7CD492"
+                        android:textSize="6sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:background="@drawable/door_closed_bg"/>
+
+                    <!-- Haut D -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingTop="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="▲"
+                            android:textColor="#33FFFFFF"
+                            android:textSize="6sp"
+                            android:paddingEnd="3dp"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="end">
+                            <TextView
+                                android:id="@+id/celld_top_temp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--°"
+                                android:textColor="#FFF5E6C8"
+                                android:textSize="14sp"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/celld_top_hum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💧 --%"
+                                android:textColor="#4470B8E8"
+                                android:textSize="6sp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#0DFFFFFF"
+                        android:layout_marginTop="3dp"
+                        android:layout_marginBottom="3dp"/>
+
+                    <!-- Bas D -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="▼"
+                            android:textColor="#33FFFFFF"
+                            android:textSize="6sp"
+                            android:paddingEnd="3dp"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="end">
+                            <TextView
+                                android:id="@+id/celld_bot_temp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--°"
+                                android:textColor="#FFF5E6C8"
+                                android:textSize="14sp"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/celld_bot_hum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💧 --%"
+                                android:textColor="#4470B8E8"
+                                android:textSize="6sp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Right side bar D -->
+            <View
+                android:id="@+id/celld_side_right"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/side_off"/>
+        </LinearLayout>
+
+        <!-- Gap between columns -->
+        <View android:layout_width="8dp" android:layout_height="match_parent"/>
+
+        <!-- ══ CellR G ══ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- Left side bar G -->
+            <View
+                android:id="@+id/cellg_side_left"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/side_off"/>
+
+            <!-- Col wrapper G -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Top LED G -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:orientation="horizontal">
+                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                    <View
+                        android:id="@+id/cellg_top_led"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="2"
+                        android:background="@drawable/top_led_off"/>
+                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                </LinearLayout>
+
+                <!-- Panel G -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_panel_g"
+                    android:orientation="vertical"
+                    android:padding="7dp">
+
+                    <TextView
+                        android:id="@+id/cellg_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="CellR G"
+                        android:textColor="#FF70B8E8"
+                        android:textSize="7sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:paddingBottom="3dp"/>
+
+                    <!-- Door badge G -->
+                    <TextView
+                        android:id="@+id/cellg_door"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🚪 Porte fermée"
+                        android:textColor="#FF7CD492"
+                        android:textSize="6sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:background="@drawable/door_closed_bg"/>
+
+                    <!-- Haut G -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingTop="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="▲"
+                            android:textColor="#33FFFFFF"
+                            android:textSize="6sp"
+                            android:paddingEnd="3dp"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="end">
+                            <TextView
+                                android:id="@+id/cellg_top_temp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--°"
+                                android:textColor="#FFF5E6C8"
+                                android:textSize="14sp"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/cellg_top_hum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💧 --%"
+                                android:textColor="#4470B8E8"
+                                android:textSize="6sp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#0DFFFFFF"
+                        android:layout_marginTop="3dp"
+                        android:layout_marginBottom="3dp"/>
+
+                    <!-- Bas G -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="▼"
+                            android:textColor="#33FFFFFF"
+                            android:textSize="6sp"
+                            android:paddingEnd="3dp"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="end">
+                            <TextView
+                                android:id="@+id/cellg_bot_temp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--°"
+                                android:textColor="#FFF5E6C8"
+                                android:textSize="14sp"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/cellg_bot_hum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💧 --%"
+                                android:textColor="#4470B8E8"
+                                android:textSize="6sp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Right side bar G -->
+            <View
+                android:id="@+id/cellg_side_right"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/side_off"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

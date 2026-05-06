@@ -274,6 +274,10 @@ class _AddWineDialogState extends State<AddWineDialog> {
       if (cropped == null || !mounted) return;
 
       _updateBlobUrl(cropped);
+      // Démarre l'OCR en background dès maintenant. Pendant que l'utilisateur
+      // regarde la photo / remplit des champs / clique Analyser, OCR tourne
+      // déjà. Quand il clique, le résultat est souvent déjà disponible.
+      _ocrFuture = OcrService.recognize(cropped);
       setState(() {
         _photoBytes = cropped;
         _photoFileName = fileName;
@@ -300,7 +304,8 @@ class _AddWineDialogState extends State<AddWineDialog> {
       _error = null;
     });
     try {
-      final cc = await AiCrossCheck.searchByPhoto(bytes);
+      final cc = await AiCrossCheck.searchByPhoto(bytes,
+          ocrFuture: _ocrFuture);
       if (!mounted) return;
       await _applyCrossCheck(cc);
     } catch (e) {

@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bottle.dart';
@@ -37,6 +38,7 @@ class _CellierScreenState extends State<CellierScreen> {
   static const _cloudUrl = 'https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy';
   final _isDragging = ValueNotifier<bool>(false);
   List<CellarStatus>? _physical;
+  List<Cellar> _cellars = [];
   String _bridgeUrl = 'http://localhost:8765';
   bool _useCloud = false;
   Timer? _bridgeTimer;
@@ -111,6 +113,7 @@ class _CellierScreenState extends State<CellierScreen> {
               .toList();
           if (mounted) setState(() { _physical = list; _useCloud = false; _optimisticTemp.clear(); });
           _saveTuyaCache(res.body);
+          _updateWidget();
           return;
         }
       } catch (_) {}
@@ -123,6 +126,7 @@ class _CellierScreenState extends State<CellierScreen> {
             .toList();
         if (mounted) setState(() { _physical = list; _useCloud = true; _optimisticTemp.clear(); });
         _saveTuyaCache(res.body);
+        _updateWidget();
       }
     } catch (_) {}
   }
@@ -198,8 +202,54 @@ class _CellierScreenState extends State<CellierScreen> {
       if (mounted && results.isNotEmpty) {
         setState(() => _goveeSensors = results);
         GoveeService.saveCache(results);
+        _updateWidget();
       }
     } catch (_) {}
+  }
+
+  Future<void> _updateWidget() async {
+    final cellars = _cellars;
+    final physical = _physical;
+    final govee = _goveeSensors ?? [];
+
+    for (final c in cellars) {
+      final nameUpper = c.name.toUpperCase();
+      final isD = nameUpper.contains(' D') || nameUpper.endsWith('D');
+      final prefix = isD ? 'celld' : 'cellg';
+
+      await HomeWidget.saveWidgetData('${prefix}_name', c.name);
+
+      // Govee temperatures
+      final topSensor = govee.where((s) =>
+        c.goveeTopDevice != null && s.name.contains(c.goveeTopDevice!)).firstOrNull;
+      final botSensor = govee.where((s) =>
+        c.goveeBottomDevice != null && s.name.contains(c.goveeBottomDevice!)).firstOrNull;
+
+      if (topSensor != null) {
+        final t = _goveeTemp(topSensor.temperature);
+        if (t != null) await HomeWidget.saveWidgetData('${prefix}_top_temp', t);
+        if (topSensor.humidity != null) await HomeWidget.saveWidgetData('${prefix}_top_hum', topSensor.humidity);
+      }
+      if (botSensor != null) {
+        final t = _goveeTemp(botSensor.temperature);
+        if (t != null) await HomeWidget.saveWidgetData('${prefix}_bot_temp', t);
+        if (botSensor.humidity != null) await HomeWidget.saveWidgetData('${prefix}_bot_hum', botSensor.humidity);
+      }
+
+      // Tuya status
+      if (physical != null) {
+        final idx = _findPhysicalIndex(c);
+        if (idx != null && idx < physical.length) {
+          final s = physical[idx];
+          await HomeWidget.saveWidgetData('${prefix}_door_open', s.door);
+          await HomeWidget.saveWidgetData('${prefix}_side_light', s.sideLight);
+          await HomeWidget.saveWidgetData('${prefix}_side_blue', s.sideLightColor);
+          await HomeWidget.saveWidgetData('${prefix}_top_led', s.topLed);
+        }
+      }
+    }
+
+    await HomeWidget.updateWidget(androidName: 'CellierWidgetProvider');
   }
 
   static double? _goveeTemp(double? raw) {
@@ -220,6 +270,7 @@ class _CellierScreenState extends State<CellierScreen> {
           );
         }
         final cellars = snap.data ?? [];
+        if (_cellars != cellars) _cellars = cellars;
         final isMobile = MediaQuery.of(context).size.width < 600;
 
         if (isMobile) return _buildMobileLayout(cellars);

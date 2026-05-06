@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:web/web.dart' as web;
 import '../models/wine.dart';
+import '../utils/open_url.dart'
+    // ignore: uri_does_not_exist
+    if (dart.library.js_interop) '../utils/open_url_web.dart';
 import '../services/cave_preferences_service.dart';
 import '../models/bottle.dart';
 import '../services/actualisation_service.dart';
@@ -24,7 +26,7 @@ void _openSaqSearch(Wine wine) {
   ];
   final query = parts.join(' ').trim();
   final encoded = Uri.encodeQueryComponent(query);
-  web.window.open('https://www.saq.com/fr/produits?q=$encoded', '_blank');
+  openInNewTab('https://www.saq.com/fr/produits?q=$encoded');
 }
 
 Future<void> showWineDetail(

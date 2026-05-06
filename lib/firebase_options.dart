@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
     appId: '1:130615476237:web:babd060e5ccb4ea925d544',
     messagingSenderId: '130615476237',
     projectId: 'cave-vin-jo',
-    authDomain: 'cave-vin-jo.firebaseapp.com',
+    authDomain: 'cave-vin-jo.web.app',
     storageBucket: 'cave-vin-jo.firebasestorage.app',
     measurementId: 'G-VCXSZ9WZYB',
   );
@@ -75,7 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:130615476237:web:f596352171fde86325d544',
     messagingSenderId: '130615476237',
     projectId: 'cave-vin-jo',
-    authDomain: 'cave-vin-jo.firebaseapp.com',
+    authDomain: 'cave-vin-jo.web.app',
     storageBucket: 'cave-vin-jo.firebasestorage.app',
     measurementId: 'G-QFXP0VEX0E',
   );

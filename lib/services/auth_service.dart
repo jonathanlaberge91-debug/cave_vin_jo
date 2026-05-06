@@ -19,21 +19,10 @@ class AuthService {
       final provider = GoogleAuthProvider()
         ..addScope('email')
         ..addScope('profile');
-      if (user != null && user.isAnonymous) {
-        try {
-          await user.linkWithPopup(provider);
-          return;
-        } on FirebaseAuthException catch (e) {
-          if (e.code == 'credential-already-in-use' ||
-              e.code == 'email-already-in-use' ||
-              e.code == 'provider-already-linked') {
-            await FirebaseAuth.instance.signInWithPopup(provider);
-            return;
-          }
-          rethrow;
-        }
-      }
-      await FirebaseAuth.instance.signInWithPopup(provider);
+      // signInWithRedirect évite les blocages dus à Cross-Origin-Opener-Policy.
+      // La page recharge après le retour de Google, et getRedirectResult()
+      // (appelé dans main.dart) finalise la connexion.
+      await FirebaseAuth.instance.signInWithRedirect(provider);
       return;
     }
 

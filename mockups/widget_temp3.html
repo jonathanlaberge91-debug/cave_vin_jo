@@ -130,22 +130,22 @@
   .zone-hum  { font-size: 7px; color: #70B8E866; }
   .zone-sep  { height: 1px; background: #ffffff08; }
 
-  /* ── Porte ouverte ── */
+  /* ── Badge porte ── */
   .door-banner {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
     padding: 4px 0;
-    background: #E8A04C1A;
-    border-top: 1px solid #E8A04C44;
-    border-bottom: 1px solid #E8A04C44;
-    margin: 0 -9px; /* bleed to edges of col-inner */
+    margin: 0 -9px;
+    border-top: 1px solid;
+    border-bottom: 1px solid;
     font-size: 7px;
-    color: #E8A04C;
     font-weight: 700;
     letter-spacing: 0.3px;
   }
+  .door-open   { background: #E8A04C1A; border-color: #E8A04C44; color: #E8A04C; }
+  .door-closed { background: #7CD4921A; border-color: #7CD49244; color: #7CD492; }
 
   /* ══════════════════════════════════════════
      LIGHT STATES — couleurs exactes de l'app
@@ -191,6 +191,7 @@
           <div class="top-led-row"><div class="top-led led-blue"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -205,6 +206,7 @@
           <div class="top-led-row"><div class="top-led led-off"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
@@ -235,6 +237,7 @@
           <div class="top-led-row"><div class="top-led led-red"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -249,6 +252,7 @@
           <div class="top-led-row"><div class="top-led led-blue"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
@@ -279,6 +283,7 @@
           <div class="top-led-row"><div class="top-led led-off"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -293,6 +298,7 @@
           <div class="top-led-row"><div class="top-led led-off"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
@@ -323,6 +329,7 @@
           <div class="top-led-row"><div class="top-led led-red"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -337,6 +344,7 @@
           <div class="top-led-row"><div class="top-led led-red"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
@@ -367,6 +375,7 @@
           <div class="top-led-row"><div class="top-led led-blue"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -381,6 +390,7 @@
           <div class="top-led-row"><div class="top-led led-off"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
@@ -397,7 +407,7 @@
      MODÈLE 6 — Porte ouverte sur CellR D
 ════════════════════════════════ -->
 <div class="screen">
-  <h2>Modèle 6 — CellR D : Bleu 100% + Porte ouverte &nbsp;|&nbsp; CellR G : Éteint</h2>
+  <h2>Modèle 6 — CellR D : Bleu 100% + Porte ouverte &nbsp;|&nbsp; CellR G : Éteint + Porte fermée</h2>
   <div class="row"><div class="widget">
     <div class="w-header">
       <div class="w-title">🍷 Celliers</div>
@@ -411,7 +421,7 @@
           <div class="top-led-row"><div class="top-led led-blue"></div></div>
           <div class="col-inner d">
             <div class="col-name d">CellR D</div>
-            <div class="door-banner">🚪 Porte ouverte</div>
+            <div class="door-banner door-open">🚪 Porte ouverte</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">12.4°</div><div class="zone-hum">💧 58%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.9°</div><div class="zone-hum">💧 60%</div></div></div>
@@ -426,6 +436,7 @@
           <div class="top-led-row"><div class="top-led led-off"></div></div>
           <div class="col-inner g">
             <div class="col-name g">CellR G</div>
+            <div class="door-banner door-closed">🚪 Porte fermée</div>
             <div class="zone"><div class="zone-label">▲ Haut</div><div class="zone-right"><div class="zone-temp">11.8°</div><div class="zone-hum">💧 61%</div></div></div>
             <div class="zone-sep"></div>
             <div class="zone"><div class="zone-label">▼ Bas</div><div class="zone-right"><div class="zone-temp">11.5°</div><div class="zone-hum">💧 63%</div></div></div>
