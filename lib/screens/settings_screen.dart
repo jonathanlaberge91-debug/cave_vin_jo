@@ -1138,10 +1138,10 @@ class _CellarSettingsRow extends StatelessWidget {
       (label: 'Rangées', value: '${c.rows}'),
       (label: 'Cases totales', value: '${c.totalSlots}'),
       (label: 'Créé le', value: _formatDate(c.createdAt)),
-      if (c.tuyaDeviceId != null)
-        (label: 'Tuya Device ID', value: c.tuyaDeviceId!),
-      if (c.tuyaDeviceId == null)
-        (label: 'Tuya Device ID', value: 'Non configuré'),
+      (label: 'Tuya Device ID', value: c.tuyaDeviceId ?? 'Non configuré'),
+      (label: 'Tuya Local Key', value: c.tuyaLocalKey ?? 'Non configuré'),
+      if (c.tuyaIp != null) (label: 'Tuya IP', value: c.tuyaIp!),
+      if (c.tuyaVersion != null) (label: 'Tuya Version', value: c.tuyaVersion!),
       if (c.goveeTopDevice != null)
         (label: 'Govee haut', value: c.goveeTopDevice!),
       if (c.goveeBottomDevice != null)

@@ -10,6 +10,9 @@ class Cellar {
   final String? goveeTopDevice;
   final String? goveeBottomDevice;
   final String? tuyaDeviceId;
+  final String? tuyaLocalKey;
+  final String? tuyaIp;
+  final String? tuyaVersion;
 
   const Cellar({
     required this.id,
@@ -21,6 +24,9 @@ class Cellar {
     this.goveeTopDevice,
     this.goveeBottomDevice,
     this.tuyaDeviceId,
+    this.tuyaLocalKey,
+    this.tuyaIp,
+    this.tuyaVersion,
   });
 
   int get totalSlots => cols * rows;
@@ -34,6 +40,9 @@ class Cellar {
         if (goveeTopDevice != null) 'goveeTopDevice': goveeTopDevice,
         if (goveeBottomDevice != null) 'goveeBottomDevice': goveeBottomDevice,
         if (tuyaDeviceId != null) 'tuyaDeviceId': tuyaDeviceId,
+        if (tuyaLocalKey != null) 'tuyaLocalKey': tuyaLocalKey,
+        if (tuyaIp != null) 'tuyaIp': tuyaIp,
+        if (tuyaVersion != null) 'tuyaVersion': tuyaVersion,
       };
 
   factory Cellar.fromDoc(DocumentSnapshot doc) {
@@ -48,6 +57,9 @@ class Cellar {
       goveeTopDevice: data['goveeTopDevice'] as String?,
       goveeBottomDevice: data['goveeBottomDevice'] as String?,
       tuyaDeviceId: data['tuyaDeviceId'] as String?,
+      tuyaLocalKey: data['tuyaLocalKey'] as String?,
+      tuyaIp: data['tuyaIp'] as String?,
+      tuyaVersion: data['tuyaVersion'] as String?,
     );
   }
 }
