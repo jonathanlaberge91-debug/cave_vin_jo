@@ -22,9 +22,28 @@ void _openSaqSearch(Wine wine) {
     if (wine.name.trim().isNotEmpty) wine.name.trim(),
     if (wine.vintage != null) wine.vintage.toString(),
   ];
-  final query = parts.join(' ').trim();
-  final encoded = Uri.encodeQueryComponent(query);
+  final encoded = Uri.encodeQueryComponent(parts.join(' ').trim());
   web.window.open('https://www.saq.com/fr/produits?q=$encoded', '_blank');
+}
+
+void _openGoogleSearch(Wine wine) {
+  final parts = <String>[
+    if (wine.producer.trim().isNotEmpty) wine.producer.trim(),
+    if (wine.name.trim().isNotEmpty) wine.name.trim(),
+    if (wine.vintage != null) wine.vintage.toString(),
+  ];
+  final encoded = Uri.encodeQueryComponent(parts.join(' ').trim());
+  web.window.open('https://www.google.com/search?q=$encoded', '_blank');
+}
+
+void _openPerplexitySearch(Wine wine) {
+  final parts = <String>[
+    if (wine.producer.trim().isNotEmpty) wine.producer.trim(),
+    if (wine.name.trim().isNotEmpty) wine.name.trim(),
+    if (wine.vintage != null) wine.vintage.toString(),
+  ];
+  final encoded = Uri.encodeQueryComponent(parts.join(' ').trim());
+  web.window.open('https://www.perplexity.ai/search?q=$encoded', '_blank');
 }
 
 Future<void> showWineDetail(
@@ -121,11 +140,29 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
                 ),
                 Positioned(
                   top: 14,
-                  right: 140,
+                  right: 224,
                   child: _HeaderAction(
                     icon: Icons.shopping_cart_outlined,
                     tooltip: 'Chercher sur SAQ.com',
                     onTap: () => _openSaqSearch(wine),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 182,
+                  child: _HeaderAction(
+                    icon: Icons.search,
+                    tooltip: 'Chercher sur Google',
+                    onTap: () => _openGoogleSearch(wine),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 140,
+                  child: _HeaderAction(
+                    icon: Icons.auto_awesome_outlined,
+                    tooltip: 'Chercher sur Perplexity',
+                    onTap: () => _openPerplexitySearch(wine),
                   ),
                 ),
                 Positioned(
