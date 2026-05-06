@@ -1650,7 +1650,10 @@ class _SlotCellState extends State<_SlotCell> {
   Widget build(BuildContext context) {
     final isOccupied = widget.bottle != null;
     final garde = widget.wine != null ? GardeInfo.fromWine(widget.wine!) : null;
-    final cellColor = garde?.color ?? wineTypeColor(widget.wine?.type ?? WineType.rouge);
+    final isApogee = garde?.label == 'Apogée';
+    final cellColor = isApogee
+        ? const Color(0xFFB8860B)
+        : (garde?.color ?? wineTypeColor(widget.wine?.type ?? WineType.rouge));
     final vintageText = widget.wine?.vintage != null
         ? '${widget.wine!.vintage! % 100}'.padLeft(2, '0')
         : '';
