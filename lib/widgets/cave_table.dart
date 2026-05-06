@@ -22,7 +22,7 @@ class GardeInfo {
       return const GardeInfo('Passé', Color(0xFFC62828));
     }
     if (w.drinkPeak != null && (now - w.drinkPeak!).abs() <= 2) {
-      return const GardeInfo('Apogée', Color(0xFFF5D060));
+      return const GardeInfo('Apogée', Color(0xFFD4A843));
     }
     if (w.drinkFrom != null && now >= w.drinkFrom!) {
       return const GardeInfo('À boire', Color(0xFF2E7D32));
@@ -42,7 +42,7 @@ class GardeInfo {
       return const GardeInfo('Passé', Color(0xFFC62828));
     }
     if (w.drinkPeak != null && (now - w.drinkPeak!).abs() <= 2) {
-      return const GardeInfo('Apogée', Color(0xFFF5D060));
+      return const GardeInfo('Apogée', Color(0xFFD4A843));
     }
     if (w.drinkFrom != null && now >= w.drinkFrom!) {
       return const GardeInfo('À boire', Color(0xFF2E7D32));
@@ -136,11 +136,13 @@ class _CaveDataRowState extends State<CaveDataRow> {
     final firstFormat = bottles.first.format.label;
     final formats = bottles.map((b) => b.format.label).toSet();
     final mixedFormats = formats.length > 1;
-    final price = bottles.first.purchasePrice;
     final pricesAll = bottles
         .map((b) => b.purchasePrice)
         .whereType<double>()
         .toList();
+    final price = pricesAll.isEmpty
+        ? null
+        : pricesAll.reduce((a, b) => a + b) / pricesAll.length;
     final mixedPrices = pricesAll.toSet().length > 1;
     final garde = widget.gardeFor(w);
 
@@ -153,7 +155,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: _hover ? const Color(0x14C9A84C) : Colors.transparent,
             border: Border(
@@ -283,7 +285,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
       case CaveColumn.purchaseYear:
         return _purchaseYearCell(ctx.bottles);
       case CaveColumn.price:
-        return _priceCell(ctx.price, ctx.mixedPrices);
+        return _priceCell(ctx.price, ctx.bottles);
       case CaveColumn.marketValue:
         return _marketValueCell(ctx.bottles);
       case CaveColumn.totalValue:
@@ -345,7 +347,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
                 w.name,
                 style: AppText.serif(
                   color: AppColors.text,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -354,8 +356,8 @@ class _CaveDataRowState extends State<CaveDataRow> {
               if (w.producer.isNotEmpty)
                 Text(
                   w.producer,
-                  style: AppText.sans(color: AppColors.text3, fontSize: 11),
-                  maxLines: 1,
+                  style: AppText.sans(color: AppColors.text3, fontSize: 10),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
             ],
@@ -421,6 +423,8 @@ class _CaveDataRowState extends State<CaveDataRow> {
           fontWeight: FontWeight.w600,
         ),
         textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -428,63 +432,49 @@ class _CaveDataRowState extends State<CaveDataRow> {
   Widget _textCell(String value) {
     if (value.isEmpty) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     return Text(
       value,
-      style: AppText.sans(color: AppColors.text2, fontSize: 12),
-      maxLines: 1,
+      style: AppText.sans(color: AppColors.text2, fontSize: 11),
+      maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _regionCell(Wine w) {
-    final parts = [w.region, w.country].where((s) => s.isNotEmpty).toList();
-    if (parts.isEmpty) {
+    final label = w.region.isNotEmpty ? w.region : w.country;
+    if (label.isEmpty) {
       return Text('—',
           style: AppText.sans(color: AppColors.text3, fontSize: 12));
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          w.region.isNotEmpty ? w.region : w.country,
-          style: AppText.sans(
-            color: AppColors.text,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (w.region.isNotEmpty && w.country.isNotEmpty)
-          Text(
-            w.country,
-            style: AppText.sans(color: AppColors.text3, fontSize: 10),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-      ],
+    return Text(
+      label,
+      style: AppText.sans(
+        color: AppColors.text,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _ratingCell(Wine w) {
     if (w.rating == null) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.star, color: AppColors.gold2, size: 12),
+        const Icon(Icons.star, color: AppColors.gold2, size: 11),
         const SizedBox(width: 3),
         Text(
           '${w.rating}',
           style: AppText.sans(
             color: AppColors.gold2,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -495,13 +485,13 @@ class _CaveDataRowState extends State<CaveDataRow> {
   Widget _valueCell(double total) {
     if (total <= 0) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     return Text(
       '${total.toStringAsFixed(0)} \$',
       style: AppText.sans(
         color: AppColors.gold2,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -521,7 +511,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
     const goldMid = Color(0xFFD4A843);
     const goldLight = Color(0xFFF5E6A3);
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isApogee
@@ -542,7 +532,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         garde.label,
         style: AppText.sans(
           color: isApogee ? const Color(0xFF1A1408) : garde.color,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.4,
         ),
@@ -629,19 +619,57 @@ class _CaveDataRowState extends State<CaveDataRow> {
     );
   }
 
-  Widget _priceCell(double? price, bool mixed) {
+  Widget _priceCell(double? price, List<Bottle> bottles) {
     if (price == null) {
       return Text('—',
           style: AppText.sans(color: AppColors.text3, fontSize: 12));
     }
-    return Text(
-      mixed
-          ? '~${price.toStringAsFixed(0)} \$'
-          : '${price.toStringAsFixed(0)} \$',
-      style: AppText.sans(
-        color: AppColors.text,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
+    final prices = bottles
+        .where((b) => b.purchasePrice != null)
+        .map((b) => '${b.format.label} — ${b.purchasePrice!.toStringAsFixed(0)} \$')
+        .toList();
+    final label = '${price.toStringAsFixed(0)} \$';
+    if (prices.length <= 1) {
+      return Text(
+        label,
+        style: AppText.sans(
+          color: AppColors.text,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+    return Tooltip(
+      richMessage: TextSpan(
+        children: [
+          for (var i = 0; i < prices.length; i++) ...[
+            TextSpan(text: prices[i]),
+            if (i < prices.length - 1) const TextSpan(text: '\n'),
+          ],
+        ],
+        style: AppText.sans(color: AppColors.text, fontSize: 11),
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      waitDuration: const Duration(milliseconds: 300),
+      child: Text(
+        '~$label',
+        style: AppText.sans(
+          color: AppColors.text,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -669,24 +697,24 @@ class _CaveDataRowState extends State<CaveDataRow> {
   Widget _alcoholCell(Wine w) {
     if (w.alcohol == null) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     return Text(
       '${w.alcohol!.toStringAsFixed(1)} %',
-      style: AppText.sans(color: AppColors.text2, fontSize: 12),
+      style: AppText.sans(color: AppColors.text2, fontSize: 11),
     );
   }
 
   Widget _yearCell(int? year, {bool gold = false}) {
     if (year == null) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     return Text(
       '$year',
       style: AppText.sans(
         color: gold ? AppColors.gold2 : AppColors.text2,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -696,7 +724,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
     final sources = bottles.map((b) => b.source?.label).toSet();
     if (sources.isEmpty || (sources.length == 1 && sources.first == null)) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     if (sources.length > 1) {
       return Text('Mixte',
@@ -707,7 +735,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
     }
     return Text(
       sources.first ?? '—',
-      style: AppText.sans(color: AppColors.text2, fontSize: 12),
+      style: AppText.sans(color: AppColors.text2, fontSize: 11),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
@@ -717,7 +745,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
     final years = bottles.map((b) => b.purchaseYear).whereType<int>().toSet();
     if (years.isEmpty) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     if (years.length > 1) {
       return Text('Mixte',
@@ -727,7 +755,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
               fontWeight: FontWeight.w600));
     }
     return Text('${years.first}',
-        style: AppText.sans(color: AppColors.text2, fontSize: 12));
+        style: AppText.sans(color: AppColors.text2, fontSize: 11));
   }
 
   Widget _marketValueCell(List<Bottle> bottles) {
@@ -735,15 +763,14 @@ class _CaveDataRowState extends State<CaveDataRow> {
         bottles.map((b) => b.marketValue).whereType<double>().toList();
     if (values.isEmpty) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
-    final mixed = values.toSet().length > 1;
-    final v = values.first;
+    final avg = values.reduce((a, b) => a + b) / values.length;
     return Text(
-      mixed ? '~${v.toStringAsFixed(0)} \$' : '${v.toStringAsFixed(0)} \$',
+      '${avg.toStringAsFixed(0)} \$',
       style: AppText.sans(
         color: AppColors.text,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w500,
       ),
     );
@@ -756,7 +783,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         .toSet();
     if (locs.isEmpty) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     if (locs.length > 1) {
       return Text(
@@ -772,7 +799,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
       locs.first,
       style: AppText.sans(
         color: AppColors.text2,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w500,
       ),
       maxLines: 1,
@@ -784,14 +811,14 @@ class _CaveDataRowState extends State<CaveDataRow> {
     final dates = bottles.map((b) => b.createdAt).toList();
     if (dates.isEmpty) {
       return Text('—',
-          style: AppText.sans(color: AppColors.text3, fontSize: 12));
+          style: AppText.sans(color: AppColors.text3, fontSize: 11));
     }
     dates.sort();
     final d = dates.first;
     return Text(
       '${d.day.toString().padLeft(2, '0')}/'
       '${d.month.toString().padLeft(2, '0')}/${d.year.toString().substring(2)}',
-      style: AppText.sans(color: AppColors.text2, fontSize: 12),
+      style: AppText.sans(color: AppColors.text2, fontSize: 11),
     );
   }
 }
