@@ -245,7 +245,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
       case CaveColumn.photo:
         return _photoCell(ctx.wine);
       case CaveColumn.name:
-        return _vinCell(ctx.wine);
+        return _vinCell(ctx.wine, ctx.bottles.any((b) => b.isGift));
       case CaveColumn.type:
         return _typeCell(ctx.wine);
       case CaveColumn.vintage:
@@ -327,7 +327,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         child: const Icon(Icons.wine_bar, color: AppColors.text3, size: 16),
       );
 
-  Widget _vinCell(Wine w) {
+  Widget _vinCell(Wine w, [bool isGift = false]) {
     final dotColor = wineTypeColor(w.type);
     return Row(
       children: [
@@ -343,15 +343,22 @@ class _CaveDataRowState extends State<CaveDataRow> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                w.name,
-                style: AppText.serif(
-                  color: AppColors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      w.name,
+                      style: AppText.serif(
+                        color: AppColors.text,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isGift) const Text('🎁', style: TextStyle(fontSize: 11)),
+                ],
               ),
               if (w.producer.isNotEmpty)
                 Text(
