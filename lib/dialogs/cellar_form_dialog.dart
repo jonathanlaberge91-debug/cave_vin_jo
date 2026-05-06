@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/govee_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 
@@ -8,11 +9,17 @@ class CellarFormResult {
   final String name;
   final int cols;
   final int rows;
+  final String? goveeTopDevice;
+  final String? goveeBottomDevice;
+  final String? tuyaDeviceId;
   const CellarFormResult({
     required this.number,
     required this.name,
     required this.cols,
     required this.rows,
+    this.goveeTopDevice,
+    this.goveeBottomDevice,
+    this.tuyaDeviceId,
   });
 }
 
@@ -22,6 +29,10 @@ class CellarFormDialog extends StatefulWidget {
   final String initialName;
   final int initialCols;
   final int initialRows;
+  final String? initialGoveeTop;
+  final String? initialGoveeBottom;
+  final String? initialTuyaDeviceId;
+  final List<GoveeSensor> goveeSensors;
 
   const CellarFormDialog({
     super.key,
@@ -30,6 +41,10 @@ class CellarFormDialog extends StatefulWidget {
     required this.initialName,
     required this.initialCols,
     required this.initialRows,
+    this.initialGoveeTop,
+    this.initialGoveeBottom,
+    this.initialTuyaDeviceId,
+    this.goveeSensors = const [],
   });
 
   @override
@@ -41,6 +56,9 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
   late final TextEditingController _name;
   late final TextEditingController _cols;
   late final TextEditingController _rows;
+  late final TextEditingController _tuyaDeviceId;
+  String? _goveeTop;
+  String? _goveeBottom;
 
   @override
   void initState() {
@@ -49,6 +67,9 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
     _name = TextEditingController(text: widget.initialName);
     _cols = TextEditingController(text: '${widget.initialCols}');
     _rows = TextEditingController(text: '${widget.initialRows}');
+    _tuyaDeviceId = TextEditingController(text: widget.initialTuyaDeviceId ?? '');
+    _goveeTop = widget.initialGoveeTop;
+    _goveeBottom = widget.initialGoveeBottom;
   }
 
   @override
@@ -57,6 +78,7 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
     _name.dispose();
     _cols.dispose();
     _rows.dispose();
+    _tuyaDeviceId.dispose();
     super.dispose();
   }
 
@@ -87,6 +109,9 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
         name: _name.text.trim(),
         cols: cols,
         rows: rows,
+        goveeTopDevice: _goveeTop,
+        goveeBottomDevice: _goveeBottom,
+        tuyaDeviceId: _tuyaDeviceId.text.trim().isEmpty ? null : _tuyaDeviceId.text.trim(),
       ),
     );
   }
@@ -183,6 +208,52 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
                 ),
               ),
             ),
+            const SizedBox(height: 14),
+            Text(
+              'TUYA IOT',
+              style: AppText.sans(
+                color: AppColors.text3,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _field(
+              label: 'DEVICE ID',
+              controller: _tuyaDeviceId,
+              hint: 'ex: eb103f9b9dda5093b8k8ae',
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'CAPTEURS GOVEE',
+              style: AppText.sans(
+                color: AppColors.text3,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (widget.goveeSensors.isEmpty)
+              Text(
+                'Aucun capteur détecté. Configure ta clé API Govee dans Paramètres > Clés API.',
+                style: AppText.sans(color: AppColors.text3, fontSize: 11),
+              ),
+            if (widget.goveeSensors.isNotEmpty)
+              _goveePicker(
+                label: '▲ Haut',
+                value: _goveeTop,
+                onChanged: (v) => setState(() => _goveeTop = v),
+              ),
+            if (widget.goveeSensors.isNotEmpty)
+              const SizedBox(height: 8),
+            if (widget.goveeSensors.isNotEmpty)
+              _goveePicker(
+                label: '▼ Bas',
+                value: _goveeBottom,
+                onChanged: (v) => setState(() => _goveeBottom = v),
+              ),
             const SizedBox(height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -222,11 +293,86 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
     );
   }
 
+  static double? _goveeTemp(double? raw) {
+    if (raw == null) return null;
+    if (raw > 1000) return raw / 100;
+    if (raw > 45) return (raw - 32) * 5 / 9;
+    return raw;
+  }
+
+  Widget _goveePicker({
+    required String label,
+    required String? value,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          hint: Text(
+            '$label — Aucun',
+            style: AppText.sans(color: AppColors.text3, fontSize: 12),
+          ),
+          dropdownColor: AppColors.bg2,
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.text3),
+          items: [
+            DropdownMenuItem<String>(
+              value: '',
+              child: Text(
+                '$label — Aucun',
+                style: AppText.sans(color: AppColors.text3, fontSize: 12),
+              ),
+            ),
+            for (final s in widget.goveeSensors)
+              DropdownMenuItem<String>(
+                value: s.device,
+                child: Row(
+                  children: [
+                    Text(
+                      '$label  ',
+                      style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                    ),
+                    Expanded(
+                      child: Text(
+                        s.name,
+                        style: AppText.sans(color: AppColors.text, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (s.temperature != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_goveeTemp(s.temperature)?.toStringAsFixed(1)}°C',
+                        style: AppText.sans(
+                          color: AppColors.gold2,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+          onChanged: (v) => onChanged(v == null || v.isEmpty ? null : v),
+        ),
+      ),
+    );
+  }
+
   Widget _field({
     required String label,
     required TextEditingController controller,
     TextInputType? keyboardType,
     VoidCallback? onChanged,
+    String? hint,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,6 +399,8 @@ class _CellarFormDialogState extends State<CellarFormDialog> {
             isDense: true,
             filled: true,
             fillColor: AppColors.bg3,
+            hintText: hint,
+            hintStyle: AppText.sans(color: AppColors.text3, fontSize: 12),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(

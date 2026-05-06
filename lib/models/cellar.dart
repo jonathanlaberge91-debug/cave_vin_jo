@@ -7,6 +7,9 @@ class Cellar {
   final int cols;
   final int rows;
   final DateTime createdAt;
+  final String? goveeTopDevice;
+  final String? goveeBottomDevice;
+  final String? tuyaDeviceId;
 
   const Cellar({
     required this.id,
@@ -15,6 +18,9 @@ class Cellar {
     required this.cols,
     required this.rows,
     required this.createdAt,
+    this.goveeTopDevice,
+    this.goveeBottomDevice,
+    this.tuyaDeviceId,
   });
 
   int get totalSlots => cols * rows;
@@ -25,6 +31,9 @@ class Cellar {
         'cols': cols,
         'rows': rows,
         'createdAt': Timestamp.fromDate(createdAt),
+        if (goveeTopDevice != null) 'goveeTopDevice': goveeTopDevice,
+        if (goveeBottomDevice != null) 'goveeBottomDevice': goveeBottomDevice,
+        if (tuyaDeviceId != null) 'tuyaDeviceId': tuyaDeviceId,
       };
 
   factory Cellar.fromDoc(DocumentSnapshot doc) {
@@ -36,6 +45,9 @@ class Cellar {
       cols: (data['cols'] as num?)?.toInt() ?? 10,
       rows: (data['rows'] as num?)?.toInt() ?? 20,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      goveeTopDevice: data['goveeTopDevice'] as String?,
+      goveeBottomDevice: data['goveeBottomDevice'] as String?,
+      tuyaDeviceId: data['tuyaDeviceId'] as String?,
     );
   }
 }

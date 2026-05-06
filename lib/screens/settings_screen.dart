@@ -1138,6 +1138,10 @@ class _CellarSettingsRow extends StatelessWidget {
       (label: 'Rangées', value: '${c.rows}'),
       (label: 'Cases totales', value: '${c.totalSlots}'),
       (label: 'Créé le', value: _formatDate(c.createdAt)),
+      if (c.tuyaDeviceId != null)
+        (label: 'Tuya Device ID', value: c.tuyaDeviceId!),
+      if (c.tuyaDeviceId == null)
+        (label: 'Tuya Device ID', value: 'Non configuré'),
       if (c.goveeTopDevice != null)
         (label: 'Govee haut', value: c.goveeTopDevice!),
       if (c.goveeBottomDevice != null)
@@ -1225,6 +1229,9 @@ class _CellarSettingsRow extends StatelessWidget {
         initialName: c.name,
         initialCols: c.cols,
         initialRows: c.rows,
+        initialGoveeTop: c.goveeTopDevice,
+        initialGoveeBottom: c.goveeBottomDevice,
+        initialTuyaDeviceId: c.tuyaDeviceId,
       ),
     );
     if (result == null) return;
@@ -1248,6 +1255,12 @@ class _CellarSettingsRow extends StatelessWidget {
       name: result.name,
       cols: result.cols,
       rows: result.rows,
+      goveeTopDevice: result.goveeTopDevice,
+      goveeBottomDevice: result.goveeBottomDevice,
+      tuyaDeviceId: result.tuyaDeviceId,
+      clearGoveeTop: result.goveeTopDevice == null,
+      clearGoveeBottom: result.goveeBottomDevice == null,
+      clearTuyaDeviceId: result.tuyaDeviceId == null,
     );
   }
 

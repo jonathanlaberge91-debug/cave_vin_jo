@@ -35,6 +35,9 @@ class CellarService {
     required String name,
     required int cols,
     required int rows,
+    String? goveeTopDevice,
+    String? goveeBottomDevice,
+    String? tuyaDeviceId,
   }) async {
     final ref = await _cellars.add({
       'number': number,
@@ -42,6 +45,12 @@ class CellarService {
       'cols': cols,
       'rows': rows,
       'createdAt': Timestamp.fromDate(DateTime.now()),
+      if (goveeTopDevice != null && goveeTopDevice.isNotEmpty)
+        'goveeTopDevice': goveeTopDevice,
+      if (goveeBottomDevice != null && goveeBottomDevice.isNotEmpty)
+        'goveeBottomDevice': goveeBottomDevice,
+      if (tuyaDeviceId != null && tuyaDeviceId.isNotEmpty)
+        'tuyaDeviceId': tuyaDeviceId,
     });
     return ref.id;
   }
@@ -52,12 +61,33 @@ class CellarService {
     String? name,
     int? cols,
     int? rows,
+    String? goveeTopDevice,
+    String? goveeBottomDevice,
+    String? tuyaDeviceId,
+    bool clearGoveeTop = false,
+    bool clearGoveeBottom = false,
+    bool clearTuyaDeviceId = false,
   }) {
     final data = <String, dynamic>{};
     if (number != null) data['number'] = number;
     if (name != null) data['name'] = name;
     if (cols != null) data['cols'] = cols;
     if (rows != null) data['rows'] = rows;
+    if (goveeTopDevice != null && goveeTopDevice.isNotEmpty) {
+      data['goveeTopDevice'] = goveeTopDevice;
+    } else if (clearGoveeTop) {
+      data['goveeTopDevice'] = FieldValue.delete();
+    }
+    if (goveeBottomDevice != null && goveeBottomDevice.isNotEmpty) {
+      data['goveeBottomDevice'] = goveeBottomDevice;
+    } else if (clearGoveeBottom) {
+      data['goveeBottomDevice'] = FieldValue.delete();
+    }
+    if (tuyaDeviceId != null && tuyaDeviceId.isNotEmpty) {
+      data['tuyaDeviceId'] = tuyaDeviceId;
+    } else if (clearTuyaDeviceId) {
+      data['tuyaDeviceId'] = FieldValue.delete();
+    }
     return _cellars.doc(id).update(data);
   }
 
