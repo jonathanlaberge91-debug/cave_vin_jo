@@ -30,7 +30,7 @@ enum CaveColumn {
       defaultVisible: false),
   vintage(
       label: 'Mill.',
-      width: 50,
+      width: 58,
       group: ColumnGroup.identification,
       defaultVisible: true),
   appellation(
@@ -119,18 +119,18 @@ enum CaveColumn {
       group: ColumnGroup.achat,
       defaultVisible: false),
   price(
-      label: 'Prix',
-      width: 66,
+      label: 'Prix payé moy.',
+      width: 74,
       group: ColumnGroup.achat,
       defaultVisible: true),
   marketValue(
-      label: 'Val. marché',
-      width: 86,
+      label: 'Val. marchande',
+      width: 76,
       group: ColumnGroup.achat,
       defaultVisible: false),
   totalValue(
-      label: 'Valeur',
-      width: 72,
+      label: 'Valeur totale',
+      width: 70,
       group: ColumnGroup.achat,
       defaultVisible: true),
   location(
