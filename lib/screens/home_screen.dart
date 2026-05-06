@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _isSettingsSelected =>
       _items[_selectedIndex].label == 'Paramètres';
 
-  static const _searchableLabels = {'Ma Cave', 'Cellier', 'Bouteilles bues', 'Liste de souhaits'};
+  static const _searchableLabels = {'Ma Cave', 'Cellier', 'Bouteilles bues', 'Liste de souhaits', 'Paramètres'};
   bool get _isSearchPage => _searchableLabels.contains(_items[_selectedIndex].label);
 
   void _clearSearch() {
@@ -145,6 +145,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSettingsSubMenu() {
+    final indices = _searchQuery.isEmpty
+        ? List.generate(_settingsSubs.length, (i) => i)
+        : [for (var i = 0; i < _settingsSubs.length; i++)
+            if (_settingsSubs[i].$2.toLowerCase().contains(_searchQuery)) i];
+
     return Container(
       width: 180,
       decoration: const BoxDecoration(
@@ -170,18 +175,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              children: [
-                for (int s = 0; s < _settingsSubs.length; s++)
-                  _NavSubItem(
-                    icon: _settingsSubs[s].$1,
-                    label: _settingsSubs[s].$2,
-                    selected: _settingsSub == s,
-                    onTap: () => setState(() => _settingsSub = s),
+            child: indices.isEmpty
+                ? Center(
+                    child: Text(
+                      'Aucun résultat',
+                      style: AppText.sans(color: AppColors.text3, fontSize: 12),
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    children: [
+                      for (final s in indices)
+                        _NavSubItem(
+                          icon: _settingsSubs[s].$1,
+                          label: _settingsSubs[s].$2,
+                          selected: _settingsSub == s,
+                          onTap: () => setState(() => _settingsSub = s),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ],
       ),
@@ -335,6 +347,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMobileSettingsNav() {
+    final indices = _searchQuery.isEmpty
+        ? List.generate(_settingsSubs.length, (i) => i)
+        : [for (var i = 0; i < _settingsSubs.length; i++)
+            if (_settingsSubs[i].$2.toLowerCase().contains(_searchQuery)) i];
+
     return Container(
       height: 44,
       decoration: const BoxDecoration(
@@ -344,8 +361,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        itemCount: _settingsSubs.length,
-        itemBuilder: (context, i) {
+        itemCount: indices.length,
+        itemBuilder: (context, idx) {
+          final i = indices[idx];
           final selected = _settingsSub == i;
           return Padding(
             padding: const EdgeInsets.only(right: 6),
@@ -378,8 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: AppText.sans(
                         color: selected ? AppColors.gold2 : AppColors.text3,
                         fontSize: 11,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                   ],
