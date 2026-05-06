@@ -362,6 +362,7 @@ class _CellierScreenState extends State<CellierScreen> {
           isDragging: _isDragging,
           onChipTap: _onChipTap,
           onOpenDetail: _openWineDetail,
+          onDropToUnplaced: _onDropToUnplaced,
         ),
       ],
     );
@@ -1237,80 +1238,121 @@ class _CellierScreenState extends State<CellierScreen> {
             }
             final groups = grouped.values.toList();
 
-            return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          'À PLACER',
-                          style: AppText.sans(
-                            color: AppColors.text3,
-                            fontSize: 11,
-                            letterSpacing: 1.4,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.bg3,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.border2),
-                          ),
+            return DragTarget<Bottle>(
+              onWillAcceptWithDetails: (details) =>
+                  details.data.cellarId != null &&
+                  details.data.cellarId!.isNotEmpty,
+              onAcceptWithDetails: (details) =>
+                  _onDropToUnplaced(details.data),
+              builder: (context, candidateData, _) {
+                final isHovering = candidateData.isNotEmpty;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      decoration: BoxDecoration(
+                        color: isHovering
+                            ? AppColors.gold.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(14)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+                        child: isHovering
+                            ? Row(children: [
+                                const Icon(Icons.archive_outlined,
+                                    size: 16, color: AppColors.gold),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'RETIRER DU CELLIER',
+                                  style: AppText.sans(
+                                    color: AppColors.gold,
+                                    fontSize: 11,
+                                    letterSpacing: 1.4,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ])
+                            : Row(
+                                children: [
+                                  Text(
+                                    'À PLACER',
+                                    style: AppText.sans(
+                                      color: AppColors.text3,
+                                      fontSize: 11,
+                                      letterSpacing: 1.4,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.bg3,
+                                      borderRadius:
+                                          BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: AppColors.border2),
+                                    ),
+                                    child: Text(
+                                      '${bottles.length}',
+                                      style: AppText.sans(
+                                        color: AppColors.text2,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    if (bottles.isEmpty)
+                      Expanded(
+                        child: Center(
                           child: Text(
-                            '${bottles.length}',
+                            isHovering
+                                ? 'Déposer ici pour retirer du cellier'
+                                : 'Toutes les bouteilles sont placées.',
                             style: AppText.sans(
-                              color: AppColors.text2,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                              color: isHovering
+                                  ? AppColors.gold
+                                  : AppColors.text3,
+                              fontSize: 12,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  if (bottles.isEmpty)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Toutes les bouteilles sont placées.',
-                          style: AppText.sans(
-                            color: AppColors.text3,
-                            fontSize: 12,
-                          ),
+                      )
+                    else ...[
+                      const _UnplacedHeader(),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: groups.length,
+                          itemBuilder: (context, i) {
+                            final group = groups[i];
+                            final first = group.first;
+                            final w = winesById[first.wineId];
+                            return _UnplacedRow(
+                              bottles: group,
+                              wine: w,
+                              isDragging: _isDragging,
+                              onTap: () => _onChipTap(first, w),
+                              onOpenDetail: w != null
+                                  ? () => _openWineDetail(w, first)
+                                  : null,
+                            );
+                          },
                         ),
                       ),
-                    )
-                  else ...[
-                    const _UnplacedHeader(),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: groups.length,
-                        itemBuilder: (context, i) {
-                          final group = groups[i];
-                          final first = group.first;
-                          final w = winesById[first.wineId];
-                          return _UnplacedRow(
-                            bottles: group,
-                            wine: w,
-                            isDragging: _isDragging,
-                            onTap: () => _onChipTap(first, w),
-                            onOpenDetail: w != null
-                                ? () => _openWineDetail(w, first)
-                                : null,
-                          );
-                        },
-                      ),
-                    ),
+                    ],
                   ],
-                ],
-              );
+                );
+              },
+            );
           },
         );
       },
@@ -1360,6 +1402,11 @@ class _CellierScreenState extends State<CellierScreen> {
       col: col,
       row: row,
     );
+  }
+
+  Future<void> _onDropToUnplaced(Bottle bottle) async {
+    if (bottle.cellarId == null || bottle.cellarId!.isEmpty) return;
+    await CaveService.unassignSlot(bottle.id);
   }
 
   Future<void> _onChipTap(Bottle b, Wine? w) async {
@@ -2243,7 +2290,7 @@ class _WineInfoCard extends StatelessWidget {
     }
 
     final prices = bottles.map((b) => b.purchasePrice).whereType<double>().toList();
-    if (prices.isNotEmpty) {
+    if (prices.isNotEmpty && !CavePreferencesService.hidePrices.value) {
       rows.add(_row('Prix', '${prices.first.toStringAsFixed(0)} \$'));
     }
     rows.add(_row('Format', format));
@@ -2576,11 +2623,13 @@ class _MobileUnplacedPanel extends StatefulWidget {
   final ValueNotifier<bool> isDragging;
   final Future<void> Function(Bottle b, Wine? w) onChipTap;
   final Future<void> Function(Wine wine, Bottle bottle) onOpenDetail;
+  final Future<void> Function(Bottle bottle) onDropToUnplaced;
 
   const _MobileUnplacedPanel({
     required this.isDragging,
     required this.onChipTap,
     required this.onOpenDetail,
+    required this.onDropToUnplaced,
   });
 
   @override
@@ -2604,6 +2653,10 @@ class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
     if (widget.isDragging.value && _expanded) {
       setState(() => _expanded = false);
     }
+  }
+
+  void _onHoverChanged(bool hovering) {
+    if (hovering && !_expanded) setState(() => _expanded = true);
   }
 
   @override
@@ -2631,87 +2684,141 @@ class _MobileUnplacedPanelState extends State<_MobileUnplacedPanel> {
             }
             final groups = grouped.values.toList();
 
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                border: const Border(top: BorderSide(color: AppColors.border)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _expanded = !_expanded),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.gold),
-                          const SizedBox(width: 8),
-                          Text(
-                            'À placer',
-                            style: AppText.sans(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: bottles.isEmpty
-                                  ? AppColors.bg3
-                                  : AppColors.gold.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${bottles.length}',
-                              style: AppText.sans(
-                                color: bottles.isEmpty ? AppColors.text3 : AppColors.gold,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            _expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                            size: 20,
-                            color: AppColors.text3,
-                          ),
-                        ],
+            return DragTarget<Bottle>(
+              onWillAcceptWithDetails: (details) =>
+                  details.data.cellarId != null &&
+                  details.data.cellarId!.isNotEmpty,
+              onAcceptWithDetails: (details) =>
+                  widget.onDropToUnplaced(details.data),
+              onMove: (details) {
+                if (details.data.cellarId != null &&
+                    details.data.cellarId!.isNotEmpty) {
+                  _onHoverChanged(true);
+                }
+              },
+              builder: (context, candidateData, _) {
+                final isHovering = candidateData.isNotEmpty;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: isHovering
+                        ? AppColors.gold.withValues(alpha: 0.08)
+                        : AppColors.bg2,
+                    border: Border(
+                      top: BorderSide(
+                        color: isHovering
+                            ? AppColors.gold.withValues(alpha: 0.6)
+                            : AppColors.border,
+                        width: isHovering ? 2 : 1,
                       ),
                     ),
                   ),
-                  if (_expanded && groups.isNotEmpty)
-                    SizedBox(
-                      height: (groups.length * 52.0).clamp(0, 220),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                        itemCount: groups.length,
-                        itemBuilder: (context, i) {
-                          final group = groups[i];
-                          final first = group.first;
-                          final w = winesById[first.wineId];
-                          return _MobileUnplacedItem(
-                            wine: w,
-                            bottles: group,
-                            isDragging: widget.isDragging,
-                            onTap: () => widget.onChipTap(first, w),
-                            onOpenDetail: w != null
-                                ? () => widget.onOpenDetail(w, first)
-                                : null,
-                          );
-                        },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _expanded = !_expanded),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isHovering
+                                    ? Icons.archive_outlined
+                                    : Icons.inventory_2_outlined,
+                                size: 16,
+                                color: AppColors.gold,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isHovering
+                                    ? 'Retirer du cellier'
+                                    : 'À placer',
+                                style: AppText.sans(
+                                  color: isHovering
+                                      ? AppColors.gold
+                                      : AppColors.text,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: bottles.isEmpty
+                                      ? AppColors.bg3
+                                      : AppColors.gold
+                                          .withValues(alpha: 0.15),
+                                  borderRadius:
+                                      BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${bottles.length}',
+                                  style: AppText.sans(
+                                    color: bottles.isEmpty
+                                        ? AppColors.text3
+                                        : AppColors.gold,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                _expanded
+                                    ? Icons.keyboard_arrow_down
+                                    : Icons.keyboard_arrow_up,
+                                size: 20,
+                                color: AppColors.text3,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  if (_expanded && groups.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        'Toutes les bouteilles sont placées',
-                        style: AppText.sans(color: AppColors.text3, fontSize: 12),
-                      ),
-                    ),
-                ],
-              ),
+                      if (_expanded && groups.isNotEmpty)
+                        SizedBox(
+                          height:
+                              (groups.length * 52.0).clamp(0, 220),
+                          child: ListView.builder(
+                            padding:
+                                const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                            itemCount: groups.length,
+                            itemBuilder: (context, i) {
+                              final group = groups[i];
+                              final first = group.first;
+                              final w = winesById[first.wineId];
+                              return _MobileUnplacedItem(
+                                wine: w,
+                                bottles: group,
+                                isDragging: widget.isDragging,
+                                onTap: () =>
+                                    widget.onChipTap(first, w),
+                                onOpenDetail: w != null
+                                    ? () =>
+                                        widget.onOpenDetail(w, first)
+                                    : null,
+                              );
+                            },
+                          ),
+                        ),
+                      if (_expanded && groups.isEmpty)
+                        Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Toutes les bouteilles sont placées',
+                            style: AppText.sans(
+                                color: AppColors.text3, fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             );
           },
         );
@@ -2826,6 +2933,7 @@ class _MobileUnplacedItem extends StatelessWidget {
       onDragStarted: () => isDragging.value = true,
       onDragEnd: (_) => isDragging.value = false,
       onDraggableCanceled: (_, _) => isDragging.value = false,
+      feedbackOffset: const Offset(0, -60),
       feedback: feedback,
       childWhenDragging: Opacity(opacity: 0.3, child: row),
       child: GestureDetector(onTap: onTap, child: row),

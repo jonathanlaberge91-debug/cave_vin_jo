@@ -42,6 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _mobileSearchOpen = false;
   int _settingsSub = 0;
   CascadeFilterState _cascadeFilter = const CascadeFilterState();
+  CaveColumn? _sortColumn;
+  bool _sortAsc = true;
 
   static const _settingsSubs = [
     (Icons.table_chart_outlined, 'Cave'),
@@ -53,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.sensors_outlined, 'Capteurs Govee'),
     (Icons.thermostat_outlined, 'Wine CellR'),
     (Icons.refresh_outlined, 'Actualisation'),
+    (Icons.download_outlined, 'Export'),
   ];
 
   final List<_NavEntry> _entries = [
@@ -581,6 +584,10 @@ class _HomeScreenState extends State<HomeScreen> {
               )).toList();
             }
 
+            if (_sortColumn != null) {
+              _applySort(rows, _sortColumn!, _sortAsc);
+            }
+
             final isMobile = MediaQuery.of(context).size.width < 600;
             final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
             return Column(
@@ -698,12 +705,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  static const _priceColumns = {CaveColumn.price, CaveColumn.marketValue, CaveColumn.totalValue};
+
   Widget _buildCaveTable(List<WineRow> rows) {
     return ValueListenableBuilder<Set<CaveColumn>>(
       valueListenable: CavePreferencesService.visible,
       builder: (context, visibleSet, _) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: CavePreferencesService.hidePrices,
+          builder: (context, hidePrices, _) {
         final cols = CaveColumn.values
-            .where((c) => visibleSet.contains(c))
+            .where((c) => visibleSet.contains(c) && (!hidePrices || !_priceColumns.contains(c)))
             .toList();
 
         return Column(
@@ -740,6 +752,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         );
+          },
+        );
       },
     );
   }
@@ -749,20 +763,186 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> _buildHeaderCells(List<CaveColumn> cols) {
-    final headerStyle = AppText.sans(
-      color: AppColors.text3,
-      fontSize: 10,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 1.1,
-    );
-    final cells = cols.map((c) {
-      final text = Text(c.label, style: headerStyle);
-      if (c.width != null) return SizedBox(width: c.width, child: text);
-      return Expanded(flex: c.flex ?? 1, child: text);
+    final cells = cols.map<Widget>((c) {
+      final isSorted = _sortColumn == c;
+      final sortable = _isSortable(c);
+
+      final inner = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              c.label,
+              style: AppText.sans(
+                color: isSorted ? AppColors.gold : AppColors.text3,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isSorted) ...[
+            const SizedBox(width: 3),
+            Icon(
+              _sortAsc ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 11,
+              color: AppColors.gold,
+            ),
+          ],
+        ],
+      );
+
+      Widget cell = sortable
+          ? MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onSortHeaderTap(c),
+                child: inner,
+              ),
+            )
+          : inner;
+
+      if (c.width != null) return SizedBox(width: c.width, child: cell);
+      return Expanded(flex: c.flex ?? 1, child: cell);
     }).toList();
     cells.add(const SizedBox(width: 30));
     cells.add(const SizedBox(width: 30));
     return cells;
+  }
+
+  void _onSortHeaderTap(CaveColumn col) {
+    setState(() {
+      if (_sortColumn == col) {
+        if (_sortAsc) {
+          _sortAsc = false;
+        } else {
+          _sortColumn = null;
+          _sortAsc = true;
+        }
+      } else {
+        _sortColumn = col;
+        _sortAsc = true;
+      }
+    });
+  }
+
+  bool _isSortable(CaveColumn c) {
+    return c != CaveColumn.photo;
+  }
+
+  void _applySort(List<WineRow> rows, CaveColumn col, bool asc) {
+    int cmp(WineRow a, WineRow b) {
+      final c = _compareCol(a, b, col);
+      return asc ? c : -c;
+    }
+    rows.sort(cmp);
+  }
+
+  int _compareCol(WineRow a, WineRow b, CaveColumn col) {
+    final wa = a.wine;
+    final wb = b.wine;
+    int strCmp(String x, String y) {
+      if (x.isEmpty && y.isEmpty) return 0;
+      if (x.isEmpty) return 1;
+      if (y.isEmpty) return -1;
+      return x.toLowerCase().compareTo(y.toLowerCase());
+    }
+    int numCmp(num? x, num? y) {
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return x.compareTo(y);
+    }
+    switch (col) {
+      case CaveColumn.photo:
+        return 0;
+      case CaveColumn.name:
+        return strCmp(wa.name, wb.name);
+      case CaveColumn.type:
+        return wa.type.index.compareTo(wb.type.index);
+      case CaveColumn.vintage:
+        return numCmp(wa.vintage, wb.vintage);
+      case CaveColumn.appellation:
+        return strCmp(wa.appellation, wb.appellation);
+      case CaveColumn.region:
+        return strCmp(wa.region, wb.region);
+      case CaveColumn.country:
+        return strCmp(wa.country, wb.country);
+      case CaveColumn.village:
+        return strCmp(wa.village, wb.village);
+      case CaveColumn.climat:
+        return strCmp(wa.climat, wb.climat);
+      case CaveColumn.domaine:
+        return strCmp(wa.domaine, wb.domaine);
+      case CaveColumn.domainAddress:
+        return strCmp(wa.domainAddress, wb.domainAddress);
+      case CaveColumn.grapes:
+        return strCmp(wa.grapes, wb.grapes);
+      case CaveColumn.alcohol:
+        return numCmp(wa.alcohol, wb.alcohol);
+      case CaveColumn.rating:
+        return numCmp(wa.rating, wb.rating);
+      case CaveColumn.garde:
+        return numCmp(wa.drinkPeak ?? wa.drinkTo ?? wa.drinkFrom,
+            wb.drinkPeak ?? wb.drinkTo ?? wb.drinkFrom);
+      case CaveColumn.drinkFrom:
+        return numCmp(wa.drinkFrom, wb.drinkFrom);
+      case CaveColumn.apogee:
+        return numCmp(wa.drinkPeak, wb.drinkPeak);
+      case CaveColumn.drinkTo:
+        return numCmp(wa.drinkTo, wb.drinkTo);
+      case CaveColumn.format:
+        return a.bottles.first.format.index
+            .compareTo(b.bottles.first.format.index);
+      case CaveColumn.source:
+        return strCmp(
+          a.bottles.first.source?.label ?? '',
+          b.bottles.first.source?.label ?? '',
+        );
+      case CaveColumn.purchaseYear:
+        return numCmp(a.bottles.first.purchaseYear,
+            b.bottles.first.purchaseYear);
+      case CaveColumn.price:
+        {
+          double avg(WineRow r) {
+            final list =
+                r.bottles.where((b) => b.purchasePrice != null).toList();
+            if (list.isEmpty) return double.nan;
+            return list
+                    .map((b) => b.purchasePrice!)
+                    .fold<double>(0, (s, v) => s + v) /
+                list.length;
+          }
+          final pa = avg(a);
+          final pb = avg(b);
+          if (pa.isNaN && pb.isNaN) return 0;
+          if (pa.isNaN) return 1;
+          if (pb.isNaN) return -1;
+          return pa.compareTo(pb);
+        }
+      case CaveColumn.marketValue:
+        return numCmp(a.bottles.first.marketValue,
+            b.bottles.first.marketValue);
+      case CaveColumn.totalValue:
+        {
+          double total(WineRow r) {
+            double t = 0;
+            for (final b in r.bottles) {
+              t += b.marketValue ?? b.purchasePrice ?? 0;
+            }
+            return t;
+          }
+          return total(a).compareTo(total(b));
+        }
+      case CaveColumn.location:
+        return strCmp(a.bottles.first.location, b.bottles.first.location);
+      case CaveColumn.createdAt:
+        return wa.createdAt.compareTo(wb.createdAt);
+      case CaveColumn.qty:
+        return a.bottles.length.compareTo(b.bottles.length);
+    }
   }
 
   GardeInfo? _gardeLabel(Wine w) => GardeInfo.fromWine(w);
@@ -1042,10 +1222,14 @@ class _DrunkPageState extends State<_DrunkPage> {
             return ValueListenableBuilder<Set<DrunkColumn>>(
               valueListenable: CavePreferencesService.drunkVisible,
               builder: (context, visibleCols, _) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: CavePreferencesService.hidePrices,
+                  builder: (context, hideP, _) {
+                const drunkPriceCols = {DrunkColumn.price, DrunkColumn.marketValue};
                 final isMobile = MediaQuery.of(context).size.width < 600;
                 final cols = isMobile
                     ? [DrunkColumn.photo, DrunkColumn.name, DrunkColumn.drunkRating, DrunkColumn.drunkDate]
-                    : DrunkColumn.values.where((c) => visibleCols.contains(c)).toList();
+                    : DrunkColumn.values.where((c) => visibleCols.contains(c) && (!hideP || !drunkPriceCols.contains(c))).toList();
                 final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1116,6 +1300,8 @@ class _DrunkPageState extends State<_DrunkPage> {
         );
       },
     );
+      },
+    );
   }
 }
 
@@ -1181,8 +1367,9 @@ class _WishlistPageState extends State<_WishlistPage> {
         return ValueListenableBuilder<Set<WishColumn>>(
           valueListenable: CavePreferencesService.wishVisible,
           builder: (context, visibleCols, _) {
+            final hideP = CavePreferencesService.hidePrices.value;
             final cols = WishColumn.values
-                .where((c) => visibleCols.contains(c))
+                .where((c) => visibleCols.contains(c) && (!hideP || c != WishColumn.marketValue))
                 .toList();
             final isMobile = MediaQuery.of(context).size.width < 600;
             final hasFilterData = allFilterData.any((e) => e.country.isNotEmpty);
@@ -1500,7 +1687,7 @@ class _WishCard extends StatelessWidget {
                         if (w.appellation.isNotEmpty) _chip(w.appellation, AppColors.text3),
                         if (w.region.isNotEmpty && w.appellation.isEmpty) _chip(w.region, AppColors.text3),
                         if (gardeInfo != null) _chip(gardeInfo.label, gardeInfo.color, bold: true),
-                        if (w.marketValue != null)
+                        if (w.marketValue != null && !CavePreferencesService.hidePrices.value)
                           Text('${w.marketValue!.toStringAsFixed(0)} \$',
                               style: AppText.sans(color: AppColors.text3, fontSize: 10)),
                         if (w.rating != null)

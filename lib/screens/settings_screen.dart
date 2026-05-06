@@ -523,10 +523,25 @@ class _CaveContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Set<CaveColumn>>(
-      valueListenable: CavePreferencesService.visible,
-      builder: (context, visible, _) {
-        return _SettingsSubsection(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ValueListenableBuilder<bool>(
+          valueListenable: CavePreferencesService.hidePrices,
+          builder: (context, hide, _) {
+            return _ToggleRow(
+              label: 'Cacher les prix',
+              subtitle: 'Masque toutes les informations financières dans l\'app.',
+              value: hide,
+              onChanged: (v) => CavePreferencesService.setHidePrices(v),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        ValueListenableBuilder<Set<CaveColumn>>(
+          valueListenable: CavePreferencesService.visible,
+          builder: (context, visible, _) {
+            return _SettingsSubsection(
           title: 'Colonnes du tableau',
           description:
               'Active les colonnes que tu veux voir. Photo, Vin et Qté sont toujours affichées.',
@@ -557,8 +572,58 @@ class _CaveContent extends StatelessWidget {
               ],
             ],
           ),
-        );
-      },
+          );
+        },
+        ),
+      ],
+    );
+  }
+}
+
+class _ToggleRow extends StatelessWidget {
+  final String label;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _ToggleRow({required this.label, this.subtitle, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppText.sans(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle!, style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+                  ],
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.gold,
+              activeTrackColor: AppColors.gold.withValues(alpha: 0.3),
+              inactiveThumbColor: AppColors.text3,
+              inactiveTrackColor: AppColors.bg4,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -40,6 +40,9 @@ class CavePreferencesService {
   static final ValueNotifier<Map<StatItem, StatChartType>> statsChartTypes =
       ValueNotifier({});
 
+  static const _hidePricesKey = 'hide_prices';
+  static final ValueNotifier<bool> hidePrices = ValueNotifier(false);
+
   static const _autoRefreshEnabledKey = 'auto_refresh_enabled';
   static const _autoRefreshPercentKey = 'auto_refresh_percent';
   static const _autoRefreshPeriodKey = 'auto_refresh_period';
@@ -76,12 +79,17 @@ class CavePreferencesService {
     final layoutLocal = prefs.getStringList(_statsLayoutKey);
     if (layoutLocal != null) statsLayout.value = _decodeLayout(layoutLocal);
 
-    final hidePrices = prefs.getBool(_statsHidePricesKey);
-    if (hidePrices != null) statsHidePrices.value = hidePrices;
+    final statsHidePricesLocal = prefs.getBool(_statsHidePricesKey);
+    if (statsHidePricesLocal != null) statsHidePrices.value = statsHidePricesLocal;
 
     final chartTypesLocal = prefs.getStringList(_statsChartTypesKey);
     if (chartTypesLocal != null) {
       statsChartTypes.value = _decodeChartTypes(chartTypesLocal);
+    }
+
+    final hidePricesLocal = prefs.getBool(_hidePricesKey);
+    if (hidePricesLocal != null) {
+      hidePrices.value = hidePricesLocal;
     }
 
     final arEnabled = prefs.getBool(_autoRefreshEnabledKey);
@@ -166,13 +174,21 @@ class CavePreferencesService {
         );
       }
 
+      final remoteHidePricesGlobal = snap.data()?['hidePrices'] as bool?;
+      if (remoteHidePricesGlobal != null) {
+        hidePrices.value = remoteHidePricesGlobal;
+        await prefs.setBool(_hidePricesKey, remoteHidePricesGlobal);
+      } else if (hidePricesLocal != null) {
+        await _settingsDoc.set({'hidePrices': hidePricesLocal}, SetOptions(merge: true));
+      }
+
       final remoteHidePrices = snap.data()?['statsHidePrices'] as bool?;
       if (remoteHidePrices != null) {
         statsHidePrices.value = remoteHidePrices;
         await prefs.setBool(_statsHidePricesKey, remoteHidePrices);
-      } else if (hidePrices != null) {
+      } else if (statsHidePricesLocal != null) {
         await _settingsDoc.set(
-          {'statsHidePrices': hidePrices},
+          {'statsHidePrices': statsHidePricesLocal},
           SetOptions(merge: true),
         );
       }
@@ -226,6 +242,15 @@ class CavePreferencesService {
         {'caveColumns': ids},
         SetOptions(merge: true),
       );
+    } catch (_) {}
+  }
+
+  static Future<void> setHidePrices(bool hide) async {
+    hidePrices.value = hide;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hidePricesKey, hide);
+    try {
+      await _settingsDoc.set({'hidePrices': hide}, SetOptions(merge: true));
     } catch (_) {}
   }
 

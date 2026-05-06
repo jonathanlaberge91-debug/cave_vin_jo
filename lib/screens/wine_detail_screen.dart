@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 import '../models/wine.dart';
+import '../services/cave_preferences_service.dart';
 import '../models/bottle.dart';
 import '../services/actualisation_service.dart';
 import '../services/cave_service.dart';
@@ -287,30 +288,33 @@ class _DialogBodyState extends State<_DialogBody> {
       (s, b) => s + (b.marketValue ?? b.purchasePrice ?? 0),
     );
 
+    final hideP = CavePreferencesService.hidePrices.value;
     final stats = <_StatTileData>[
       _StatTileData(label: 'Bouteilles', value: '$qty'),
       if (wine.rating != null)
         _StatTileData(label: 'Note', value: '${wine.rating}', suffix: '/100'),
-      for (final e in marketByFormat.entries)
-        _StatTileData(
-          label: marketByFormat.length > 1
-              ? 'Val. ${e.key.label}'
-              : 'Val. marché',
-          value: e.value.toStringAsFixed(0),
-          suffix: ' \$',
-        ),
-      if (avgPrice != null && avgPrice > 0)
-        _StatTileData(
-          label: 'Prix payé moy.',
-          value: avgPrice.toStringAsFixed(0),
-          suffix: ' \$',
-        ),
-      if (totalValue > 0 && qty > 1)
-        _StatTileData(
-          label: 'Valeur totale',
-          value: totalValue.toStringAsFixed(0),
-          suffix: ' \$',
-        ),
+      if (!hideP) ...[
+        for (final e in marketByFormat.entries)
+          _StatTileData(
+            label: marketByFormat.length > 1
+                ? 'Val. ${e.key.label}'
+                : 'Val. marché',
+            value: e.value.toStringAsFixed(0),
+            suffix: ' \$',
+          ),
+        if (avgPrice != null && avgPrice > 0)
+          _StatTileData(
+            label: 'Prix payé moy.',
+            value: avgPrice.toStringAsFixed(0),
+            suffix: ' \$',
+          ),
+        if (totalValue > 0 && qty > 1)
+          _StatTileData(
+            label: 'Valeur totale',
+            value: totalValue.toStringAsFixed(0),
+            suffix: ' \$',
+          ),
+      ],
     ];
 
     return Column(
@@ -1484,7 +1488,7 @@ class _BottleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (b.purchasePrice != null) ...[
+              if (b.purchasePrice != null && !CavePreferencesService.hidePrices.value) ...[
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
