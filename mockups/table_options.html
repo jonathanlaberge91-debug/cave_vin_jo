@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cave — Options tableau desktop</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#0E0C0A;color:#F5EDD8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;padding-bottom:80px}
+
+/* ── NAV ── */
+.nav{position:sticky;top:0;z-index:100;background:#1A1510;border-bottom:1px solid #2E2418;display:flex;align-items:center;gap:6px;padding:10px 24px}
+.nav span{color:#8A7A63;font-size:12px;margin-right:8px}
+.nav a{text-decoration:none;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #3D3020;color:#C8B89A;transition:all .15s}
+.nav a:hover,.nav a.active{background:#C9A84C22;border-color:#C9A84C66;color:#E2C06B}
+
+/* ── SECTION ── */
+.section{max-width:1440px;margin:40px auto 0;padding:0 20px}
+.opt-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.opt-badge{width:32px;height:32px;border-radius:8px;background:#C9A84C22;border:1px solid #C9A84C44;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#E2C06B;flex-shrink:0;margin-top:2px}
+.opt-title{font-size:18px;font-weight:700;color:#F5EDD8;margin-bottom:4px}
+.opt-desc{font-size:12px;color:#8A7A63;line-height:1.5}
+.opt-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.6px;margin-right:6px;margin-bottom:2px}
+.tag-font{background:#546E7A22;border:1px solid #546E7A44;color:#78909C}
+.tag-wrap{background:#2E7D3222;border:1px solid #2E7D3244;color:#66BB6A}
+.tag-pad{background:#B23A4822;border:1px solid #B23A4844;color:#E8667A}
+
+/* ── TABLE WRAPPER ── */
+.table-wrap{border-radius:10px;overflow:hidden;border:1px solid #2E2418;background:#1A1510}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead tr{background:#231C13}
+th{padding:9px 8px;text-align:left;font-size:10px;font-weight:700;color:#8A7A63;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;overflow:hidden;border-bottom:1px solid #2E2418}
+th.center,td.center{text-align:center}
+th.right,td.right{text-align:right}
+
+tbody tr{border-bottom:1px solid #2E2418;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#C9A84C0D}
+tbody tr:hover td.accent-left{border-left-color:#C9A84C}
+td{vertical-align:middle;padding:0 8px;overflow:hidden}
+td.accent-left{border-left:3px solid transparent;padding-left:5px}
+
+/* ── COLUMN WIDTHS (shared) ── */
+col.c-photo{width:52px}
+col.c-name{width:16%}
+col.c-vintage{width:58px}
+col.c-region{width:10%}
+col.c-garde{width:84px}
+col.c-format{width:68px}
+col.c-price{width:76px}
+col.c-value{width:72px}
+col.c-qty{width:44px}
+col.c-country{width:86px}
+col.c-appellation{width:10%}
+col.c-climat{width:104px}
+col.c-alcohol{width:60px}
+col.c-domaine{width:11%}
+
+/* ── CELLS ── */
+.photo-cell{display:flex;align-items:center;justify-content:center;height:100%}
+.photo-ph{width:42px;height:56px;background:#231C13;border:1px solid #2E2418;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#8A7A63}
+.photo-img{width:42px;height:56px;border-radius:4px;object-fit:cover}
+
+.vin-cell{display:flex;align-items:center;gap:8px;overflow:hidden}
+.vin-dot{width:8px;height:8px;border-radius:50%;background:#B23A48;flex-shrink:0}
+.vin-text{overflow:hidden;min-width:0}
+.vin-name{font-size:14px;font-weight:500;color:#F5EDD8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Georgia,serif}
+.vin-prod{font-size:11px;color:#8A7A63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+
+.badge-vintage{display:inline-block;padding:2px 7px;background:#C9A84C1F;border:1px solid #C9A84C40;border-radius:5px;font-size:11px;font-weight:700;color:#E2C06B;white-space:nowrap}
+
+.region-cell{overflow:hidden}
+.region-main{font-size:12px;font-weight:500;color:#F5EDD8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.region-sub{font-size:10px;color:#8A7A63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+
+.badge-garde{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.garde-aboire{background:#2E7D3230;border:1px solid #2E7D3248;color:#66BB6A}
+.garde-garde{background:#546E7A30;border:1px solid #546E7A48;color:#78909C}
+.garde-apogee{background:linear-gradient(90deg,#B8860B,#D4A843,#F5E6A3);border:1px solid #D4A84380;color:#1A1408}
+.garde-passe{background:#C6282830;border:1px solid #C6282848;color:#EF5350}
+
+.text-cell{font-size:12px;color:#C8B89A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.text-cell.empty{color:#8A7A63}
+.text-val{font-size:12px;color:#F5EDD8;font-weight:500;white-space:nowrap}
+.text-muted{font-size:12px;color:#8A7A63}
+
+.badge-qty{display:inline-block;padding:2px 9px;background:#231C13;border:1px solid #3D3020;border-radius:20px;font-size:11px;font-weight:700;color:#F5EDD8}
+
+/* ── OPTION-SPECIFIC OVERRIDES ── */
+
+/* A: compact 11px 1 ligne */
+.opt-a td{padding-top:7px;padding-bottom:7px}
+.opt-a .vin-name{font-size:13px}
+.opt-a .vin-prod{font-size:10px}
+.opt-a .region-main{font-size:11px}
+.opt-a .region-sub{font-size:10px}
+.opt-a .text-cell,.opt-a .text-val,.opt-a .text-muted{font-size:11px}
+.opt-a .badge-vintage{font-size:10px}
+.opt-a .badge-garde{font-size:9px;padding:2px 8px}
+.opt-a .badge-qty{font-size:10px;padding:2px 7px}
+
+/* B: 12px 2 lignes */
+.opt-b td{padding-top:10px;padding-bottom:10px}
+.opt-b .vin-prod{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:unset}
+.opt-b .text-cell{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:unset}
+
+/* C: 11px 2 lignes */
+.opt-c td{padding-top:8px;padding-bottom:8px}
+.opt-c .vin-name{font-size:13px}
+.opt-c .vin-prod{font-size:10px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:unset}
+.opt-c .region-main{font-size:11px}
+.opt-c .region-sub{font-size:10px}
+.opt-c .text-cell,.opt-c .text-val,.opt-c .text-muted{font-size:11px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:unset}
+.opt-c .badge-vintage{font-size:10px}
+.opt-c .badge-garde{font-size:9px;padding:2px 8px}
+.opt-c .badge-qty{font-size:10px;padding:2px 7px}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <span>Options:</span>
+  <a href="#a">A — Compact 11px · 1 ligne</a>
+  <a href="#b">B — 12px · 2 lignes</a>
+  <a href="#c">C — Compact 11px · 2 lignes</a>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const rows = [
+  { name:'Masseto',           prod:'Tenuta Masseto',                  vin:2014, region:'Toscane',    country:'Italie',      garde:'aboire',  format:'750 ML',   price:null,   value:0,     qty:1, app:'Toscana IGT',             climat:'Masseto',                      alc:'14,5 %', domaine:'Masseto',                                  photo:'🍾' },
+  { name:'Tignanello',        prod:'Marchesi Antinori',               vin:2020, region:'Toscane',    country:'Italie',      garde:'aboire',  format:'750 ML',   price:null,   value:567,   qty:3, app:'Toscana IGT',             climat:'Collines du Chianti Classico', alc:'14,0 %', domaine:'Tenuta Tignanello',                        photo:'🍷' },
+  { name:'Masseto',           prod:'Tenuta Masseto',                  vin:2014, region:'Toscane',    country:'Italie',      garde:'aboire',  format:'3000 ML',  price:275,    value:2700,  qty:2, app:'Toscana IGT',             climat:'Masseto',                      alc:'14,5 %', domaine:'Masseto',                                  photo:'🍾' },
+  { name:'Romanée-Conti',     prod:'Domaine de la Romanée-Conti',    vin:2000, region:'Bourgogne',  country:'France',      garde:'aboire',  format:'750 ML',   price:null,   value:35000, qty:1, app:'Romanée-Conti Grand Cru', climat:'Romanée-Conti',                alc:'13,5 %', domaine:'Domaine de la Romanée-Conti (Monopole)',   photo:'🍷' },
+  { name:'Château Beychevelle', prod:'Château Beychevelle',          vin:2023, region:'Bordeaux',   country:'France',      garde:'garde',   format:'750 ML',   price:null,   value:115,   qty:1, app:'Saint-Julien',            climat:'—',                            alc:'13,2 %', domaine:'—',                                        photo:'🍾' },
+  { name:'Château Margaux',   prod:'Château Margaux',                vin:2008, region:'Bordeaux',   country:'France',      garde:'aboire',  format:'750 ML',   price:500,    value:1250,  qty:1, app:'Margaux',                 climat:'—',                            alc:'13,0 %', domaine:'—',                                        photo:'🍾' },
+  { name:'Sassicaia',         prod:'Tenuta San Guido',               vin:1992, region:'Toscane',    country:'Italie',      garde:'apogee',  format:'750 ML',   price:null,   value:525,   qty:1, app:'Bolgheri Sassicaia DOC',  climat:'—',                            alc:'13,0 %', domaine:'—',                                        photo:'🍾' },
+  { name:'Dominus',           prod:'Dominus Estate',                 vin:2010, region:'Californie', country:'États-Unis',  garde:'aboire',  format:'750 ML',   price:null,   value:1500,  qty:2, app:'Napa Valley',             climat:'Napanook Vineyard',            alc:'14,5 %', domaine:'Dominus Estate',                           photo:'🍷' },
+  { name:'Dominus',           prod:'Dominus Estate',                 vin:2010, region:'Californie', country:'États-Unis',  garde:'aboire',  format:'3000 ML',  price:null,   value:4500,  qty:1, app:'Napa Valley',             climat:'Napanook Vineyard',            alc:'14,5 %', domaine:'Dominus Estate',                           photo:'🍾' },
+];
+
+const gardeLabel = { aboire:'À boire', garde:'Garde', apogee:'Apogée', passe:'Passé' };
+
+function fmtVal(v) {
+  if (!v) return '<span class="text-muted">—</span>';
+  return '<span class="text-val">' + v.toLocaleString('fr-CA') + '&nbsp;$</span>';
+}
+function fmtPrice(p) {
+  if (p == null) return '<span class="text-muted">—</span>';
+  return '<span class="text-val">' + p.toLocaleString('fr-CA') + '&nbsp;$</span>';
+}
+
+function buildTable(optClass) {
+  const tbody = rows.map(r => {
+    const gardeBadge = `<span class="badge-garde garde-${r.garde}">${gardeLabel[r.garde]}</span>`;
+    const vintBadge  = `<span class="badge-vintage">${r.vin}</span>`;
+    const qtyBadge   = `<span class="badge-qty">${r.qty}</span>`;
+    const phonoCell  = `<div class="photo-cell"><div class="photo-ph">${r.photo}</div></div>`;
+    const vinCell = `
+      <div class="vin-cell">
+        <div class="vin-dot"></div>
+        <div class="vin-text">
+          <div class="vin-name">${r.name}</div>
+          <div class="vin-prod">${r.prod}</div>
+        </div>
+      </div>`;
+    const regionCell = `
+      <div class="region-cell">
+        <div class="region-main">${r.region}</div>
+        <div class="region-sub">${r.country}</div>
+      </div>`;
+    const tc = (v) => v && v !== '—'
+      ? `<span class="text-cell">${v}</span>`
+      : `<span class="text-cell empty">—</span>`;
+
+    return `<tr>
+      <td class="accent-left">${phonoCell}</td>
+      <td>${vinCell}</td>
+      <td class="center">${vintBadge}</td>
+      <td>${regionCell}</td>
+      <td>${gardeBadge}</td>
+      <td>${tc(r.format)}</td>
+      <td class="right">${fmtPrice(r.price)}</td>
+      <td class="right">${fmtVal(r.value)}</td>
+      <td class="center">${qtyBadge}</td>
+      <td>${tc(r.country)}</td>
+      <td>${tc(r.app)}</td>
+      <td>${tc(r.climat)}</td>
+      <td class="right"><span class="text-cell">${r.alc}</span></td>
+      <td>${tc(r.domaine)}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="table-wrap">
+    <table class="${optClass}">
+      <colgroup>
+        <col class="c-photo"><col class="c-name"><col class="c-vintage">
+        <col class="c-region"><col class="c-garde"><col class="c-format">
+        <col class="c-price"><col class="c-value"><col class="c-qty">
+        <col class="c-country"><col class="c-appellation"><col class="c-climat">
+        <col class="c-alcohol"><col class="c-domaine">
+      </colgroup>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Vin</th>
+          <th class="center">Mill.</th>
+          <th>Région</th>
+          <th>Garde</th>
+          <th>Format</th>
+          <th class="right">Prix moy.</th>
+          <th class="right">Valeur</th>
+          <th class="center">Qté</th>
+          <th>Pays</th>
+          <th>Appellation</th>
+          <th>Climat</th>
+          <th class="right">Alcool</th>
+          <th>Domaine</th>
+        </tr>
+      </thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('table-a').innerHTML = buildTable('opt-a');
+  document.getElementById('table-b').innerHTML = buildTable('opt-b');
+  document.getElementById('table-c').innerHTML = buildTable('opt-c');
+});
+</script>
+
+<!-- ═══════════════════════ OPTION A ═══════════════════════ -->
+<div class="section" id="a">
+  <div class="opt-header">
+    <div class="opt-badge">A</div>
+    <div>
+      <div class="opt-title">Compact · Police réduite 11px · 1 ligne</div>
+      <div class="opt-desc">
+        <span class="opt-tag tag-font">Police 11px</span>
+        <span class="opt-tag tag-pad">Rangées denses</span>
+        Tout le texte est réduit de 12→11px (nom du vin 14→13px). Les rangées sont plus serrées (7px de padding).
+        Les textes longs restent coupés mais les colonnes contiennent plus de caractères qu'actuellement.
+      </div>
+    </div>
+  </div>
+  <div id="table-a"></div>
+</div>
+
+<!-- ═══════════════════════ OPTION B ═══════════════════════ -->
+<div class="section" id="b" style="margin-top:50px">
+  <div class="opt-header">
+    <div class="opt-badge">B</div>
+    <div>
+      <div class="opt-title">Deux lignes · Police actuelle 12px</div>
+      <div class="opt-desc">
+        <span class="opt-tag tag-wrap">2 lignes</span>
+        Police inchangée. Le producteur, l'appellation, le climat et le domaine peuvent s'étaler sur 2 lignes.
+        Les rangées grandissent seulement quand le contenu est long — les lignes courtes restent compactes.
+      </div>
+    </div>
+  </div>
+  <div id="table-b"></div>
+</div>
+
+<!-- ═══════════════════════ OPTION C ═══════════════════════ -->
+<div class="section" id="c" style="margin-top:50px">
+  <div class="opt-header">
+    <div class="opt-badge">C</div>
+    <div>
+      <div class="opt-title">Compact + deux lignes · Police 11px</div>
+      <div class="opt-desc">
+        <span class="opt-tag tag-font">Police 11px</span>
+        <span class="opt-tag tag-wrap">2 lignes</span>
+        <span class="opt-tag tag-pad">Rangées denses</span>
+        Combinaison des deux : police réduite à 11px ET 2 lignes autorisées. Meilleur équilibre entre densité et lisibilité.
+      </div>
+    </div>
+  </div>
+  <div id="table-c"></div>
+</div>
+
+</body>
+</html>

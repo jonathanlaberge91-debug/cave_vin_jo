@@ -464,13 +464,12 @@ class _CellarCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(color: AppColors.bg3, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _tempButton(Icons.remove, sending ? null : () => onSend(index, '2', status.targetTemp - 1)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Text('${status.targetTemp}$_unit', style: AppText.sans(color: AppColors.gold2, fontSize: 22, fontWeight: FontWeight.w700)),
-                      ),
+                      const SizedBox(width: 8),
+                      Text('${status.targetTemp}$_unit', style: AppText.sans(color: AppColors.gold2, fontSize: 22, fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 8),
                       _tempButton(Icons.add, sending ? null : () => onSend(index, '2', status.targetTemp + 1)),
                     ],
                   ),

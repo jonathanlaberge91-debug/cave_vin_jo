@@ -1,9 +1,14 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const crypto = require("crypto");
 const https = require("https");
 
-const ACCESS_ID = "fj3v7v73dvschschp949";
-const ACCESS_SECRET = "e0bf1dccdb0641e3b4beef3f046d8715";
+// Secrets gérés via Firebase Secret Manager. Set via :
+//   firebase functions:secrets:set TUYA_ACCESS_ID
+//   firebase functions:secrets:set TUYA_ACCESS_SECRET
+const TUYA_ACCESS_ID = defineSecret("TUYA_ACCESS_ID");
+const TUYA_ACCESS_SECRET = defineSecret("TUYA_ACCESS_SECRET");
+
 const HOST = "openapi.tuyaus.com";
 
 const CELLARS = [
@@ -11,25 +16,27 @@ const CELLARS = [
   { name: "Wine CellR G", id: "eb53160c227afdea2evnfe" },
 ];
 
-function sign(method, path, headers, body) {
+function sign(method, path, headers, body, accessId, accessSecret) {
   const t = headers["t"];
   const contentHash = crypto.createHash("sha256").update(body || "").digest("hex");
   const stringToSign = [method, contentHash, "", path].join("\n");
-  const str = ACCESS_ID + (headers["access_token"] || "") + t + stringToSign;
-  return crypto.createHmac("sha256", ACCESS_SECRET).update(str).digest("hex").toUpperCase();
+  const str = accessId + (headers["access_token"] || "") + t + stringToSign;
+  return crypto.createHmac("sha256", accessSecret).update(str).digest("hex").toUpperCase();
 }
 
 function tuyaRequest(method, path, token, body) {
+  const accessId = TUYA_ACCESS_ID.value();
+  const accessSecret = TUYA_ACCESS_SECRET.value();
   return new Promise((resolve, reject) => {
     const t = Date.now().toString();
     const headers = {
-      client_id: ACCESS_ID,
+      client_id: accessId,
       t,
       sign_method: "HMAC-SHA256",
       "Content-Type": "application/json",
     };
     if (token) headers["access_token"] = token;
-    headers["sign"] = sign(method, path, headers, body);
+    headers["sign"] = sign(method, path, headers, body, accessId, accessSecret);
 
     const opts = { hostname: HOST, port: 443, path, method, headers };
     const req = https.request(opts, (res) => {
@@ -112,7 +119,15 @@ function statusToDps(statusArr) {
   };
 }
 
-exports.tuyaProxy = onRequest({ cors: true, region: "us-east1" }, async (req, res) => {
+exports.tuyaProxy = onRequest({
+  cors: [
+    "https://cave-vin-jo.web.app",
+    "https://cave-vin-jo.firebaseapp.com",
+    /^http:\/\/localhost(:\d+)?$/,
+  ],
+  region: "us-east1",
+  secrets: [TUYA_ACCESS_ID, TUYA_ACCESS_SECRET],
+}, async (req, res) => {
   try {
     const token = await getToken();
     const path = req.path;
@@ -171,8 +186,8 @@ exports.tuyaProxy = onRequest({ cors: true, region: "us-east1" }, async (req, re
           await delay(1200);
         }
 
-        const r = await tuyaRequest("POST", `/v1.0/iot-03/devices/${CELLARS[idx].id}/commands`, token,
-          JSON.stringify({ commands: [{ code, value: v }] }));
+        const cmdPayload = JSON.stringify({ commands: [{ code, value: v }] });
+        const r = await tuyaRequest("POST", `/v1.0/iot-03/devices/${CELLARS[idx].id}/commands`, token, cmdPayload);
 
         if (wasLocked) {
           await delay(1200);

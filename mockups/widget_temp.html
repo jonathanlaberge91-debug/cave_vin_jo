@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Température Cellier — Mockups</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    background-image: radial-gradient(ellipse at 20% 50%, #16213e 0%, #0f0f23 100%);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 60px;
+  }
+
+  /* Fake Android home screen bg */
+  .screen {
+    width: 100%;
+    max-width: 900px;
+  }
+
+  h2 {
+    color: #ffffff88;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .widgets-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  /* ── WIDGET SIZES ── */
+  /* 2x2 = ~160x160px, 4x2 = ~340x160px, 4x1 = ~340x80px */
+
+  /* ─────────────────────────────────────────────
+     OPTION A — Minimaliste thermomètre
+     4x1 horizontal
+  ───────────────────────────────────────────── */
+  .widget-a {
+    width: 340px;
+    height: 80px;
+    background: linear-gradient(135deg, #1C1712 0%, #241E16 100%);
+    border-radius: 20px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    gap: 16px;
+    box-shadow: 0 4px 24px #00000066, 0 0 40px #C9A84C0A;
+    position: relative;
+    overflow: hidden;
+  }
+  .widget-a::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #C9A84C08 0%, transparent 60%);
+  }
+  .widget-a .icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .widget-a .divider {
+    width: 1px;
+    height: 44px;
+    background: linear-gradient(to bottom, transparent, #C9A84C40, transparent);
+    flex-shrink: 0;
+  }
+  .widget-a .zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+  .widget-a .zone-label {
+    font-size: 8px;
+    color: #E8A04C;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .widget-a .zone-temp {
+    font-size: 22px;
+    font-weight: 700;
+    color: #F5E6C8;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .widget-a .zone-hum {
+    font-size: 9px;
+    color: #70B8E8AA;
+    margin-top: 2px;
+  }
+  .widget-a .app-name {
+    position: absolute;
+    bottom: 6px;
+    right: 12px;
+    font-size: 7px;
+    color: #ffffff22;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ─────────────────────────────────────────────
+     OPTION B — Carte riche 2x2
+  ───────────────────────────────────────────── */
+  .widget-b {
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(160deg, #20180E 0%, #1A1410 50%, #161210 100%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C44;
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    box-shadow: 0 8px 32px #00000077, 0 0 60px #C9A84C0D;
+    position: relative;
+    overflow: hidden;
+    justify-content: space-between;
+  }
+  .widget-b::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, #C9A84C18 0%, transparent 70%);
+  }
+  .widget-b .b-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .widget-b .b-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #C9A84C;
+    box-shadow: 0 0 6px #C9A84C;
+  }
+  .widget-b .b-title {
+    font-size: 9px;
+    color: #C9A84CAA;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .widget-b .b-main-temp {
+    font-size: 42px;
+    font-weight: 700;
+    color: #F5E6C8;
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .widget-b .b-main-unit {
+    font-size: 14px;
+    color: #C9A84C;
+    font-weight: 600;
+  }
+  .widget-b .b-sub {
+    font-size: 9px;
+    color: #70B8E888;
+    margin-top: 2px;
+  }
+  .widget-b .b-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .widget-b .b-zone-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .widget-b .b-zone-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .widget-b .b-zone-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+  }
+  .widget-b .b-zone-text {
+    font-size: 9px;
+    color: #E8DCC0AA;
+  }
+  .widget-b .b-time {
+    font-size: 8px;
+    color: #ffffff22;
+  }
+
+  /* ─────────────────────────────────────────────
+     OPTION C — Double cellier 4x2
+  ───────────────────────────────────────────── */
+  .widget-c {
+    width: 340px;
+    height: 160px;
+    background: linear-gradient(135deg, #191410 0%, #1E1914 60%, #181310 100%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 18px;
+    box-shadow: 0 8px 32px #00000077, 0 0 60px #C9A84C0A;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .widget-c::before {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: -20px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, #70B8E810 0%, transparent 70%);
+  }
+  .widget-c .c-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .widget-c .c-title {
+    font-size: 9px;
+    color: #C9A84C99;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .widget-c .c-updated {
+    font-size: 8px;
+    color: #ffffff22;
+  }
+  .widget-c .c-zones {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+  }
+  .widget-c .c-zone {
+    flex: 1;
+    background: #ffffff06;
+    border-radius: 12px;
+    border: 1px solid #ffffff0D;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .widget-c .c-zone.d { border-color: #E8A04C22; }
+  .widget-c .c-zone.g { border-color: #70B8E822; }
+  .widget-c .c-zone-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .widget-c .c-zone-icon { font-size: 10px; }
+  .widget-c .c-zone-name {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .widget-c .c-zone.d .c-zone-name { color: #E8A04C; }
+  .widget-c .c-zone.g .c-zone-name { color: #70B8E8; }
+  .widget-c .c-temp-row {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+  }
+  .widget-c .c-temp {
+    font-size: 30px;
+    font-weight: 700;
+    color: #F5E6C8;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .widget-c .c-unit {
+    font-size: 12px;
+    font-weight: 600;
+    color: #C9A84C;
+  }
+  .widget-c .c-hum {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    color: #70B8E899;
+  }
+  .widget-c .c-bar {
+    height: 3px;
+    background: #ffffff10;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .widget-c .c-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .widget-c .c-zone.d .c-bar-fill { background: linear-gradient(to right, #C9A84C, #F5D060); }
+  .widget-c .c-zone.g .c-bar-fill { background: linear-gradient(to right, #4A90B8, #70B8E8); }
+
+  /* ─────────────────────────────────────────────
+     OPTION D — Verre de vin + chiffre géant 2x2
+  ───────────────────────────────────────────── */
+  .widget-d {
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(ellipse at 30% 20%, #2A1F12 0%, #161210 80%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C33;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px #00000077;
+    position: relative;
+    overflow: hidden;
+    gap: 2px;
+  }
+  .widget-d .d-bg-icon {
+    position: absolute;
+    font-size: 90px;
+    opacity: 0.05;
+    bottom: -10px;
+    right: -10px;
+  }
+  .widget-d .d-label {
+    font-size: 8px;
+    color: #C9A84C99;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .widget-d .d-temp {
+    font-size: 52px;
+    font-weight: 800;
+    color: #F5E6C8;
+    line-height: 1;
+    letter-spacing: -3px;
+  }
+  .widget-d .d-unit {
+    font-size: 18px;
+    color: #C9A84C;
+    font-weight: 600;
+    align-self: flex-start;
+    margin-top: 4px;
+    margin-left: -4px;
+  }
+  .widget-d .d-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+  }
+  .widget-d .d-hum {
+    font-size: 11px;
+    color: #70B8E877;
+    margin-top: 2px;
+  }
+  .widget-d .d-name {
+    font-size: 9px;
+    color: #C9A84C66;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ─────────────────────────────────────────────
+     OPTION E — Status card avec alerte 4x2
+  ───────────────────────────────────────────── */
+  .widget-e {
+    width: 340px;
+    height: 160px;
+    background: linear-gradient(135deg, #1A1410 0%, #1E1914 100%);
+    border-radius: 24px;
+    border: 1px solid #C9A84C33;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    box-shadow: 0 8px 32px #00000077;
+    overflow: hidden;
+    position: relative;
+  }
+  .widget-e .e-panel {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .widget-e .e-sep {
+    background: linear-gradient(to bottom, transparent, #C9A84C33, transparent);
+  }
+  .widget-e .e-name {
+    font-size: 8px;
+    color: #C9A84C88;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .widget-e .e-name.blue { color: #70B8E888; }
+  .widget-e .e-big-temp {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .widget-e .e-temp-num {
+    font-size: 44px;
+    font-weight: 700;
+    color: #F5E6C8;
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .widget-e .e-temp-unit {
+    font-size: 16px;
+    color: #C9A84C;
+    font-weight: 600;
+  }
+  .widget-e .e-temp-unit.blue { color: #70B8E8; }
+  .widget-e .e-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .widget-e .e-hum-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #70B8E888;
+  }
+  .widget-e .e-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .widget-e .e-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .widget-e .e-status-text {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─────────────────────────────────────────────
+     OPTION F — Pill minimaliste 4x1
+  ───────────────────────────────────────────── */
+  .widget-f {
+    width: 340px;
+    height: 80px;
+    background: #141010F0;
+    border-radius: 20px;
+    border: 1px solid #C9A84C55;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 0;
+    box-shadow: 0 4px 20px #00000055;
+    backdrop-filter: blur(10px);
+  }
+  .widget-f .f-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .widget-f .f-label {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .widget-f .f-label.orange { color: #E8A04C; }
+  .widget-f .f-label.blue { color: #70B8E8; }
+  .widget-f .f-label.white { color: #ffffff44; }
+  .widget-f .f-val {
+    font-size: 24px;
+    font-weight: 700;
+    color: #F5E6C8;
+    line-height: 1;
+  }
+  .widget-f .f-sub {
+    font-size: 9px;
+    color: #70B8E877;
+  }
+  .widget-f .f-vsep {
+    width: 1px;
+    height: 40px;
+    background: #C9A84C33;
+    margin: 0 12px;
+  }
+  .widget-f .f-icon {
+    font-size: 20px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<!-- OPTION A -->
+<div class="screen">
+  <h2>Option A — Bande horizontale 4×1</h2>
+  <div class="widgets-row">
+    <div class="widget-a">
+      <div class="icon">🍷</div>
+      <div class="divider"></div>
+      <div class="zone">
+        <div class="zone-label">▲ Wine CellR D</div>
+        <div class="zone-temp">12.4°</div>
+        <div class="zone-hum">💧 58%</div>
+      </div>
+      <div class="divider"></div>
+      <div class="zone">
+        <div class="zone-label">▲ Wine CellR G</div>
+        <div class="zone-temp">11.8°</div>
+        <div class="zone-hum">💧 61%</div>
+      </div>
+      <div class="app-name">Cave Vin</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION B -->
+<div class="screen">
+  <h2>Option B — Carte compacte 2×2 (un cellier)</h2>
+  <div class="widgets-row">
+    <div class="widget-b">
+      <div class="b-header">
+        <div class="b-dot"></div>
+        <div class="b-title">Wine CellR D</div>
+      </div>
+      <div>
+        <div style="display:flex; align-items:baseline; gap:2px;">
+          <div class="b-main-temp">12.4</div>
+          <div class="b-main-unit">°C</div>
+        </div>
+        <div class="b-sub">💧 58% humidité</div>
+      </div>
+      <div class="b-footer">
+        <div class="b-zone-row">
+          <div class="b-zone-item">
+            <div class="b-zone-dot" style="background:#E8A04C;"></div>
+            <div class="b-zone-text">Haut 12.4°</div>
+          </div>
+          <div class="b-zone-item">
+            <div class="b-zone-dot" style="background:#70B8E8;"></div>
+            <div class="b-zone-text">Bas 11.9°</div>
+          </div>
+        </div>
+        <div class="b-time">12:34</div>
+      </div>
+    </div>
+
+    <div class="widget-b" style="border-color:#70B8E844;">
+      <div class="b-header">
+        <div class="b-dot" style="background:#70B8E8; box-shadow: 0 0 6px #70B8E8;"></div>
+        <div class="b-title" style="color:#70B8E8AA;">Wine CellR G</div>
+      </div>
+      <div>
+        <div style="display:flex; align-items:baseline; gap:2px;">
+          <div class="b-main-temp">11.8</div>
+          <div class="b-main-unit" style="color:#70B8E8;">°C</div>
+        </div>
+        <div class="b-sub">💧 61% humidité</div>
+      </div>
+      <div class="b-footer">
+        <div class="b-zone-row">
+          <div class="b-zone-item">
+            <div class="b-zone-dot" style="background:#E8A04C;"></div>
+            <div class="b-zone-text">Haut 11.8°</div>
+          </div>
+          <div class="b-zone-item">
+            <div class="b-zone-dot" style="background:#70B8E8;"></div>
+            <div class="b-zone-text">Bas 11.5°</div>
+          </div>
+        </div>
+        <div class="b-time">12:34</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION C -->
+<div class="screen">
+  <h2>Option C — Double cellier côte à côte 4×2</h2>
+  <div class="widgets-row">
+    <div class="widget-c">
+      <div class="c-header">
+        <div class="c-title">🍷 Cave Vin Jo</div>
+        <div class="c-updated">mis à jour 12:34</div>
+      </div>
+      <div class="c-zones">
+        <div class="c-zone d">
+          <div class="c-zone-header">
+            <span class="c-zone-icon">🌡️</span>
+            <span class="c-zone-name">Wine CellR D</span>
+          </div>
+          <div class="c-temp-row">
+            <div class="c-temp">12.4</div>
+            <div class="c-unit">°C</div>
+          </div>
+          <div class="c-hum">💧 58%</div>
+          <div class="c-bar"><div class="c-bar-fill" style="width: 58%;"></div></div>
+        </div>
+        <div class="c-zone g">
+          <div class="c-zone-header">
+            <span class="c-zone-icon">🌡️</span>
+            <span class="c-zone-name">Wine CellR G</span>
+          </div>
+          <div class="c-temp-row">
+            <div class="c-temp">11.8</div>
+            <div class="c-unit" style="color:#70B8E8;">°C</div>
+          </div>
+          <div class="c-hum">💧 61%</div>
+          <div class="c-bar"><div class="c-bar-fill" style="width: 61%;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION D -->
+<div class="screen">
+  <h2>Option D — Chiffre géant minimaliste 2×2</h2>
+  <div class="widgets-row">
+    <div class="widget-d">
+      <div class="d-bg-icon">🌡️</div>
+      <div class="d-label">Wine CellR D</div>
+      <div class="d-row">
+        <div class="d-temp">12</div>
+        <div class="d-unit">.4°</div>
+      </div>
+      <div class="d-hum">💧 58%</div>
+      <div class="d-name">Haut • Bas 11.9°</div>
+    </div>
+
+    <div class="widget-d" style="border-color:#70B8E844; background: radial-gradient(ellipse at 30% 20%, #12182A 0%, #101216 80%);">
+      <div class="d-bg-icon">🌡️</div>
+      <div class="d-label" style="color:#70B8E899;">Wine CellR G</div>
+      <div class="d-row">
+        <div class="d-temp">11</div>
+        <div class="d-unit" style="color:#70B8E8;">.8°</div>
+      </div>
+      <div class="d-hum">💧 61%</div>
+      <div class="d-name" style="color:#70B8E866;">Haut • Bas 11.5°</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION E -->
+<div class="screen">
+  <h2>Option E — Panneau double avec statut 4×2</h2>
+  <div class="widgets-row">
+    <div class="widget-e">
+      <div class="e-panel">
+        <div>
+          <div class="e-name">Wine CellR D</div>
+          <div style="font-size:8px; color:#E8A04C88; margin-top:2px;">▲ HAUT</div>
+        </div>
+        <div class="e-big-temp">
+          <div class="e-temp-num">12.4</div>
+          <div class="e-temp-unit">°C</div>
+        </div>
+        <div class="e-bottom">
+          <div class="e-hum-row">💧 <span>58% humidité</span></div>
+          <div class="e-status">
+            <div class="e-dot" style="background:#7CD492; box-shadow: 0 0 4px #7CD492;"></div>
+            <div class="e-status-text" style="color:#7CD49299;">En marche</div>
+          </div>
+        </div>
+      </div>
+      <div class="e-sep"></div>
+      <div class="e-panel">
+        <div>
+          <div class="e-name blue">Wine CellR G</div>
+          <div style="font-size:8px; color:#70B8E888; margin-top:2px;">▲ HAUT</div>
+        </div>
+        <div class="e-big-temp">
+          <div class="e-temp-num">11.8</div>
+          <div class="e-temp-unit blue">°C</div>
+        </div>
+        <div class="e-bottom">
+          <div class="e-hum-row">💧 <span>61% humidité</span></div>
+          <div class="e-status">
+            <div class="e-dot" style="background:#7CD492; box-shadow: 0 0 4px #7CD492;"></div>
+            <div class="e-status-text" style="color:#7CD49299;">En marche</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION F -->
+<div class="screen">
+  <h2>Option F — Ultra-minimaliste 4×1</h2>
+  <div class="widgets-row">
+    <div class="widget-f">
+      <div class="f-section">
+        <div class="f-label white">🍷</div>
+        <div class="f-icon">🌡️</div>
+      </div>
+      <div class="f-vsep"></div>
+      <div class="f-section">
+        <div class="f-label orange">CellR D</div>
+        <div class="f-val">12.4°</div>
+        <div class="f-sub">💧 58%</div>
+      </div>
+      <div class="f-vsep"></div>
+      <div class="f-section">
+        <div class="f-label blue">CellR G</div>
+        <div class="f-val">11.8°</div>
+        <div class="f-sub">💧 61%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

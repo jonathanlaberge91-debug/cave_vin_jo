@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options 2 — En-tête cellier</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111009;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #E8E0D0;
+    padding: 40px 32px;
+  }
+
+  h1 { text-align: center; color: #C9A84C; font-family: Georgia, serif; font-size: 22px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #6A6050; font-size: 13px; margin-bottom: 48px; }
+
+  .section { margin-bottom: 60px; }
+  .section-title { color: #C9A84C; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .section-desc { color: #6A6050; font-size: 12px; margin-bottom: 20px; line-height: 1.6; }
+
+  .cards-row { display: flex; gap: 28px; flex-wrap: wrap; }
+
+  .card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 420px;
+    flex-shrink: 0;
+  }
+  .card.wide { width: 520px; }
+
+  .led-bar {
+    height: 12px;
+    background: linear-gradient(90deg,
+      #FF4444 0%, #FF9900 18%, #FFEE00 36%,
+      #44FF88 54%, #44AAFF 72%, #AA44FF 90%
+    );
+    opacity: 0.55;
+  }
+
+  .fake-grid {
+    height: 100px;
+    background: repeating-linear-gradient(
+      90deg,
+      #1A1710 0px, #1A1710 24px,
+      #1E1C14 24px, #1E1C14 25px
+    );
+    opacity: 0.5;
+  }
+
+  .side-bars { display: flex; }
+  .light-bar { width: 6px; background: linear-gradient(180deg, #FFEE88 0%, transparent 100%); opacity: 0.3; min-height: 80px; }
+  .side-content { flex: 1; }
+
+  /* Big +/- buttons */
+  .big-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    background: #1E1C14;
+    border: 1px solid #4A4438;
+    border-radius: 8px;
+    color: #C9A84C;
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s;
+    user-select: none;
+  }
+  .big-btn:hover { background: #2A2820; }
+
+  .big-btn.round {
+    border-radius: 50%;
+    width: 30px; height: 30px;
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 10px; font-weight: 700;
+  }
+  .pill.green { background: #7CD49222; border: 1px solid #7CD49244; color: #7CD492; }
+  .pill.red   { background: #E8667A22; border: 1px solid #E8667A44; color: #E8667A; }
+
+  .lock-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    background: #7CD49218; border: 1px solid #7CD49244;
+    border-radius: 7px; font-size: 13px;
+    cursor: pointer;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Options — En-tête cellier v2</h1>
+<p class="subtitle">Nom centré · Barre de remplissage · Consigne proéminente · Boutons +/− plus grands</p>
+
+
+<!-- ══════════════════════════════════════════════
+     OPTION 1 — Centré vertical propre
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Option 1 — Centré vertical propre</div>
+  <div class="section-desc">
+    Nom centré en serif. Barre de remplissage avec pourcentage. Govee en petits tags discrets.
+    Consigne Tuya large au centre avec gros ±.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+
+      <!-- Nom centré -->
+      <div style="padding: 14px 18px 6px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600; letter-spacing:.3px;">Cellier du sous-sol</div>
+      </div>
+
+      <!-- Remplissage -->
+      <div style="padding: 0 20px 10px; text-align:center;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:5px;">
+          <span style="color:#8A8070; font-size:11px;">48</span>
+          <div style="flex:1; max-width:160px; height:4px; background:#2A2820; border-radius:2px; overflow:hidden;">
+            <div style="width:40%; height:100%; background: linear-gradient(90deg, #C9A84C88, #C9A84C); border-radius:2px;"></div>
+          </div>
+          <span style="color:#8A8070; font-size:11px;">120</span>
+        </div>
+        <div style="color:#6A6050; font-size:10px; letter-spacing:.3px;">40% rempli</div>
+      </div>
+
+      <!-- Séparateur + Govee inline -->
+      <div style="border-top:1px solid #2A2820; padding: 8px 18px; display:flex; justify-content:center; gap:16px;">
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="background:#E8A04C18; border:1px solid #E8A04C33; border-radius:5px; padding:2px 7px; color:#E8A04C; font-size:10px; font-weight:700;">▲ 14.5°C</span>
+          <span style="color:#6A6050; font-size:10px;">58%</span>
+        </div>
+        <div style="width:1px; background:#2A2820;"></div>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="background:#70B8E818; border:1px solid #70B8E833; border-radius:5px; padding:2px 7px; color:#70B8E8; font-size:10px; font-weight:700;">▼ 12.3°C</span>
+          <span style="color:#6A6050; font-size:10px;">62%</span>
+        </div>
+      </div>
+
+      <!-- Consigne Tuya -->
+      <div style="border-top:1px solid #2A2820; padding: 10px 18px 12px; display:flex; align-items:center; justify-content:center; gap:12px;">
+        <div class="pill green">⏻ ON</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="big-btn">−</div>
+          <div style="text-align:center; min-width:52px;">
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; line-height:1;">14°C</div>
+            <div style="color:#6A6050; font-size:9px; margin-top:1px;">consigne</div>
+          </div>
+          <div class="big-btn">+</div>
+        </div>
+        <div class="lock-btn">🔓</div>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     OPTION 2 — Nom + bloc central unifié
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Option 2 — Bloc central avec fond</div>
+  <div class="section-desc">
+    Nom centré. Un bloc foncé regroupe consigne + remplissage côte à côte.
+    Govee discret sous le nom. Plus compact en hauteur.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+
+      <!-- Nom + govee mini -->
+      <div style="padding: 12px 18px 8px; text-align:center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600; margin-bottom:6px;">Cellier du sous-sol</div>
+        <div style="display:inline-flex; align-items:center; gap:10px;">
+          <span style="color:#E8A04C; font-size:11px; font-weight:600;">▲ 14.5° <span style="color:#6A6050; font-weight:400; font-size:10px;">58%</span></span>
+          <span style="color:#2A2820; font-size:12px;">|</span>
+          <span style="color:#70B8E8; font-size:11px; font-weight:600;">▼ 12.3° <span style="color:#6A6050; font-weight:400; font-size:10px;">62%</span></span>
+        </div>
+      </div>
+
+      <!-- Bloc principal -->
+      <div style="margin: 0 14px 12px; background:#1A1710; border:1px solid #3A3428; border-radius:10px; overflow:hidden;">
+
+        <!-- Ligne remplissage -->
+        <div style="padding: 8px 14px; border-bottom:1px solid #2A2820; display:flex; align-items:center; gap:10px;">
+          <span style="color:#8A8070; font-size:10px; font-weight:700; letter-spacing:.5px; white-space:nowrap;">REMPLI</span>
+          <div style="flex:1; height:5px; background:#242018; border-radius:3px; overflow:hidden;">
+            <div style="width:40%; height:100%; background:linear-gradient(90deg,#C9A84C88,#C9A84C); border-radius:3px;"></div>
+          </div>
+          <span style="color:#C0B8A8; font-size:11px; font-weight:600; white-space:nowrap;">48 / 120</span>
+        </div>
+
+        <!-- Consigne + ON/OFF + lock -->
+        <div style="padding: 10px 14px; display:flex; align-items:center; justify-content:center; gap:14px;">
+          <div class="pill green">⏻ ON</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="text-align:center; min-width:52px;">
+              <div style="color:#D4B96A; font-size:24px; font-weight:700; line-height:1;">14°C</div>
+              <div style="color:#6A6050; font-size:9px; margin-top:2px; letter-spacing:.3px;">consigne</div>
+            </div>
+            <div class="big-btn">+</div>
+          </div>
+          <div class="lock-btn">🔓</div>
+        </div>
+
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     OPTION 3 — Stacked avec accent doré
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Option 3 — Stacked avec accent doré</div>
+  <div class="section-desc">
+    Nom centré avec un filet doré dessous. Remplissage en barre large.
+    Consigne avec boutons ronds. Govee en petits chips colorés.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+
+      <!-- Nom avec filet -->
+      <div style="padding: 13px 18px 12px; text-align:center; border-bottom: 2px solid #C9A84C44; position:relative;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600; letter-spacing:.3px; margin-bottom:2px;">Cellier du sous-sol</div>
+        <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:40px; height:2px; background:#C9A84C; border-radius:1px;"></div>
+      </div>
+
+      <!-- Govee chips -->
+      <div style="padding: 8px 18px; display:flex; justify-content:center; gap:8px;">
+        <div style="display:flex; align-items:center; gap:5px; background:#E8A04C0E; border:1px solid #E8A04C2A; border-radius:6px; padding:4px 10px;">
+          <span style="color:#E8A04C; font-size:12px; font-weight:700;">▲ 14.5°C</span>
+          <span style="color:#8A8070; font-size:10px;">· 58%</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:5px; background:#70B8E80E; border:1px solid #70B8E82A; border-radius:6px; padding:4px 10px;">
+          <span style="color:#70B8E8; font-size:12px; font-weight:700;">▼ 12.3°C</span>
+          <span style="color:#8A8070; font-size:10px;">· 62%</span>
+        </div>
+      </div>
+
+      <!-- Remplissage -->
+      <div style="padding: 2px 18px 10px;">
+        <div style="background:#1C1A12; border:1px solid #2E2C22; border-radius:8px; padding:8px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+            <span style="color:#8A8070; font-size:10px; font-weight:700; letter-spacing:.5px;">REMPLISSAGE</span>
+            <span style="color:#C0B8A8; font-size:12px; font-weight:600;">48 <span style="color:#6A6050; font-weight:400;">/ 120</span></span>
+          </div>
+          <div style="height:6px; background:#242018; border-radius:3px; overflow:hidden;">
+            <div style="width:40%; height:100%; background:linear-gradient(90deg,#C9A84C66,#D4B96A); border-radius:3px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consigne -->
+      <div style="padding: 0 18px 13px; display:flex; align-items:center; justify-content:center; gap:14px;">
+        <div class="pill green" style="font-size:10px; padding:4px 10px;">⏻ ON</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="big-btn round" style="width:34px; height:34px; font-size:19px;">−</div>
+          <div style="text-align:center; min-width:56px;">
+            <div style="color:#D4B96A; font-size:26px; font-weight:700; line-height:1; letter-spacing:-.5px;">14°C</div>
+            <div style="color:#6A6050; font-size:9px; letter-spacing:.3px; margin-top:2px;">consigne Tuya</div>
+          </div>
+          <div class="big-btn round" style="width:34px; height:34px; font-size:19px;">+</div>
+        </div>
+        <div class="lock-btn" style="width:28px; height:28px; font-size:14px;">🔓</div>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     OPTION 4 — 3 colonnes métriques
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Option 4 — 3 colonnes métriques</div>
+  <div class="section-desc">
+    Nom centré puis 3 colonnes d'égale largeur : Govee haut | Consigne ± | Govee bas.
+    Remplissage en barre sous les colonnes.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+
+      <!-- Nom -->
+      <div style="padding: 12px 18px 10px; text-align:center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+
+      <!-- 3 colonnes -->
+      <div style="display:flex; border-top:1px solid #2A2820; border-bottom:1px solid #2A2820;">
+
+        <!-- Govee haut -->
+        <div style="flex:1; padding:10px 0; text-align:center; border-right:1px solid #2A2820;">
+          <div style="color:#8A8070; font-size:8px; font-weight:700; letter-spacing:.8px; margin-bottom:5px;">▲ HAUT</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700; line-height:1;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+
+        <!-- Consigne Tuya (centre) -->
+        <div style="flex:1.4; padding:8px 12px; text-align:center; border-right:1px solid #2A2820; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;">
+          <div style="color:#8A8070; font-size:8px; font-weight:700; letter-spacing:.8px;">CONSIGNE</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+
+        <!-- Govee bas -->
+        <div style="flex:1; padding:10px 0; text-align:center;">
+          <div style="color:#8A8070; font-size:8px; font-weight:700; letter-spacing:.8px; margin-bottom:5px;">▼ BAS</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700; line-height:1;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+
+      </div>
+
+      <!-- Remplissage -->
+      <div style="padding: 8px 16px 10px; display:flex; align-items:center; gap:10px;">
+        <span style="color:#8A8070; font-size:10px; font-weight:700; letter-spacing:.5px; white-space:nowrap;">48 / 120</span>
+        <div style="flex:1; height:5px; background:#1C1A12; border-radius:3px; overflow:hidden;">
+          <div style="width:40%; height:100%; background:linear-gradient(90deg,#C9A84C66,#D4B96A); border-radius:3px;"></div>
+        </div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     OPTION 5 — Pill name + grande consigne
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Option 5 — Grande consigne dominante</div>
+  <div class="section-desc">
+    La consigne est l'élément visuel dominant. Nom centré au-dessus, govee en petites chips,
+    barre de remplissage fine tout en bas. Pour ceux qui gardent souvent un œil sur la consigne.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+
+      <!-- Nom -->
+      <div style="padding: 12px 18px 8px; text-align:center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600; letter-spacing:.2px;">Cellier du sous-sol</div>
+      </div>
+
+      <!-- Govee row -->
+      <div style="display:flex; justify-content:center; gap:8px; padding:0 18px 10px;">
+        <div style="display:flex; align-items:center; gap:4px;">
+          <span style="color:#E8A04C; font-size:11px; font-weight:700;">▲ 14.5°C</span>
+          <span style="color:#6A6050; font-size:10px;">58%</span>
+        </div>
+        <span style="color:#3A3428;">·</span>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <span style="color:#70B8E8; font-size:11px; font-weight:700;">▼ 12.3°C</span>
+          <span style="color:#6A6050; font-size:10px;">62%</span>
+        </div>
+      </div>
+
+      <!-- Grande consigne -->
+      <div style="margin: 0 16px; background:#1C1A12; border:1px solid #3A3428; border-radius:10px; padding:14px 16px 12px; display:flex; align-items:center; justify-content:space-between;">
+
+        <div class="pill green" style="font-size:10px; padding:4px 10px; flex-shrink:0;">⏻ ON</div>
+
+        <div style="display:flex; align-items:center; gap:14px; flex:1; justify-content:center;">
+          <div class="big-btn" style="width:36px;height:36px;font-size:22px;border-radius:9px;">−</div>
+          <div style="text-align:center;">
+            <div style="color:#D4B96A; font-size:30px; font-weight:700; line-height:1; letter-spacing:-1px;">14°C</div>
+            <div style="color:#6A6050; font-size:9px; letter-spacing:.5px; margin-top:3px; text-transform:uppercase;">consigne</div>
+          </div>
+          <div class="big-btn" style="width:36px;height:36px;font-size:22px;border-radius:9px;">+</div>
+        </div>
+
+        <div class="lock-btn" style="width:30px;height:30px;font-size:15px; flex-shrink:0;">🔓</div>
+      </div>
+
+      <!-- Barre remplissage -->
+      <div style="padding: 10px 16px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <span style="color:#8A8070; font-size:10px; font-weight:600;">Remplissage</span>
+          <span style="color:#C0B8A8; font-size:11px; font-weight:600;">48 <span style="color:#6A6050; font-weight:400; font-size:10px;">/ 120 bouteilles</span></span>
+        </div>
+        <div style="height:5px; background:#1C1A12; border-radius:3px; overflow:hidden; border:1px solid #2A2820;">
+          <div style="width:40%; height:100%; background:linear-gradient(90deg,#C9A84C55,#D4B96A); border-radius:3px;"></div>
+        </div>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

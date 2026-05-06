@@ -20,6 +20,34 @@
   <title>Cave à Vin</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Google Identity Services (GIS) — OAuth 2.0 token client -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Tesseract.js — OCR pour pré-traiter les étiquettes de vin -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script>
+    window.cvOcrRecognize = async function(base64) {
+      try {
+        if (typeof Tesseract === 'undefined') return null;
+        const dataUrl = 'data:image/jpeg;base64,' + base64;
+        const result = await Tesseract.recognize(dataUrl, 'fra+eng', {
+          // Pas de log pour ne pas polluer la console
+        });
+        const text = result && result.data ? result.data.text : null;
+        if (!text) return null;
+        // Nettoie : supprime lignes vides multiples, trim
+        return text
+          .split('\n')
+          .map(function(l) { return l.trim(); })
+          .filter(function(l) { return l.length > 0; })
+          .join('\n');
+      } catch (e) {
+        console.warn('OCR Tesseract erreur:', e);
+        return null;
+      }
+    };
+  </script>
+
   <style>
     html, body {
       margin: 0;

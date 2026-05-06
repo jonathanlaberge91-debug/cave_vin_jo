@@ -6,24 +6,40 @@ import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import '../screens/slot_picker.dart';
 
-Future<void> showAddBottles(BuildContext context, Wine wine) {
+Future<void> showAddBottles(
+  BuildContext context,
+  Wine wine, {
+  Set<BottleFormat> existingFormats = const {},
+  BottleFormat initialFormat = BottleFormat.ml750,
+}) {
   return showDialog(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (_) => AddBottlesDialog(wine: wine),
+    builder: (_) => AddBottlesDialog(
+      wine: wine,
+      existingFormats: existingFormats,
+      initialFormat: initialFormat,
+    ),
   );
 }
 
 class AddBottlesDialog extends StatefulWidget {
   final Wine wine;
-  const AddBottlesDialog({super.key, required this.wine});
+  final Set<BottleFormat> existingFormats;
+  final BottleFormat initialFormat;
+  const AddBottlesDialog({
+    super.key,
+    required this.wine,
+    this.existingFormats = const {},
+    this.initialFormat = BottleFormat.ml750,
+  });
 
   @override
   State<AddBottlesDialog> createState() => AddBottlesDialogState();
 }
 
 class AddBottlesDialogState extends State<AddBottlesDialog> {
-  BottleFormat _format = BottleFormat.ml750;
+  late BottleFormat _format;
   int _quantity = 1;
   final _price = TextEditingController();
   final _marketValue = TextEditingController();
@@ -32,6 +48,12 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
   final List<SlotSelection?> _slots = [null];
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _format = widget.initialFormat;
+  }
 
   @override
   void dispose() {
@@ -125,10 +147,19 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
               ))
           .toList();
 
-      await CaveService.addBottlesToWine(
-        wineId: widget.wine.id,
-        bottles: bottles,
-      );
+      final isNewFormat = widget.existingFormats.isNotEmpty &&
+          !widget.existingFormats.contains(_format);
+      if (isNewFormat) {
+        await CaveService.cloneWineWithBottles(
+          sourceWine: widget.wine,
+          bottles: bottles,
+        );
+      } else {
+        await CaveService.addBottlesToWine(
+          wineId: widget.wine.id,
+          bottles: bottles,
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context);

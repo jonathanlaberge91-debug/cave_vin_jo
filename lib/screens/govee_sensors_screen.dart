@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/cellar.dart';
 import '../services/cellar_service.dart';
@@ -59,6 +61,9 @@ class _GoveeSensorsScreenState extends State<GoveeSensorsScreen> {
       if (mounted) {
         setState(() { _sensors = results; _loading = false; });
         GoveeService.saveCache(results);
+        for (final s in results) {
+          GoveeService.recordReading(s);
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -181,12 +186,14 @@ class _GoveeSensorsScreenState extends State<GoveeSensorsScreen> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final s in _sensors!) _buildCard(s),
-              ],
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final s in _sensors!) _buildCard(s),
+                ],
+              ),
             ),
           ),
         ],
@@ -286,6 +293,32 @@ class _GoveeSensorsScreenState extends State<GoveeSensorsScreen> {
           Divider(height: 1, color: AppColors.border),
           const SizedBox(height: 10),
           _buildAssignment(sensor, assignedCellar, assignedPosition),
+          const SizedBox(height: 10),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => showGoveeHistory(context, sensor),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.bg3,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.border2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.show_chart,
+                        size: 13, color: AppColors.text2),
+                    const SizedBox(width: 4),
+                    Text('Historique',
+                        style: AppText.sans(
+                            color: AppColors.text2, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -371,5 +404,452 @@ class _GoveeSensorsScreenState extends State<GoveeSensorsScreen> {
         ),
       ),
     );
+  }
+}
+
+double? _goveeNormalizeTemp(double? raw) {
+  if (raw == null) return null;
+  if (raw > 1000) return raw / 100;
+  if (raw > 45) return (raw - 32) * 5 / 9;
+  return raw;
+}
+
+Future<void> showGoveeHistory(BuildContext context, GoveeSensor sensor) {
+  return showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.65),
+    builder: (_) => GoveeHistoryDialog(sensor: sensor),
+  );
+}
+
+class GoveeHistoryDialog extends StatefulWidget {
+  final GoveeSensor sensor;
+  const GoveeHistoryDialog({super.key, required this.sensor});
+
+  @override
+  State<GoveeHistoryDialog> createState() => _GoveeHistoryDialogState();
+}
+
+class _GoveeHistoryDialogState extends State<GoveeHistoryDialog> {
+  int _windowIdx = 0;
+  List<GoveeReading>? _readings;
+  bool _loading = true;
+
+  static const _windows = [
+    (Duration(hours: 24), '24 h'),
+    (Duration(days: 7), '7 jours'),
+    (Duration(days: 30), '30 jours'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final r = await GoveeService.getHistory(
+      widget.sensor.device,
+      window: _windows[_windowIdx].$1,
+    );
+    if (!mounted) return;
+    setState(() {
+      _readings = r;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenW = MediaQuery.of(context).size.width;
+    final screenH = MediaQuery.of(context).size.height;
+    final modalW = screenW < 720 ? screenW - 32 : 680.0;
+    final modalH = screenH * 0.78;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        width: modalW,
+        height: modalH,
+        decoration: BoxDecoration(
+          color: AppColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.sensor.name,
+                        style: AppText.serif(
+                          color: AppColors.gold2,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Historique des relevés',
+                        style: AppText.sans(
+                            color: AppColors.text3, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg3,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border2),
+                    ),
+                    child: const Icon(Icons.close, size: 16, color: AppColors.text2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                for (var i = 0; i < _windows.length; i++) ...[
+                  GestureDetector(
+                    onTap: () {
+                      if (_windowIdx == i) return;
+                      setState(() => _windowIdx = i);
+                      _load();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _windowIdx == i
+                            ? AppColors.gold.withValues(alpha: 0.15)
+                            : AppColors.bg3,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _windowIdx == i
+                              ? AppColors.gold
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        _windows[i].$2,
+                        style: AppText.sans(
+                          color: _windowIdx == i
+                              ? AppColors.gold
+                              : AppColors.text2,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (i < _windows.length - 1) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(child: _buildContent()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_loading) {
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.gold));
+    }
+    final r = _readings ?? [];
+    if (r.length < 2) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timeline,
+                size: 36, color: AppColors.text3),
+            const SizedBox(height: 12),
+            Text(
+              r.isEmpty
+                  ? 'Aucune donnée pour cette période.'
+                  : 'Pas assez de données pour tracer une courbe.',
+              style: AppText.sans(color: AppColors.text3, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Les relevés sont enregistrés à chaque rafraîchissement\nde la page Capteurs (max. 1 / 5 min).',
+              textAlign: TextAlign.center,
+              style: AppText.sans(color: AppColors.text3, fontSize: 11),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final temps = <double>[];
+    final hums = <double>[];
+    final tempSpots = <FlSpot>[];
+    final humSpots = <FlSpot>[];
+    final start = r.first.timestamp.millisecondsSinceEpoch.toDouble();
+    final end = r.last.timestamp.millisecondsSinceEpoch.toDouble();
+    for (final rd in r) {
+      final x = rd.timestamp.millisecondsSinceEpoch.toDouble();
+      final t = _goveeNormalizeTemp(rd.temperature);
+      if (t != null) {
+        tempSpots.add(FlSpot(x, t));
+        temps.add(t);
+      }
+      final h = rd.humidity;
+      if (h != null) {
+        humSpots.add(FlSpot(x, h));
+        hums.add(h);
+      }
+    }
+
+    final tempMin = temps.isEmpty ? 0.0 : temps.reduce(math.min);
+    final tempMax = temps.isEmpty ? 0.0 : temps.reduce(math.max);
+    final tempAvg = temps.isEmpty
+        ? 0.0
+        : temps.reduce((a, b) => a + b) / temps.length;
+    final humMin = hums.isEmpty ? 0.0 : hums.reduce(math.min);
+    final humMax = hums.isEmpty ? 0.0 : hums.reduce(math.max);
+    final humAvg =
+        hums.isEmpty ? 0.0 : hums.reduce((a, b) => a + b) / hums.length;
+
+    final tempColor = AppColors.gold;
+    const humColor = Color(0xFF70B8E8);
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            if (temps.isNotEmpty)
+              Expanded(
+                child: _statBlock(
+                  label: 'Température',
+                  color: tempColor,
+                  current: '${tempAvg.toStringAsFixed(1)}°C',
+                  range:
+                      '${tempMin.toStringAsFixed(1)} – ${tempMax.toStringAsFixed(1)}°C',
+                ),
+              ),
+            if (temps.isNotEmpty && hums.isNotEmpty)
+              const SizedBox(width: 12),
+            if (hums.isNotEmpty)
+              Expanded(
+                child: _statBlock(
+                  label: 'Humidité',
+                  color: humColor,
+                  current: '${humAvg.toStringAsFixed(0)}%',
+                  range:
+                      '${humMin.toStringAsFixed(0)} – ${humMax.toStringAsFixed(0)}%',
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (temps.isNotEmpty) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Température',
+                style: AppText.sans(
+                    color: tempColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8)),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: _buildLineChart(
+              spots: tempSpots,
+              color: tempColor,
+              minY: tempMin - 1,
+              maxY: tempMax + 1,
+              minX: start,
+              maxX: end,
+              suffix: '°C',
+              decimals: 1,
+            ),
+          ),
+        ],
+        if (temps.isNotEmpty && hums.isNotEmpty) const SizedBox(height: 12),
+        if (hums.isNotEmpty) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Humidité',
+                style: AppText.sans(
+                    color: humColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8)),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: _buildLineChart(
+              spots: humSpots,
+              color: humColor,
+              minY: math.max(0, humMin - 5),
+              maxY: math.min(100, humMax + 5),
+              minX: start,
+              maxX: end,
+              suffix: '%',
+              decimals: 0,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _statBlock({
+    required String label,
+    required Color color,
+    required String current,
+    required String range,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: AppText.sans(
+                  color: AppColors.text3,
+                  fontSize: 10,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                current,
+                style: AppText.sans(
+                    color: color, fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'moy.',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('Min/Max : $range',
+              style: AppText.sans(color: AppColors.text3, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineChart({
+    required List<FlSpot> spots,
+    required Color color,
+    required double minY,
+    required double maxY,
+    required double minX,
+    required double maxX,
+    required String suffix,
+    required int decimals,
+  }) {
+    final spanMs = maxX - minX;
+    final showTime = spanMs <= Duration(days: 1).inMilliseconds * 1.5;
+
+    return LineChart(LineChartData(
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: ((maxY - minY) / 4).clamp(0.5, 100).toDouble(),
+        getDrawingHorizontalLine: (_) =>
+            FlLine(color: AppColors.border, strokeWidth: 0.5),
+      ),
+      borderData: FlBorderData(show: false),
+      titlesData: FlTitlesData(
+        topTitles:
+            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles:
+            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 24,
+            interval: (spanMs / 5).clamp(60000, double.infinity),
+            getTitlesWidget: (v, _) {
+              final dt = DateTime.fromMillisecondsSinceEpoch(v.toInt());
+              final label = showTime
+                  ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+                  : '${dt.day}/${dt.month}';
+              return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(label,
+                    style: AppText.sans(
+                        color: AppColors.text3, fontSize: 9)),
+              );
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 36,
+            interval: ((maxY - minY) / 4).clamp(0.5, 100).toDouble(),
+            getTitlesWidget: (v, _) => Text(
+              '${v.toStringAsFixed(decimals)}$suffix',
+              style: AppText.sans(color: AppColors.text3, fontSize: 9),
+            ),
+          ),
+        ),
+      ),
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY,
+      lineBarsData: [
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          color: color,
+          barWidth: 2,
+          dotData: const FlDotData(show: false),
+          belowBarData:
+              BarAreaData(show: true, color: color.withValues(alpha: 0.12)),
+        ),
+      ],
+      lineTouchData: LineTouchData(
+        touchTooltipData: LineTouchTooltipData(
+          getTooltipColor: (_) => AppColors.bg3,
+          getTooltipItems: (touched) => touched.map((s) {
+            final dt =
+                DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
+            final time =
+                '${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+            return LineTooltipItem(
+              '${s.y.toStringAsFixed(decimals)}$suffix\n$time',
+              AppText.sans(color: color, fontSize: 11),
+            );
+          }).toList(),
+        ),
+      ),
+    ));
   }
 }

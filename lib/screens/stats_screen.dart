@@ -8,6 +8,7 @@ import '../services/cave_service.dart';
 import '../services/cave_preferences_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import '../theme/country_helpers.dart';
 import '../theme/wine_type_helpers.dart';
 import '../widgets/cave_table.dart' show GardeInfo;
 
@@ -96,6 +97,8 @@ class _StatsBody extends StatelessWidget {
           return _GenericDonutCard(title: 'Bouteilles par pays', data: data);
         }
         return _HorizontalBarCard(title: 'Bouteilles par pays', data: data, barColor: AppColors.gold);
+      case StatItem.carteMonde:
+        return _CarteMondeCard(wines: wines, cave: cave);
       case StatItem.parRegion:
         final data = _countByField(cave, (b) => wines[b.wineId]?.region ?? '');
         if (type == StatChartType.donut) {
@@ -144,6 +147,8 @@ class _StatsBody extends StatelessWidget {
         return _CepageDonutCard(wines: wines, cave: cave);
       case StatItem.cepagesPart:
         return _CepagePartDonutCard(wines: wines, cave: cave);
+      case StatItem.distributionCamembert:
+        return _DistributionCamembertCard(wines: wines, cave: cave);
     }
   }
 
@@ -1994,5 +1999,479 @@ class _CepagePartDonutCard extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+// ── Distribution camembert : cépage / pays / région ──
+class _DistributionCamembertCard extends StatefulWidget {
+  final Map<String, Wine> wines;
+  final List<Bottle> cave;
+  const _DistributionCamembertCard({required this.wines, required this.cave});
+
+  @override
+  State<_DistributionCamembertCard> createState() =>
+      _DistributionCamembertCardState();
+}
+
+class _DistributionCamembertCardState
+    extends State<_DistributionCamembertCard> {
+  int _tab = 0;
+
+  static const _palette = [
+    Color(0xFFB23A48),
+    Color(0xFFE6D27A),
+    Color(0xFF7CD492),
+    Color(0xFF70B8E8),
+    Color(0xFFC490F0),
+    Color(0xFFE08A3C),
+    Color(0xFFE89DA6),
+    Color(0xFFB8C9D9),
+    AppColors.text3,
+  ];
+
+  Map<String, int> _countByField(String Function(Bottle) field) {
+    final map = <String, int>{};
+    for (final b in widget.cave) {
+      final key = field(b);
+      if (key.isEmpty) continue;
+      map[key] = (map[key] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  Map<String, int> _topN(Map<String, int> data, int n) {
+    final sorted = data.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (sorted.length <= n) return {for (final e in sorted) e.key: e.value};
+    final top = sorted.sublist(0, n);
+    final other = sorted.sublist(n).fold<int>(0, (s, e) => s + e.value);
+    return {for (final e in top) e.key: e.value, 'Autres': other};
+  }
+
+  Widget _buildDonut(String label, Map<String, int> data) {
+    if (data.isEmpty) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label,
+              style: AppText.sans(
+                  color: AppColors.text2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8)),
+          const SizedBox(height: 24),
+          Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 12)),
+        ],
+      );
+    }
+    final display = _topN(data, 6);
+    final total = data.values.fold<int>(0, (s, v) => s + v);
+    final entries = display.entries.toList();
+    final sections = List.generate(
+      entries.length,
+      (i) => PieChartSectionData(
+        value: entries[i].value.toDouble(),
+        title: '${entries[i].value}',
+        color: _palette[i % _palette.length],
+        radius: 28,
+        titleStyle: AppText.sans(
+            color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+      ),
+    );
+    final chart = PieChart(
+      PieChartData(
+        sections: sections,
+        centerSpaceRadius: 24,
+        sectionsSpace: 2,
+      ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Text(label,
+              style: AppText.sans(
+                  color: AppColors.text2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8)),
+          const SizedBox(width: 6),
+          Text('($total)',
+              style: AppText.sans(color: AppColors.text3, fontSize: 11)),
+        ]),
+        const SizedBox(height: 6),
+        SizedBox(height: 130, child: chart),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 2,
+          children: List.generate(
+            entries.length,
+            (i) => Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                      color: _palette[i % _palette.length],
+                      shape: BoxShape.circle)),
+              const SizedBox(width: 4),
+              Text(entries[i].key,
+                  style:
+                      AppText.sans(color: AppColors.text2, fontSize: 10)),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cepages = _parseGrapeCounts(widget.wines, widget.cave);
+    final pays = _countByField(
+        (b) => widget.wines[b.wineId]?.country ?? '');
+    final regions = _countByField(
+        (b) => widget.wines[b.wineId]?.region ?? '');
+
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    if (isMobile) {
+      Map<String, int> activeData;
+      String activeLabel;
+      switch (_tab) {
+        case 1:
+          activeData = pays;
+          activeLabel = 'Pays';
+          break;
+        case 2:
+          activeData = regions;
+          activeLabel = 'Régions';
+          break;
+        default:
+          activeData = cepages;
+          activeLabel = 'Cépages';
+      }
+      return SizedBox(
+        height: 340,
+        child: _StatCard(
+          title: 'Distribution',
+          child: Column(children: [
+            Row(children: [
+              for (final t in [
+                (0, 'Cépages'),
+                (1, 'Pays'),
+                (2, 'Régions'),
+              ]) ...[
+                _DistribTab(
+                  label: t.$2,
+                  selected: _tab == t.$1,
+                  onTap: () => setState(() => _tab = t.$1),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ]),
+            const SizedBox(height: 12),
+            Expanded(child: _buildDonut(activeLabel, activeData)),
+          ]),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 280,
+      child: _StatCard(
+        title: 'Distribution (cépage / pays / région)',
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildDonut('Cépages', cepages)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDonut('Pays', pays)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDonut('Régions', regions)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DistribTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _DistribTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.gold.withValues(alpha: 0.15)
+              : AppColors.bg3,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: selected ? AppColors.gold : AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: AppText.sans(
+            color: selected ? AppColors.gold : AppColors.text2,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _CarteMondeCard extends StatelessWidget {
+  final Map<String, Wine> wines;
+  final List<Bottle> cave;
+  const _CarteMondeCard({required this.wines, required this.cave});
+
+  @override
+  Widget build(BuildContext context) {
+    final byCountry = <String, int>{};
+    final byContinent = <WineContinent, int>{};
+    int withoutCountry = 0;
+    for (final b in cave) {
+      final w = wines[b.wineId];
+      if (w == null) continue;
+      final country = w.country.trim();
+      if (country.isEmpty) {
+        withoutCountry++;
+        continue;
+      }
+      byCountry[country] = (byCountry[country] ?? 0) + 1;
+      final cont = continentForCountry(country);
+      byContinent[cont] = (byContinent[cont] ?? 0) + 1;
+    }
+
+    if (byCountry.isEmpty) {
+      return SizedBox(
+        height: 160,
+        child: _StatCard(
+          title: 'Carte du monde',
+          child: Center(
+            child: Text(
+              'Aucun pays renseigné dans la cave.',
+              style: AppText.sans(color: AppColors.text3, fontSize: 12),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final entries = byCountry.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final maxCount = entries.first.value;
+    final total = cave.length;
+
+    final continentEntries = WineContinent.values
+        .where((c) => (byContinent[c] ?? 0) > 0)
+        .toList()
+      ..sort(
+          (a, b) => (byContinent[b] ?? 0).compareTo(byContinent[a] ?? 0));
+
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'CARTE DU MONDE',
+                    style: AppText.sans(
+                      color: AppColors.text3,
+                      fontSize: 10,
+                      letterSpacing: 1.4,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${byCountry.length} pays · $total bouteilles',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Container(height: 1, color: AppColors.border),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in continentEntries)
+                  _continentChip(c, byContinent[c] ?? 0, total),
+                if (withoutCountry > 0)
+                  _continentChip(null, withoutCountry, total,
+                      labelOverride: 'Sans pays'),
+              ],
+            ),
+          ),
+          Container(height: 1, color: AppColors.border),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final e in entries)
+                  _countryRow(e.key, e.value, maxCount, total, isMobile),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _continentChip(WineContinent? cont, int count, int total,
+      {String? labelOverride}) {
+    final color = _colorForContinent(cont);
+    final pct = total > 0 ? (count / total * 100) : 0.0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            labelOverride ?? cont!.label,
+            style: AppText.sans(
+              color: AppColors.text,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count (${pct.toStringAsFixed(0)}%)',
+            style: AppText.sans(color: AppColors.text3, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _countryRow(String country, int count, int maxCount, int total,
+      bool isMobile) {
+    final flag = flagForCountry(country) ?? '🏳️';
+    final cont = continentForCountry(country);
+    final color = _colorForContinent(cont);
+    final ratio = maxCount > 0 ? count / maxCount : 0.0;
+    final pct = total > 0 ? (count / total * 100) : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(flag, style: AppText.emoji(fontSize: 18)),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: isMobile ? 100 : 140,
+            child: Text(
+              country,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.sans(color: AppColors.text, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Stack(
+                children: [
+                  Container(height: 8, color: AppColors.bg3),
+                  FractionallySizedBox(
+                    widthFactor: ratio.clamp(0.02, 1.0),
+                    child: Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color.withValues(alpha: 0.55),
+                            color,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 64,
+            child: Text(
+              '$count · ${pct.toStringAsFixed(0)}%',
+              textAlign: TextAlign.right,
+              style: AppText.sans(
+                color: AppColors.text2,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _colorForContinent(WineContinent? c) {
+    switch (c) {
+      case WineContinent.europe:
+        return const Color(0xFF70B8E8);
+      case WineContinent.ameriques:
+        return const Color(0xFF7CD492);
+      case WineContinent.oceanie:
+        return const Color(0xFFC490F0);
+      case WineContinent.afrique:
+        return const Color(0xFFE8A04C);
+      case WineContinent.asie:
+        return const Color(0xFFE8667A);
+      case WineContinent.autre:
+      case null:
+        return AppColors.text3;
+    }
   }
 }

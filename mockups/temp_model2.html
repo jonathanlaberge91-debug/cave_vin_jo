@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temp Modèle 2 — Bande horizontale sous le header</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1A1710; font-family: 'Segoe UI', system-ui, sans-serif; color: #E8E0D0; padding: 40px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+  h2 { width: 100%; text-align: center; color: #C9A84C; font-family: Georgia, serif; margin-bottom: 6px; }
+  p.desc { width: 100%; text-align: center; color: #8A8070; font-size: 13px; margin-bottom: 30px; }
+
+  .card { background: #242018; border: 1px solid #3A3428; border-radius: 12px; overflow: hidden; width: 460px; }
+
+  .top-led { height: 12px; display: flex; justify-content: center; }
+  .top-led-bar { width: 50%; height: 100%; border-radius: 0 0 6px 6px; }
+  .top-led-bar.red { background: #E8667A; box-shadow: 0 0 16px rgba(232,102,122,0.5); }
+  .top-led-bar.off { background: #2A2520; }
+
+  .header { padding: 10px 18px 8px; display: flex; align-items: center; gap: 10px; }
+  .name { color: #D4B96A; font-family: Georgia, serif; font-size: 16px; font-weight: 600; }
+  .count { color: #8A8070; font-size: 12px; }
+
+  /* Temperature strip - full width band */
+  .temp-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 6px 18px;
+    background: rgba(26,23,16,0.6);
+    border-top: 1px solid #3A3428;
+    border-bottom: 1px solid #3A3428;
+  }
+  .temp-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .temp-zone .icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .temp-zone.top .icon {
+    background: rgba(232,160,76,0.15);
+    border: 1px solid rgba(232,160,76,0.4);
+    color: #E8A04C;
+  }
+  .temp-zone.bottom .icon {
+    background: rgba(112,184,232,0.15);
+    border: 1px solid rgba(112,184,232,0.4);
+    color: #70B8E8;
+  }
+  .temp-zone.empty .icon {
+    background: rgba(100,90,70,0.12);
+    border: 1px solid rgba(100,90,70,0.3);
+    color: #6A6050;
+  }
+  .temp-zone .temp-val { font-weight: 700; font-size: 13px; }
+  .temp-zone.top .temp-val { color: #E8A04C; }
+  .temp-zone.bottom .temp-val { color: #70B8E8; }
+  .temp-zone.empty .temp-val { color: #6A6050; }
+  .temp-zone .hum { font-size: 10px; color: #8A8070; }
+  .temp-zone .label { font-size: 9px; color: #8A8070; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .divider { width: 1px; height: 24px; background: #3A3428; }
+
+  /* Controls bar */
+  .controls { padding: 0 14px 8px; margin-top: 6px; }
+  .ctrl-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px; background: rgba(26,23,16,0.5); border-radius: 8px; border: 1px solid #3A3428;
+    font-size: 11px;
+  }
+  .power { padding: 2px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; }
+  .power.on { background: rgba(124,212,146,0.15); border: 1px solid rgba(124,212,146,0.4); color: #7CD492; }
+  .temp-ctrl { display: flex; align-items: center; gap: 4px; color: #B0A890; }
+  .temp-ctrl .btn { width: 20px; height: 20px; background: #1A1710; border: 1px solid #3A3428; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #B0A890; font-size: 12px; cursor: pointer; }
+  .temp-ctrl .target { color: #D4B96A; font-weight: 700; font-size: 11px; }
+
+  .target-area { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+  .target-area .tooltip {
+    display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #1E1B16; border: 1px solid #3A3428; border-radius: 8px;
+    padding: 8px 12px; white-space: nowrap; z-index: 10;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .target-area:hover .tooltip { display: block; }
+  .tooltip-row { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .tooltip-row + .tooltip-row { margin-top: 4px; }
+  .tooltip-label { color: #8A8070; }
+  .tooltip-value { color: #D4B96A; font-weight: 600; }
+
+  .body { display: flex; }
+  .light-bar { width: 12px; }
+  .light-bar.white { background: linear-gradient(180deg, #FFFDE8, #F5ECD0, #E8DDB8, #F5ECD0, #FFFDE8); box-shadow: 0 0 20px rgba(245,236,208,0.5); }
+  .light-bar.lb-off { background: #2A2520; }
+  .grid { flex: 1; padding: 4px 4px 14px; }
+  .grid-row { display: flex; margin-bottom: 1px; }
+  .grid-row-label { width: 20px; font-size: 8px; color: #6A6050; display: flex; align-items: center; justify-content: center; }
+  .cell { width: 28px; height: 28px; background: #1E1B16; border: 1px solid #3A3428; border-radius: 3px; margin-right: 1px; }
+  .cell.occ { background: rgba(139,50,50,0.3); border-color: rgba(139,50,50,0.65); }
+</style>
+</head>
+<body>
+  <h2>Modèle 2 — Bande horizontale sous le header</h2>
+  <p class="desc">Bande pleine largeur entre le header et la grille, avec deux zones (haut/bas) séparées par un divider vertical.</p>
+
+  <!-- With sensors -->
+  <div class="card">
+    <div class="top-led"><div class="top-led-bar red"></div></div>
+    <div class="header">
+      <span class="name">Cave A</span>
+      <span class="count">32/60</span>
+    </div>
+    <div class="temp-strip">
+      <div class="temp-zone top">
+        <div class="icon">▲</div>
+        <div>
+          <div class="label">Haut</div>
+          <span class="temp-val">14.2°C</span>
+          <span class="hum">67%</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="temp-zone bottom">
+        <div class="icon">▼</div>
+        <div>
+          <div class="label">Bas</div>
+          <span class="temp-val">12.8°C</span>
+          <span class="hum">72%</span>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-bar">
+        <span class="power on">ON</span>
+        <span style="color:#B0A890">14°C</span>
+        <div class="temp-ctrl">
+          <div class="btn">−</div>
+          <div class="target-area">
+            <span class="target">12°C</span>
+            <div class="tooltip">
+              <div class="tooltip-row"><span class="tooltip-label">Consigne Tuya</span></div>
+              <div class="tooltip-row"><span class="tooltip-label">Actuelle:</span> <span class="tooltip-value">14°C</span></div>
+              <div class="tooltip-row"><span class="tooltip-label">Cible:</span> <span class="tooltip-value">12°C</span></div>
+            </div>
+          </div>
+          <div class="btn">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="light-bar white"></div>
+      <div class="grid">
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="cell"></div><div class="cell occ"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div></div>
+      </div>
+      <div class="light-bar white"></div>
+    </div>
+  </div>
+
+  <!-- Without sensors -->
+  <div class="card">
+    <div class="top-led"><div class="top-led-bar off"></div></div>
+    <div class="header">
+      <span class="name">Cave B</span>
+      <span class="count">18/60</span>
+    </div>
+    <div class="temp-strip">
+      <div class="temp-zone empty">
+        <div class="icon">▲</div>
+        <div>
+          <div class="label">Haut</div>
+          <span class="temp-val">—</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="temp-zone empty">
+        <div class="icon">▼</div>
+        <div>
+          <div class="label">Bas</div>
+          <span class="temp-val">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="light-bar lb-off"></div>
+      <div class="grid">
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div><div class="cell"></div><div class="cell"></div><div class="cell occ"></div></div>
+      </div>
+      <div class="light-bar lb-off"></div>
+    </div>
+  </div>
+</body>
+</html>

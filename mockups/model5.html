@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modèle 5 — Barres flush (bord à bord) avec halo ambiant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1A1710; font-family: 'Segoe UI', system-ui, sans-serif; color: #E8E0D0; padding: 40px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+  h2 { width: 100%; text-align: center; color: #C9A84C; font-family: Georgia, serif; margin-bottom: 10px; }
+  p.desc { width: 100%; text-align: center; color: #8A8070; font-size: 13px; margin-bottom: 30px; }
+
+  .cellar-card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 440px;
+    position: relative;
+  }
+  .cellar-header {
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #3A3428;
+    position: relative; z-index: 2;
+  }
+  .cellar-name { color: #D4B96A; font-family: Georgia, serif; font-size: 16px; font-weight: 600; }
+  .cellar-count { color: #8A8070; font-size: 12px; }
+  .temp-badge { color: #B0A890; font-size: 11px; margin-left: auto; }
+
+  .cellar-body {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+  }
+
+  /* Flush bars - no gap, rounded only on inside */
+  .light-bar {
+    width: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+  .light-bar:hover { width: 16px; }
+  .light-bar-left { border-radius: 0 6px 6px 0; }
+  .light-bar-right { border-radius: 6px 0 0 6px; }
+
+  .light-bar.off {
+    background: #2A2520;
+  }
+
+  /* White ON with ambient halo */
+  .light-bar.white-100 {
+    background: linear-gradient(180deg, #FFFDE8, #F5ECD0, #E8DDB8, #F5ECD0, #FFFDE8);
+    box-shadow: 0 0 20px rgba(245,236,208,0.5), 0 0 40px rgba(245,236,208,0.2);
+  }
+  .light-bar.white-75 {
+    background: linear-gradient(180deg, #D0C8A0, #C0B890, #B0A878, #C0B890, #D0C8A0);
+    box-shadow: 0 0 14px rgba(245,236,208,0.3), 0 0 28px rgba(245,236,208,0.12);
+  }
+  .light-bar.white-50 {
+    background: linear-gradient(180deg, #8A8468, #7A7858, #6A6850, #7A7858, #8A8468);
+    box-shadow: 0 0 8px rgba(245,236,208,0.15);
+  }
+  .light-bar.white-25 {
+    background: linear-gradient(180deg, #5A5540, #504A38, #454030, #504A38, #5A5540);
+    box-shadow: 0 0 4px rgba(245,236,208,0.06);
+  }
+
+  /* Blue ON */
+  .light-bar.blue-100 {
+    background: linear-gradient(180deg, #90D0F8, #70B8E8, #5A9DD8, #70B8E8, #90D0F8);
+    box-shadow: 0 0 20px rgba(112,184,232,0.55), 0 0 40px rgba(112,184,232,0.2);
+  }
+  .light-bar.blue-75 {
+    background: linear-gradient(180deg, #5A90B0, #4A80A0, #3A7090, #4A80A0, #5A90B0);
+    box-shadow: 0 0 14px rgba(112,184,232,0.3), 0 0 28px rgba(112,184,232,0.12);
+  }
+  .light-bar.blue-50 {
+    background: linear-gradient(180deg, #3A5A70, #305060, #284858, #305060, #3A5A70);
+    box-shadow: 0 0 8px rgba(112,184,232,0.15);
+  }
+
+  /* Ambient halo overlays on the grid */
+  .cellar-body.halo-white::before,
+  .cellar-body.halo-white::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .cellar-body.halo-white::before { left: 12px; background: linear-gradient(90deg, rgba(245,236,208,0.06), transparent); }
+  .cellar-body.halo-white::after { right: 12px; background: linear-gradient(-90deg, rgba(245,236,208,0.06), transparent); }
+
+  .cellar-body.halo-blue::before,
+  .cellar-body.halo-blue::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .cellar-body.halo-blue::before { left: 12px; background: linear-gradient(90deg, rgba(112,184,232,0.06), transparent); }
+  .cellar-body.halo-blue::after { right: 12px; background: linear-gradient(-90deg, rgba(112,184,232,0.06), transparent); }
+
+  /* Strong halo for 100% */
+  .cellar-body.halo-white-strong::before,
+  .cellar-body.halo-white-strong::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 80px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .cellar-body.halo-white-strong::before { left: 12px; background: linear-gradient(90deg, rgba(245,236,208,0.12), transparent); }
+  .cellar-body.halo-white-strong::after { right: 12px; background: linear-gradient(-90deg, rgba(245,236,208,0.12), transparent); }
+
+  .cellar-body.halo-blue-strong::before,
+  .cellar-body.halo-blue-strong::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 80px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .cellar-body.halo-blue-strong::before { left: 12px; background: linear-gradient(90deg, rgba(112,184,232,0.12), transparent); }
+  .cellar-body.halo-blue-strong::after { right: 12px; background: linear-gradient(-90deg, rgba(112,184,232,0.12), transparent); }
+
+  .grid-area {
+    flex: 1;
+    padding: 14px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .grid-labels-top { display: flex; padding-left: 24px; margin-bottom: 2px; }
+  .grid-labels-top span { width: 28px; text-align: center; font-size: 8px; color: #6A6050; font-weight: 600; }
+  .grid-row { display: flex; align-items: center; margin-bottom: 1px; }
+  .grid-row-label { width: 24px; text-align: center; font-size: 8px; color: #6A6050; font-weight: 600; }
+  .grid-cell {
+    width: 28px; height: 28px;
+    background: #1E1B16; border: 1px solid #3A3428;
+    border-radius: 3px; margin-right: 1px;
+  }
+  .grid-cell.occupied { background: rgba(139, 50, 50, 0.30); border-color: rgba(139, 50, 50, 0.65); }
+  .grid-cell.occ-w { background: rgba(200, 180, 120, 0.25); border-color: rgba(200, 180, 120, 0.5); }
+
+  /* Picker - inline card style */
+  .picker-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .picker-overlay.show { display: flex; }
+  .picker-card {
+    background: #242018; border: 1px solid #3A3428;
+    border-radius: 14px; padding: 24px; width: 360px;
+  }
+  .picker-title { color: #D4B96A; font-family: Georgia, serif; font-size: 18px; margin-bottom: 6px; }
+  .picker-subtitle { color: #8A8070; font-size: 11px; margin-bottom: 20px; }
+
+  .picker-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .picker-option {
+    padding: 14px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid #3A3428;
+    background: #1E1B16;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .picker-option:hover { border-color: #6A6050; }
+
+  .picker-option .opt-color-bar {
+    width: 40px; height: 6px; border-radius: 3px;
+    margin: 0 auto 8px;
+  }
+  .opt-color-bar.white { background: linear-gradient(90deg, #E8DDB8, #F5ECD0); box-shadow: 0 0 6px rgba(245,236,208,0.3); }
+  .opt-color-bar.blue { background: linear-gradient(90deg, #5A9DD8, #70B8E8); box-shadow: 0 0 6px rgba(112,184,232,0.3); }
+  .opt-color-bar.off { background: #3A3428; }
+
+  .picker-option .opt-label { font-size: 12px; color: #8A8070; font-weight: 500; }
+  .picker-option.selected { border-color: #D4B96A; }
+  .picker-option.selected .opt-label { color: #D4B96A; font-weight: 600; }
+
+  /* Intensity as a horizontal bar chart */
+  .intensity-bar-container {
+    background: #1E1B16; border: 1px solid #3A3428; border-radius: 10px;
+    padding: 14px;
+  }
+  .intensity-label { color: #8A8070; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin-bottom: 10px; }
+  .intensity-bars { display: flex; gap: 4px; height: 32px; align-items: flex-end; }
+  .intensity-level {
+    flex: 1; border-radius: 4px 4px 0 0;
+    cursor: pointer; transition: all 0.2s;
+    position: relative;
+  }
+  .intensity-level:hover { opacity: 0.8; }
+  .intensity-level span {
+    position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; color: #6A6050; white-space: nowrap;
+  }
+  .intensity-level.active span { color: #D4B96A; font-weight: 600; }
+
+  .il-off { height: 4px; background: #3A3428; }
+  .il-25 { height: 25%; background: #5A5540; }
+  .il-50 { height: 50%; background: #8A8468; }
+  .il-75 { height: 75%; background: #C0B890; }
+  .il-100 { height: 100%; background: #F5ECD0; box-shadow: 0 0 6px rgba(245,236,208,0.3); }
+
+  .il-off.active { background: #5A5040; }
+  .il-25.active { background: #7A7558; border: 1px solid #8A8468; }
+  .il-50.active { background: #A09878; border: 1px solid #B0A878; }
+  .il-75.active { background: #D0C8A0; border: 1px solid #D4B96A; box-shadow: 0 0 4px rgba(245,236,208,0.15); }
+  .il-100.active { background: #F5ECD0; border: 1px solid #FFFDE8; box-shadow: 0 0 8px rgba(245,236,208,0.4); }
+
+  /* Mobile version at bottom */
+  .mobile-section {
+    width: 100%;
+    text-align: center;
+    margin-top: 30px;
+  }
+  .mobile-section h3 {
+    color: #C9A84C; font-family: Georgia, serif; margin-bottom: 20px;
+  }
+  .mobile-card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 360px;
+    margin: 0 auto;
+  }
+  .mobile-body {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+  }
+  .mobile-bar-left {
+    width: 6px;
+    border-radius: 0 3px 3px 0;
+  }
+  .mobile-bar-right {
+    width: 6px;
+    border-radius: 3px 0 0 3px;
+  }
+  .mobile-bar-white {
+    background: linear-gradient(180deg, #FFFDE8, #F5ECD0, #E8DDB8, #F5ECD0);
+    box-shadow: 0 0 10px rgba(245,236,208,0.35);
+  }
+  .mobile-bar-blue {
+    background: linear-gradient(180deg, #90D0F8, #70B8E8, #5A9DD8, #70B8E8);
+    box-shadow: 0 0 10px rgba(112,184,232,0.4);
+  }
+  .mobile-bar-off {
+    background: #2A2520;
+  }
+  .mobile-grid {
+    flex: 1; padding: 8px;
+  }
+  .mobile-grid-row { display: flex; margin-bottom: 1px; }
+  .mobile-cell {
+    width: 20px; height: 20px;
+    background: #1E1B16; border: 1px solid #3A3428;
+    border-radius: 2px; margin-right: 1px;
+  }
+  .mobile-cell.occ { background: rgba(139, 50, 50, 0.30); border-color: rgba(139, 50, 50, 0.65); }
+</style>
+</head>
+<body>
+  <h2>Modèle 5 — Barres flush + halo ambiant + intensité en barres</h2>
+  <p class="desc">Barres collées aux bords de la carte (pas de gap), arrondies uniquement du côté intérieur. Halo ambiant qui colore légèrement la grille. Picker avec grille de couleurs + barre d'intensité visuelle.</p>
+
+  <!-- White 100% with strong halo -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave A</span>
+      <span class="cellar-count">32/60</span>
+      <span class="temp-badge">14°C → 12°C</span>
+    </div>
+    <div class="cellar-body halo-white-strong">
+      <div class="light-bar light-bar-left white-100" onclick="showPicker()"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occ-w"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occ-w"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occ-w"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occ-w"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+      </div>
+      <div class="light-bar light-bar-right white-100"></div>
+    </div>
+  </div>
+
+  <!-- Blue 75% -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave B</span>
+      <span class="cellar-count">18/60</span>
+      <span class="temp-badge">15°C → 14°C</span>
+    </div>
+    <div class="cellar-body halo-blue">
+      <div class="light-bar light-bar-left blue-75"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+      </div>
+      <div class="light-bar light-bar-right blue-75"></div>
+    </div>
+  </div>
+
+  <!-- White 50% -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave C</span>
+      <span class="cellar-count">28/60</span>
+      <span class="temp-badge">12°C → 12°C</span>
+    </div>
+    <div class="cellar-body">
+      <div class="light-bar light-bar-left white-50"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+      </div>
+      <div class="light-bar light-bar-right white-50"></div>
+    </div>
+  </div>
+
+  <!-- OFF -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave D</span>
+      <span class="cellar-count">45/60</span>
+      <span class="temp-badge">13°C → 13°C</span>
+    </div>
+    <div class="cellar-body">
+      <div class="light-bar light-bar-left off"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+      </div>
+      <div class="light-bar light-bar-right off"></div>
+    </div>
+  </div>
+
+  <!-- Mobile examples -->
+  <div class="mobile-section">
+    <h3>Version mobile</h3>
+    <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+      <div class="mobile-card">
+        <div class="cellar-header">
+          <span class="cellar-name" style="font-size:14px;">Cave A</span>
+          <span class="cellar-count">32/60</span>
+          <span class="temp-badge">14°C</span>
+        </div>
+        <div class="mobile-body">
+          <div class="mobile-bar-left mobile-bar-white" style="cursor:pointer;"></div>
+          <div class="mobile-grid">
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div></div>
+          </div>
+          <div class="mobile-bar-right mobile-bar-white" style="cursor:pointer;"></div>
+        </div>
+      </div>
+      <div class="mobile-card">
+        <div class="cellar-header">
+          <span class="cellar-name" style="font-size:14px;">Cave B</span>
+          <span class="cellar-count">18/60</span>
+          <span class="temp-badge">15°C</span>
+        </div>
+        <div class="mobile-body">
+          <div class="mobile-bar-left mobile-bar-blue" style="cursor:pointer;"></div>
+          <div class="mobile-grid">
+            <div class="mobile-grid-row"><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell"></div></div>
+          </div>
+          <div class="mobile-bar-right mobile-bar-blue" style="cursor:pointer;"></div>
+        </div>
+      </div>
+      <div class="mobile-card">
+        <div class="cellar-header">
+          <span class="cellar-name" style="font-size:14px;">Cave C</span>
+          <span class="cellar-count">45/60</span>
+          <span class="temp-badge">13°C</span>
+        </div>
+        <div class="mobile-body">
+          <div class="mobile-bar-left mobile-bar-off" style="cursor:pointer;"></div>
+          <div class="mobile-grid">
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div></div>
+            <div class="mobile-grid-row"><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div><div class="mobile-cell occ"></div><div class="mobile-cell occ"></div><div class="mobile-cell"></div></div>
+          </div>
+          <div class="mobile-bar-right mobile-bar-off" style="cursor:pointer;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Picker -->
+  <div class="picker-overlay" id="picker">
+    <div class="picker-card">
+      <div class="picker-title">Éclairage latéral</div>
+      <div class="picker-subtitle">Cave A · actuellement Blanc 100%</div>
+
+      <div class="picker-grid">
+        <div class="picker-option selected">
+          <div class="opt-color-bar white"></div>
+          <div class="opt-label">Blanc</div>
+        </div>
+        <div class="picker-option">
+          <div class="opt-color-bar blue"></div>
+          <div class="opt-label">Bleu</div>
+        </div>
+      </div>
+
+      <div class="intensity-bar-container">
+        <div class="intensity-label">Intensité</div>
+        <div class="intensity-bars">
+          <div class="intensity-level il-off"><span>OFF</span></div>
+          <div class="intensity-level il-25"><span>25%</span></div>
+          <div class="intensity-level il-50"><span>50%</span></div>
+          <div class="intensity-level il-75"><span>75%</span></div>
+          <div class="intensity-level il-100 active"><span>100%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPicker() { document.getElementById('picker').classList.add('show'); }
+    document.getElementById('picker').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show');
+    });
+  </script>
+</body>
+</html>

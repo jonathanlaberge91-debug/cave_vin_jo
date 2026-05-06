@@ -12,10 +12,14 @@ import '../services/actualisation_service.dart';
 import '../services/backup_service.dart';
 import '../services/cave_preferences_service.dart';
 import '../services/drive_backup_service.dart';
+import '../services/biometric_service.dart';
 import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
 import '../services/gemini_service.dart';
 import '../services/govee_service.dart';
+import '../services/groq_service.dart';
+import '../services/history_service.dart';
+import '../services/mistral_service.dart';
 import '../services/maps_service.dart';
 import '../services/wine_pdf_service.dart';
 import '../dialogs/cellar_form_dialog.dart';
@@ -77,6 +81,20 @@ class SettingsScreen extends StatelessWidget {
             description:
                 'Exporte l\'inventaire de ta cave en CSV (tableur) ou en PDF (rapport imprimable).',
             child: _ExportContent(),
+          ),
+        10 => const _SettingsSection(
+            title: 'Historique',
+            icon: Icons.history_outlined,
+            description:
+                'Annule une suppression ou la mise en « bue » d\'une bouteille. Les actions des 30 derniers jours sont conservées.',
+            child: _HistoryContent(),
+          ),
+        11 => const _SettingsSection(
+            title: 'Sécurité',
+            icon: Icons.lock_outline,
+            description:
+                'Verrouille l\'app avec ton empreinte ou Face ID au démarrage.',
+            child: _SecurityContent(),
           ),
         _ => const _SettingsSection(
             title: 'Actualisation',
@@ -314,18 +332,27 @@ class _ApiKeysContent extends StatefulWidget {
 
 class _ApiKeysContentState extends State<_ApiKeysContent> {
   final _geminiKey = TextEditingController(text: GeminiService.apiKey ?? '');
+  final _groqKey = TextEditingController(text: GroqService.apiKey ?? '');
+  final _mistralKey =
+      TextEditingController(text: MistralService.apiKey ?? '');
   final _mapsKey = TextEditingController(text: MapsService.apiKey ?? '');
   final _goveeKey = TextEditingController(text: GoveeService.apiKey ?? '');
   bool _obscureGemini = true;
+  bool _obscureGroq = true;
+  bool _obscureMistral = true;
   bool _obscureMaps = true;
   bool _obscureGovee = true;
   bool _savedGemini = false;
+  bool _savedGroq = false;
+  bool _savedMistral = false;
   bool _savedMaps = false;
   bool _savedGovee = false;
 
   @override
   void dispose() {
     _geminiKey.dispose();
+    _groqKey.dispose();
+    _mistralKey.dispose();
     _mapsKey.dispose();
     _goveeKey.dispose();
     super.dispose();
@@ -337,6 +364,24 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
     setState(() => _savedGemini = true);
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _savedGemini = false);
+    });
+  }
+
+  void _saveGroq() {
+    final key = _groqKey.text.trim();
+    GroqService.apiKey = key.isEmpty ? null : key;
+    setState(() => _savedGroq = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _savedGroq = false);
+    });
+  }
+
+  void _saveMistral() {
+    final key = _mistralKey.text.trim();
+    MistralService.apiKey = key.isEmpty ? null : key;
+    setState(() => _savedMistral = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _savedMistral = false);
     });
   }
 
@@ -366,7 +411,7 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
         _SettingsSubsection(
           title: 'Google Gemini',
           description:
-              'Utilisé pour remplir automatiquement les fiches de vin (identification, fenêtre de dégustation, descriptions).',
+              'IA principale : remplit les fiches de vin (identification, fenêtre de dégustation, descriptions, critiques).',
           child: _buildKeyField(
             controller: _geminiKey,
             hint: 'Coller votre clé API Gemini ici…',
@@ -375,6 +420,37 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
             onSave: _saveGemini,
             saved: _savedGemini,
             configured: GeminiService.isConfigured,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _SettingsSubsection(
+          title: 'Groq (recoupage IA #1)',
+          description:
+              'Optionnel. 2e IA gratuite (Llama) qui croise les résultats de Gemini. Crée ta clé sur console.groq.com/keys. Photo + texte.',
+          child: _buildKeyField(
+            controller: _groqKey,
+            hint: 'Coller votre clé API Groq ici…',
+            obscure: _obscureGroq,
+            onToggle: () => setState(() => _obscureGroq = !_obscureGroq),
+            onSave: _saveGroq,
+            saved: _savedGroq,
+            configured: GroqService.isConfigured,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _SettingsSubsection(
+          title: 'Mistral (recoupage IA #2)',
+          description:
+              'Optionnel. 3e IA gratuite (Mistral Large + Pixtral). Sans carte de crédit. Photo + texte. Crée ta clé sur console.mistral.ai → API Keys.',
+          child: _buildKeyField(
+            controller: _mistralKey,
+            hint: 'Coller votre clé API Mistral ici…',
+            obscure: _obscureMistral,
+            onToggle: () =>
+                setState(() => _obscureMistral = !_obscureMistral),
+            onSave: _saveMistral,
+            saved: _savedMistral,
+            configured: MistralService.isConfigured,
           ),
         ),
         const SizedBox(height: 24),
@@ -3231,6 +3307,306 @@ class _DriveConnectPanelState extends State<_DriveConnectPanel> {
           ),
         ]),
       ),
+    );
+  }
+}
+
+class _HistoryContent extends StatelessWidget {
+  const _HistoryContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<HistoryEntry>>(
+      stream: HistoryService.recent(limit: 100),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            ),
+          );
+        }
+        final entries = snap.data!;
+        if (entries.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'Aucune action récente.',
+              style: AppText.sans(color: AppColors.text3, fontSize: 12),
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < entries.length; i++) ...[
+              _HistoryRow(entry: entries[i]),
+              if (i < entries.length - 1)
+                Container(height: 1, color: AppColors.border),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _HistoryRow extends StatefulWidget {
+  final HistoryEntry entry;
+  const _HistoryRow({required this.entry});
+
+  @override
+  State<_HistoryRow> createState() => _HistoryRowState();
+}
+
+class _HistoryRowState extends State<_HistoryRow> {
+  bool _undoing = false;
+
+  String _formatDate(DateTime dt) {
+    final local = dt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    final diff = today.difference(day).inDays;
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    if (diff == 0) return "Aujourd'hui · $hh:$mm";
+    if (diff == 1) return 'Hier · $hh:$mm';
+    if (diff < 7) return 'Il y a $diff j · $hh:$mm';
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year} · $hh:$mm';
+  }
+
+  IconData _iconFor(HistoryActionType type) {
+    switch (type) {
+      case HistoryActionType.bottleDeleted:
+        return Icons.delete_outline;
+      case HistoryActionType.bottleDrunk:
+        return Icons.local_bar_outlined;
+      case HistoryActionType.wineDeleted:
+        return Icons.wine_bar_outlined;
+    }
+  }
+
+  Color _colorFor(HistoryActionType type) {
+    switch (type) {
+      case HistoryActionType.bottleDeleted:
+      case HistoryActionType.wineDeleted:
+        return const Color(0xFFE07060);
+      case HistoryActionType.bottleDrunk:
+        return AppColors.gold2;
+    }
+  }
+
+  Future<void> _undo() async {
+    setState(() => _undoing = true);
+    final err = await HistoryService.undo(widget.entry);
+    if (!mounted) return;
+    setState(() => _undoing = false);
+    final msg = err == null
+        ? 'Action annulée'
+        : 'Impossible : $err';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: err == null
+            ? AppColors.gold
+            : const Color(0xFFB23A48),
+        content: Text(
+          msg,
+          style: AppText.sans(
+            color: err == null
+                ? const Color(0xFF1A1408)
+                : Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.entry;
+    final color = _colorFor(e.type);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_iconFor(e.type), size: 18, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      e.type.label,
+                      style: AppText.sans(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDate(e.timestamp),
+                      style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  e.wineLabel,
+                  style: AppText.serif(
+                    color: AppColors.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (e.bottleLocation != null && e.bottleLocation!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      e.bottleLocation!,
+                      style: AppText.sans(color: AppColors.text3, fontSize: 11),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (e.undone)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                'Annulé',
+                style: AppText.sans(color: AppColors.text3, fontSize: 11),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: _undoing ? null : _undo,
+              icon: _undoing
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF1A1408),
+                      ),
+                    )
+                  : const Icon(Icons.undo, size: 16),
+              label: Text(
+                'Annuler',
+                style: AppText.sans(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.gold,
+                foregroundColor: const Color(0xFF1A1408),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecurityContent extends StatefulWidget {
+  const _SecurityContent();
+
+  @override
+  State<_SecurityContent> createState() => _SecurityContentState();
+}
+
+class _SecurityContentState extends State<_SecurityContent> {
+  bool? _supported;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSupport();
+  }
+
+  Future<void> _checkSupport() async {
+    final ok = await BiometricService.isSupported();
+    if (!mounted) return;
+    setState(() => _supported = ok);
+  }
+
+  Future<void> _onChange(bool value) async {
+    setState(() => _busy = true);
+    if (value) {
+      final auth = await BiometricService.authenticate(
+        reason: 'Active le verrouillage biométrique',
+      );
+      if (auth) {
+        await BiometricService.setEnabled(true);
+      }
+    } else {
+      await BiometricService.setEnabled(false);
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_supported == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+      );
+    }
+    if (_supported == false) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline,
+                size: 18, color: AppColors.text3),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Cet appareil ne prend pas en charge la biométrie '
+                '(Face ID / empreinte). Le verrouillage est désactivé.',
+                style: AppText.sans(color: AppColors.text2, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: BiometricService.enabled,
+      builder: (context, enabled, _) {
+        return _ToggleRow(
+          label: 'Verrouiller l\'app au démarrage',
+          subtitle:
+              'Demande Face ID ou ton empreinte avant d\'afficher la cave.',
+          value: enabled,
+          onChanged: _busy ? (_) {} : _onChange,
+        );
+      },
     );
   }
 }

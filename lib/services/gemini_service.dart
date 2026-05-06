@@ -83,14 +83,21 @@ class GeminiResult {
       return null;
     }
 
+    final region = (json['region'] as String?) ?? '';
+    final regionLower = region.toLowerCase();
+    final isBurgundy = regionLower.contains('bourgogne') ||
+        regionLower.contains('burgundy') ||
+        regionLower.contains('beaujolais');
+    final climat = isBurgundy ? (json['climat'] ?? '') : '';
+
     return GeminiResult(
       name: json['name'] ?? '',
       producer: json['producer'] ?? '',
       vintage: parseVintage(json['vintage']),
       appellation: json['appellation'] ?? '',
       country: json['country'] ?? '',
-      region: json['region'] ?? '',
-      climat: json['climat'] ?? '',
+      region: region,
+      climat: climat,
       domaine: json['domaine'] ?? '',
       village: json['village'] ?? '',
       domainAddress: json['domainAddress'] ?? '',
@@ -238,8 +245,8 @@ class GeminiService {
   "appellation": "appellation d'origine",
   "country": "pays",
   "region": "région viticole",
-  "climat": "climat ou lieu-dit si applicable, sinon vide",
-  "domaine": "domaine ou monopole si applicable, sinon vide",
+  "climat": "UNIQUEMENT pour les vins de Bourgogne : nom du climat / lieu-dit (ex: Les Amoureuses, Aux Murgers, Clos de la Roche). Pour TOUS les autres vins (Bordeaux, Rhône, Loire, Italie, Espagne, Nouveau Monde, etc.), TOUJOURS retourner une chaîne vide.",
+  "domaine": "domaine, château, tenuta, bodega ou maison (ex: Domaine de la Romanée-Conti, Château Margaux, Tenuta San Guido)",
   "village": "village si applicable, sinon vide",
   "domainAddress": "adresse complète du domaine",
   "grapes": "cépages avec pourcentages si connus",
@@ -282,21 +289,153 @@ LANGUE OBLIGATOIRE — TRÈS IMPORTANT : Toutes les valeurs textuelles du JSON d
     final domaineStr = domaine != null && domaine.isNotEmpty ? ' du domaine $domaine' : '';
 
     final prompt =
-        'Tu es un expert sommelier francophone. Donne-moi les informations sur le vin "$name"$domaineStr$vintageStr.\n\nRéponds UNIQUEMENT avec un JSON valide EN FRANÇAIS, sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
+        'Tu es un expert sommelier francophone. Donne-moi les informations sur le vin "$name"$domaineStr$vintageStr.\n\n'
+        'IMPORTANT : Utilise tes outils de recherche web pour vérifier toutes les informations (producteur, appellation, cépages, fenêtre de garde, valeur). '
+        'Cite des sources fiables (sites de domaines, SAQ, Wine-Searcher, critiques). Si une info n\'est pas vérifiable, retourne null/chaîne vide plutôt que d\'inventer.\n\n'
+        'Réponds UNIQUEMENT avec un JSON valide EN FRANÇAIS, sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
 
     final json = await _callGeminiJson([
       {'text': prompt}
-    ]);
+    ], useGrounding: true);
     return GeminiResult.fromJson(json);
   }
 
-  static Future<GeminiResult> searchByPhoto(Uint8List imageBytes) async {
+  /// Résolution de conflits : pour chaque champ avec plusieurs valeurs en
+  /// conflit, demande à Gemini (recherche web) de choisir la bonne option.
+  /// Retourne map fieldKey → nom de la source choisie (ex: 'gemini', 'groq').
+  static Future<Map<String, String>> resolveConflicts({
+    required String wineIdentity,
+    required Map<String, Map<String, String>> conflicts,
+  }) async {
+    if (!isConfigured || conflicts.isEmpty) return const {};
+
+    final prompt = '''
+Tu es un sommelier expert et un fact-checker. Pour le vin "$wineIdentity", plusieurs IA ont proposé des valeurs différentes pour certains champs.
+
+Utilise TES OUTILS DE RECHERCHE WEB (sites de domaines, SAQ, Wine-Searcher, RVF, Decanter) pour identifier la valeur correcte pour chaque champ. Sois rigoureux.
+
+Conflits à résoudre :
+${jsonEncode(conflicts)}
+
+Réponds UNIQUEMENT avec un JSON contenant, pour chaque champ, le nom de la source qui a la valeur correcte selon ta vérification web :
+
+{
+  "<fieldKey>": "<nom de la source qui a raison>"
+}
+
+Le nom de source doit être l'une des clés présentes dans les options du champ (ex: "gemini", "groq", "mistral", "consensus", "validator").
+Si tu ne peux pas trancher avec certitude pour un champ, NE LE METS PAS dans la réponse.
+''';
+
+    try {
+      final json = await _callGeminiJson([
+        {'text': prompt}
+      ], useGrounding: true);
+      final result = <String, String>{};
+      json.forEach((k, v) {
+        if (v is String && v.isNotEmpty) result[k] = v;
+      });
+      return result;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// Validation pass : reçoit un résultat consensus, demande à Gemini
+  /// (en mode recherche web) de vérifier chaque champ. Retourne uniquement
+  /// les champs où Gemini trouve une contradiction claire et vérifiable.
+  static Future<Map<String, String>> validateWine(GeminiResult merged) async {
+    if (!isConfigured) return const {};
+    final identity = <String>[
+      if (merged.producer.isNotEmpty) merged.producer,
+      if (merged.name.isNotEmpty) merged.name,
+      if (merged.vintage != null) merged.vintage.toString(),
+    ].join(' ');
+    if (identity.trim().isEmpty) return const {};
+
+    final fieldsJson = jsonEncode({
+      'name': merged.name,
+      'producer': merged.producer,
+      'vintage': merged.vintage,
+      'appellation': merged.appellation,
+      'country': merged.country,
+      'region': merged.region,
+      'climat': merged.climat,
+      'domaine': merged.domaine,
+      'village': merged.village,
+      'domainAddress': merged.domainAddress,
+      'grapes': merged.grapes,
+      'alcohol': merged.alcohol,
+      'type': merged.type,
+      'drinkFrom': merged.drinkFrom,
+      'drinkPeak': merged.drinkPeak,
+      'drinkTo': merged.drinkTo,
+      'marketValue': merged.marketValue,
+    });
+
+    final prompt = '''
+Tu es un sommelier expert et un fact-checker. Voici des informations sur le vin "$identity" obtenues par recoupage de plusieurs sources IA :
+
+$fieldsJson
+
+UTILISE TES OUTILS DE RECHERCHE WEB pour vérifier chaque champ contre des sources fiables (site officiel du domaine, SAQ, Wine-Searcher, RVF, Decanter).
+
+Sois CONSERVATEUR :
+- Ne flagge un champ que si tu trouves une PREUVE PUBLIÉE qui contredit clairement la valeur fournie.
+- Si tu n'es pas certain, ne retourne PAS le champ.
+- Pour les champs textuels (producer, region, appellation...) : tolère les variations d'écriture (accents, ponctuation, ordre).
+- Pour drinkFrom/drinkPeak/drinkTo/marketValue : flagge seulement si la valeur fournie est nettement (>3 ans, >30%) hors de la plage publiée.
+
+Réponds UNIQUEMENT avec un JSON contenant SEULEMENT les champs qui ont des erreurs vérifiées, sous cette forme :
+{
+  "corrections": {
+    "<fieldKey>": {"correct": "<valeur correcte>", "reason": "<source ou raison brève>"}
+  }
+}
+
+Si tout est correct ou non vérifiable : retourne {"corrections": {}}.
+
+Toutes les valeurs textuelles EN FRANÇAIS.
+''';
+
+    try {
+      final json = await _callGeminiJson([
+        {'text': prompt}
+      ], useGrounding: true);
+      final corrections = json['corrections'];
+      if (corrections is! Map) return const {};
+      final result = <String, String>{};
+      corrections.forEach((k, v) {
+        if (k is String && v is Map) {
+          final correct = v['correct'];
+          if (correct != null) {
+            result[k] = correct.toString();
+          }
+        }
+      });
+      return result;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static Future<GeminiResult> searchByPhoto(
+    Uint8List imageBytes, {
+    String? ocrHint,
+  }) async {
     if (!isConfigured) {
       throw Exception('Clé API Gemini non configurée. Va dans Paramètres.');
     }
 
+    final ocrSection = (ocrHint != null && ocrHint.trim().isNotEmpty)
+        ? '\n\nTexte OCR extrait de l\'étiquette (utilise-le pour confirmer l\'orthographe exacte des noms et chiffres) :\n---\n${ocrHint.trim()}\n---'
+        : '';
+
     final prompt =
-        'Tu es un expert sommelier francophone. Analyse cette photo d\'étiquette de vin et identifie le vin.\n\nRéponds UNIQUEMENT avec un JSON valide EN FRANÇAIS (toutes les valeurs textuelles doivent être traduites en français même si l\'étiquette est dans une autre langue), sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
+        'Tu es un expert sommelier francophone. Analyse cette photo d\'étiquette de vin et identifie le vin.\n\n'
+        'IMPORTANT : Utilise tes outils de recherche web pour vérifier le vin une fois identifié sur l\'étiquette (producteur officiel, appellation exacte, cépages, fenêtre de garde, valeur marchande actuelle). '
+        'Si une info n\'est pas vérifiable via le web, retourne null/chaîne vide plutôt que d\'inventer.$ocrSection\n\n'
+        'Réponds UNIQUEMENT avec un JSON valide EN FRANÇAIS (toutes les valeurs textuelles en français même si l\'étiquette est dans une autre langue), sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
 
     final json = await _callGeminiJson([
       {'text': prompt},
@@ -306,7 +445,7 @@ LANGUE OBLIGATOIRE — TRÈS IMPORTANT : Toutes les valeurs textuelles du JSON d
           'data': base64Encode(imageBytes),
         }
       }
-    ]);
+    ], useGrounding: true);
     return GeminiResult.fromJson(json);
   }
 
@@ -402,6 +541,58 @@ RÈGLES :
 
 LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
 
+  static Future<double?> estimateMarketValue({
+    required String name,
+    String? producer,
+    String? vintage,
+    String? appellation,
+  }) async {
+    if (!isConfigured) {
+      throw Exception('Clé API Gemini non configurée. Va dans Paramètres.');
+    }
+    final parts = [
+      'Nom: $name',
+      if (producer != null && producer.isNotEmpty) 'Producteur: $producer',
+      if (vintage != null && vintage.isNotEmpty) 'Millésime: $vintage',
+      if (appellation != null && appellation.isNotEmpty) 'Appellation: $appellation',
+    ].join(', ');
+
+    final prompt =
+        'Tu es un expert en évaluation de vins. Estime la valeur marchande actuelle en dollars canadiens (CAD) pour une bouteille 750 ML de ce vin :\n\n$parts\n\nBase-toi sur les prix moyens observés en SAQ, enchères, ou marchés en ligne.\n\nRéponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après :\n{"marketValue": 85.00}\n\nSi aucune estimation fiable n\'est possible, retourne {"marketValue": null}.';
+
+    final json = await _callGeminiJson([{'text': prompt}]);
+    final v = json['marketValue'];
+    if (v == null) return null;
+    return (v as num).toDouble();
+  }
+
+  static Future<({int? drinkFrom, int? drinkPeak, int? drinkTo})> estimateGarde({
+    required String name,
+    String? producer,
+    String? vintage,
+    String? appellation,
+  }) async {
+    if (!isConfigured) {
+      throw Exception('Clé API Gemini non configurée. Va dans Paramètres.');
+    }
+    final parts = [
+      'Nom: $name',
+      if (producer != null && producer.isNotEmpty) 'Producteur: $producer',
+      if (vintage != null && vintage.isNotEmpty) 'Millésime: $vintage',
+      if (appellation != null && appellation.isNotEmpty) 'Appellation: $appellation',
+    ].join(', ');
+
+    final prompt =
+        'Tu es un expert sommelier. Estime la période de garde optimale pour ce vin :\n\n$parts\n\nRéponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après :\n{"drinkFrom": 2024, "drinkPeak": 2030, "drinkTo": 2040}\n\nLes valeurs sont des années (4 chiffres). Si tu ne peux pas estimer un champ, mets null.';
+
+    final json = await _callGeminiJson([{'text': prompt}]);
+    return (
+      drinkFrom: json['drinkFrom'] as int?,
+      drinkPeak: json['drinkPeak'] as int?,
+      drinkTo: json['drinkTo'] as int?,
+    );
+  }
+
   static const _models = [
     'gemini-2.5-flash',
     'gemini-2.5-pro',
@@ -409,16 +600,27 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
     'gemini-flash-latest',
   ];
 
-  static Future<Map<String, dynamic>> _callGeminiJson(List<Map<String, dynamic>> parts) async {
-    final body = jsonEncode({
+  static Future<Map<String, dynamic>> _callGeminiJson(
+    List<Map<String, dynamic>> parts, {
+    bool useGrounding = false,
+  }) async {
+    // Search Grounding fait chercher Gemini sur le web pendant qu'il répond,
+    // ce qui réduit drastiquement les hallucinations. Mais il n'est pas
+    // compatible avec responseMimeType=json — on parse manuellement à la place.
+    final payload = <String, dynamic>{
       'contents': [
         {'parts': parts}
       ],
       'generationConfig': {
         'temperature': 0.3,
-        'responseMimeType': 'application/json',
-      }
-    });
+        if (!useGrounding) 'responseMimeType': 'application/json',
+      },
+      if (useGrounding)
+        'tools': [
+          {'google_search': <String, dynamic>{}}
+        ],
+    };
+    final body = jsonEncode(payload);
 
     Object? lastError;
     int? lastStatus;
@@ -438,11 +640,20 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
 
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
-            final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-            if (text == null) {
+            final candidate = data['candidates']?[0];
+            final partsList = candidate?['content']?['parts'] as List?;
+            if (partsList == null || partsList.isEmpty) {
               throw Exception('Réponse Gemini vide.');
             }
-            return jsonDecode(text) as Map<String, dynamic>;
+            // Concatène les parts text (grounding peut en produire plusieurs).
+            final text = partsList
+                .map((p) => p['text'] as String? ?? '')
+                .where((t) => t.isNotEmpty)
+                .join('\n');
+            if (text.isEmpty) {
+              throw Exception('Réponse Gemini vide.');
+            }
+            return _extractJson(text);
           }
 
           lastStatus = response.statusCode;
@@ -476,5 +687,28 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
       'Gemini est surchargé sur tous les modèles (dernière erreur HTTP $lastStatus). '
       'Réessaie dans quelques minutes. Détail : ${lastBody ?? lastError ?? "inconnu"}',
     );
+  }
+
+  static Map<String, dynamic> _extractJson(String text) {
+    var inner = text.trim();
+    // Retire les fences markdown ```json ... ```
+    if (inner.startsWith('```')) {
+      inner = inner.replaceFirst(RegExp(r'^```(json)?\s*'), '');
+      final lastFence = inner.lastIndexOf('```');
+      if (lastFence != -1) inner = inner.substring(0, lastFence);
+      inner = inner.trim();
+    }
+    // Cherche le 1er { et le dernier } pour extraire l'objet JSON
+    final start = inner.indexOf('{');
+    final end = inner.lastIndexOf('}');
+    if (start == -1 || end == -1 || end <= start) {
+      throw Exception('Pas de JSON valide dans la réponse Gemini.');
+    }
+    final jsonStr = inner.substring(start, end + 1);
+    final decoded = jsonDecode(jsonStr);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('JSON Gemini inattendu (pas un objet).');
+    }
+    return decoded;
   }
 }

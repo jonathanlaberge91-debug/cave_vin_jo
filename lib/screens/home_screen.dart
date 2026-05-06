@@ -56,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.thermostat_outlined, 'Wine CellR'),
     (Icons.refresh_outlined, 'Actualisation'),
     (Icons.download_outlined, 'Export'),
+    (Icons.history_outlined, 'Historique'),
+    (Icons.lock_outline, 'Sécurité'),
   ];
 
   final List<_NavEntry> _entries = [

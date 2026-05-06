@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modèle 1 — Barres fines avec glow subtil</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1A1710; font-family: 'Segoe UI', system-ui, sans-serif; color: #E8E0D0; padding: 40px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+  h2 { width: 100%; text-align: center; color: #C9A84C; font-family: Georgia, serif; margin-bottom: 10px; }
+  p.desc { width: 100%; text-align: center; color: #8A8070; font-size: 13px; margin-bottom: 30px; }
+
+  .cellar-card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 420px;
+  }
+  .cellar-header {
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #3A3428;
+  }
+  .cellar-name { color: #D4B96A; font-family: Georgia, serif; font-size: 16px; font-weight: 600; }
+  .cellar-count { color: #8A8070; font-size: 12px; }
+  .temp-badge { color: #B0A890; font-size: 11px; margin-left: auto; }
+
+  .cellar-body {
+    padding: 14px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  /* Light bars */
+  .light-bar {
+    width: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 100%;
+    position: relative;
+  }
+  .light-bar:hover {
+    width: 10px;
+  }
+  .light-bar-left { margin-right: 10px; }
+  .light-bar-right { margin-left: 10px; }
+
+  /* OFF state */
+  .light-bar.off {
+    background: #2A2520;
+    border: 1px solid #3A3428;
+  }
+
+  /* White ON */
+  .light-bar.white-on {
+    background: linear-gradient(180deg, #F5ECD0, #E8DDB8, #F5ECD0);
+    border: 1px solid #E8DDB8;
+    box-shadow: 0 0 12px rgba(245, 236, 208, 0.3), 0 0 25px rgba(245, 236, 208, 0.15);
+  }
+
+  /* Blue ON */
+  .light-bar.blue-on {
+    background: linear-gradient(180deg, #70B8E8, #5A9DD8, #70B8E8);
+    border: 1px solid #70B8E8;
+    box-shadow: 0 0 12px rgba(112, 184, 232, 0.35), 0 0 25px rgba(112, 184, 232, 0.15);
+  }
+
+  /* Dim states (25%) */
+  .light-bar.white-dim {
+    background: linear-gradient(180deg, #5A5540, #4A4535, #5A5540);
+    border: 1px solid #6A6050;
+    box-shadow: 0 0 6px rgba(245, 236, 208, 0.08);
+  }
+  .light-bar.blue-dim {
+    background: linear-gradient(180deg, #2A3A48, #253545, #2A3A48);
+    border: 1px solid #3A4A58;
+    box-shadow: 0 0 6px rgba(112, 184, 232, 0.08);
+  }
+
+  .grid-area { flex: 1; }
+
+  /* Grid */
+  .grid-labels-top { display: flex; padding-left: 24px; margin-bottom: 2px; }
+  .grid-labels-top span { width: 28px; text-align: center; font-size: 8px; color: #6A6050; font-weight: 600; }
+  .grid-row { display: flex; align-items: center; margin-bottom: 1px; }
+  .grid-row-label { width: 24px; text-align: center; font-size: 8px; color: #6A6050; font-weight: 600; }
+  .grid-cell {
+    width: 28px; height: 28px;
+    background: #1E1B16;
+    border: 1px solid #3A3428;
+    border-radius: 3px;
+    margin-right: 1px;
+  }
+  .grid-cell.occupied {
+    background: rgba(139, 50, 50, 0.30);
+    border-color: rgba(139, 50, 50, 0.65);
+  }
+  .grid-cell.occupied-white {
+    background: rgba(200, 180, 120, 0.25);
+    border-color: rgba(200, 180, 120, 0.5);
+  }
+
+  /* Picker overlay */
+  .picker-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .picker-overlay.show { display: flex; }
+  .picker-card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 14px;
+    padding: 24px;
+    width: 320px;
+  }
+  .picker-title { color: #D4B96A; font-family: Georgia, serif; font-size: 18px; margin-bottom: 16px; }
+  .picker-section-label { color: #8A8070; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin-bottom: 8px; margin-top: 16px; }
+  .picker-color-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .picker-color-opt {
+    flex: 1; padding: 10px; border-radius: 10px; text-align: center;
+    cursor: pointer; border: 1px solid #3A3428; transition: all 0.2s;
+    font-size: 13px;
+  }
+  .picker-color-opt:hover { border-color: #6A6050; }
+  .picker-color-opt.selected-white {
+    background: rgba(245, 236, 208, 0.12);
+    border-color: rgba(245, 236, 208, 0.5);
+    color: #F5ECD0;
+  }
+  .picker-color-opt.selected-blue {
+    background: rgba(112, 184, 232, 0.12);
+    border-color: rgba(112, 184, 232, 0.5);
+    color: #70B8E8;
+  }
+
+  .picker-intensity-row { display: flex; gap: 6px; }
+  .picker-intensity-opt {
+    flex: 1; padding: 10px 6px; border-radius: 10px; text-align: center;
+    cursor: pointer; border: 1px solid #3A3428; background: #1E1B16;
+    color: #8A8070; font-size: 12px; font-weight: 600; transition: all 0.2s;
+  }
+  .picker-intensity-opt:hover { border-color: #6A6050; }
+  .picker-intensity-opt.selected {
+    background: rgba(201, 168, 76, 0.15);
+    border-color: rgba(201, 168, 76, 0.5);
+    color: #D4B96A;
+  }
+
+  .state-label { text-align: center; color: #6A6050; font-size: 11px; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <h2>Modèle 1 — Barres fines avec glow subtil</h2>
+  <p class="desc">Barres de 8px, arrondies, glow doux. Clic = ouvre le picker combiné couleur+intensité.</p>
+
+  <!-- Cellar ON white 75% -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave A</span>
+      <span class="cellar-count">32/60 bouteilles</span>
+      <span class="temp-badge">14°C → 12°C</span>
+    </div>
+    <div class="cellar-body">
+      <div class="light-bar light-bar-left white-on" onclick="showPicker()" title="Éclairage: Blanc 75%"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+        </div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied-white"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied-white"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied-white"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied-white"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+      </div>
+      <div class="light-bar light-bar-right white-on" onclick="showPicker()" title="Éclairage: Blanc 75%"></div>
+    </div>
+  </div>
+
+  <!-- Cellar ON blue 50% -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave B</span>
+      <span class="cellar-count">18/60 bouteilles</span>
+      <span class="temp-badge">15°C → 14°C</span>
+    </div>
+    <div class="cellar-body">
+      <div class="light-bar light-bar-left blue-on" title="Éclairage: Bleu 50%"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+        </div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell"></div></div>
+      </div>
+      <div class="light-bar light-bar-right blue-on" title="Éclairage: Bleu 50%"></div>
+    </div>
+  </div>
+
+  <!-- Cellar OFF -->
+  <div class="cellar-card">
+    <div class="cellar-header">
+      <span class="cellar-name">Cave C</span>
+      <span class="cellar-count">45/60 bouteilles</span>
+      <span class="temp-badge">13°C → 13°C</span>
+    </div>
+    <div class="cellar-body">
+      <div class="light-bar light-bar-left off" title="Éclairage: OFF"></div>
+      <div class="grid-area">
+        <div class="grid-labels-top">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+        </div>
+        <div class="grid-row"><span class="grid-row-label">A</span><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">B</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">C</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">D</span><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div></div>
+        <div class="grid-row"><span class="grid-row-label">E</span><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div></div>
+        <div class="grid-row"><span class="grid-row-label">F</span><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div><div class="grid-cell"></div><div class="grid-cell occupied"></div><div class="grid-cell occupied"></div></div>
+      </div>
+      <div class="light-bar light-bar-right off" title="Éclairage: OFF"></div>
+    </div>
+  </div>
+
+  <!-- Picker -->
+  <div class="picker-overlay" id="picker">
+    <div class="picker-card">
+      <div class="picker-title">Éclairage latéral</div>
+
+      <div class="picker-section-label">Couleur</div>
+      <div class="picker-color-row">
+        <div class="picker-color-opt selected-white" style="background: rgba(245,236,208,0.08);">&#9679; Blanc</div>
+        <div class="picker-color-opt" style="color: #70B8E8;">&#9679; Bleu</div>
+      </div>
+
+      <div class="picker-section-label">Intensité</div>
+      <div class="picker-intensity-row">
+        <div class="picker-intensity-opt">OFF</div>
+        <div class="picker-intensity-opt">25%</div>
+        <div class="picker-intensity-opt">50%</div>
+        <div class="picker-intensity-opt selected">75%</div>
+        <div class="picker-intensity-opt">100%</div>
+      </div>
+
+      <div class="state-label">Blanc · 75%</div>
+    </div>
+  </div>
+
+  <script>
+    function showPicker() { document.getElementById('picker').classList.add('show'); }
+    document.getElementById('picker').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show');
+    });
+  </script>
+</body>
+</html>

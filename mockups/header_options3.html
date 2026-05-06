@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options 3 — Style Option 4 + porte ouverte</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111009;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #E8E0D0;
+    padding: 40px 32px;
+  }
+
+  h1 { text-align: center; color: #C9A84C; font-family: Georgia, serif; font-size: 22px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #6A6050; font-size: 13px; margin-bottom: 48px; }
+
+  .section { margin-bottom: 60px; }
+  .section-title { color: #C9A84C; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .section-desc { color: #6A6050; font-size: 12px; margin-bottom: 20px; line-height: 1.6; }
+
+  .cards-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+
+  .card {
+    background: #242018;
+    border: 1px solid #3A3428;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 420px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .led-bar {
+    height: 12px;
+    background: linear-gradient(90deg,
+      #FF4444 0%, #FF9900 18%, #FFEE00 36%,
+      #44FF88 54%, #44AAFF 72%, #AA44FF 90%
+    );
+    opacity: 0.55;
+  }
+
+  .fake-grid {
+    height: 90px;
+    background: repeating-linear-gradient(
+      90deg,
+      #1A1710 0px, #1A1710 24px,
+      #1E1C14 24px, #1E1C14 25px
+    );
+    opacity: 0.5;
+  }
+
+  .side-bars { display: flex; }
+  .light-bar { width: 6px; background: linear-gradient(180deg, #FFEE88 0%, transparent 100%); opacity: 0.3; min-height: 80px; }
+  .side-content { flex: 1; }
+
+  .big-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    background: #1E1C14;
+    border: 1px solid #4A4438;
+    border-radius: 8px;
+    color: #C9A84C;
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 10px; font-weight: 700;
+  }
+  .pill.green  { background: #7CD49222; border: 1px solid #7CD49244; color: #7CD492; }
+  .pill.orange { background: #E8A04C22; border: 1px solid #E8A04C55; color: #E8A04C; }
+
+  .lock-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    background: #7CD49218; border: 1px solid #7CD49244;
+    border-radius: 7px; font-size: 13px; cursor: pointer;
+  }
+
+  /* Porte ouverte tag */
+  .door-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #E8A04C1A; border: 1px solid #E8A04C55;
+    border-radius: 6px; padding: 3px 8px;
+    color: #E8A04C; font-size: 10px; font-weight: 700;
+  }
+
+  /* 3 colonnes base */
+  .cols-3 {
+    display: flex;
+    border-top: 1px solid #2A2820;
+    border-bottom: 1px solid #2A2820;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; }
+  .col.border-r { border-right: 1px solid #2A2820; }
+  .col-label { color: #8A8070; font-size: 8px; font-weight: 700; letter-spacing: .8px; margin-bottom: 5px; text-transform: uppercase; }
+
+  /* Fill bar */
+  .fill-bar-row {
+    padding: 8px 16px 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fill-track {
+    flex: 1; height: 5px; background: #1C1A12;
+    border-radius: 3px; overflow: hidden; border: 1px solid #2A2820;
+  }
+  .fill-fill {
+    width: 40%; height: 100%;
+    background: linear-gradient(90deg, #C9A84C55, #D4B96A);
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Options — Style 4 + porte ouverte</h1>
+<p class="subtitle">Nom centré · 3 colonnes · Remplissage · Porte ouverte — 5 variantes de placement</p>
+
+
+<!-- ══════════════════════════════════════════════
+     V1 — Porte dans la colonne consigne, sous les boutons
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">V1 — Porte dans la colonne centrale</div>
+  <div class="section-desc">
+    L'icône porte s'intègre dans la colonne Consigne, aux côtés du ON/OFF et du cadenas.
+    Tout reste regroupé au centre, naturel à lire.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+            <!-- PORTE ICI -->
+            <div style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; background:#E8A04C18; border:1px solid #E8A04C44; border-radius:6px; font-size:12px;">🚪</div>
+          </div>
+        </div>
+
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     V2 — Porte dans la barre de remplissage
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">V2 — Porte dans la barre de remplissage</div>
+  <div class="section-desc">
+    L'alerte porte s'affiche à droite de la barre de remplissage en bas.
+    Très discret quand fermée, visible quand ouverte sans déranger les métriques.
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+
+      <!-- Remplissage + porte -->
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+        <!-- PORTE ICI -->
+        <div class="door-tag" style="margin-left:4px;">🚪 Ouverte</div>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     V3 — Porte comme bannière d'alerte sous le nom
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">V3 — Bannière d'alerte sous le nom</div>
+  <div class="section-desc">
+    Quand la porte est ouverte, une fine bannière orange s'insère entre le nom et les 3 colonnes.
+    Très visible, impossible de manquer. N'existe pas quand porte fermée.
+  </div>
+  <div class="cards-row">
+
+    <!-- Porte ouverte -->
+    <div class="card">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+
+      <!-- BANNIÈRE PORTE -->
+      <div style="background:#E8A04C18; border-top:1px solid #E8A04C33; border-bottom:1px solid #E8A04C33; padding:5px 16px; display:flex; align-items:center; justify-content:center; gap:7px;">
+        <span style="font-size:13px;">🚪</span>
+        <span style="color:#E8A04C; font-size:11px; font-weight:700; letter-spacing:.3px;">Porte ouverte</span>
+      </div>
+
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+    <!-- Porte fermée (référence) -->
+    <div class="card" style="opacity:.65;">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+        <div style="color:#6A6050; font-size:10px; margin-top:2px;">(porte fermée — rien n'apparaît)</div>
+      </div>
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     V4 — Porte comme 4e colonne
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">V4 — Porte comme 4e colonne</div>
+  <div class="section-desc">
+    La porte prend sa propre petite colonne à droite, en permanence.
+    État fermé = icône sobre. État ouvert = icône orange + texte.
+  </div>
+  <div class="cards-row">
+
+    <!-- Porte ouverte -->
+    <div class="card">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+
+        <!-- COLONNE PORTE — ouverte -->
+        <div class="col" style="flex:.7; background:#E8A04C0A;">
+          <div style="color:#E8A04C; font-size:8px; font-weight:700; letter-spacing:.8px; margin-bottom:5px; text-transform:uppercase;">Porte</div>
+          <div style="font-size:20px; line-height:1;">🚪</div>
+          <div style="color:#E8A04C; font-size:9px; font-weight:700; margin-top:3px;">Ouverte</div>
+        </div>
+      </div>
+
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+    <!-- Porte fermée -->
+    <div class="card" style="opacity:.65;">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+      </div>
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+        <!-- COLONNE PORTE — fermée -->
+        <div class="col" style="flex:.7;">
+          <div style="color:#6A6050; font-size:8px; font-weight:700; letter-spacing:.8px; margin-bottom:5px; text-transform:uppercase;">Porte</div>
+          <div style="font-size:18px; line-height:1; opacity:.35;">🚪</div>
+          <div style="color:#6A6050; font-size:9px; margin-top:3px;">Fermée</div>
+        </div>
+      </div>
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     V5 — Bordure gauche + badge coin
+══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">V5 — Bordure latérale + badge coin</div>
+  <div class="section-desc">
+    Quand la porte est ouverte : bordure gauche orange sur toute la carte + un badge en coin supérieur droit.
+    Layout 3 colonnes inchangé, l'alerte est périphérique. Très propre.
+  </div>
+  <div class="cards-row">
+
+    <!-- Porte ouverte -->
+    <div class="card" style="border-left: 3px solid #E8A04C88;">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center; position:relative;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+        <!-- BADGE COIN -->
+        <div style="position:absolute; top:10px; right:14px; display:flex; align-items:center; gap:4px; background:#E8A04C18; border:1px solid #E8A04C44; border-radius:6px; padding:3px 7px;">
+          <span style="font-size:11px;">🚪</span>
+          <span style="color:#E8A04C; font-size:9px; font-weight:700;">Ouverte</span>
+        </div>
+      </div>
+
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+    <!-- Porte fermée -->
+    <div class="card" style="opacity:.65;">
+      <div class="led-bar"></div>
+      <div style="padding: 12px 18px 10px; text-align: center;">
+        <div style="color:#D4B96A; font-family:Georgia,serif; font-size:18px; font-weight:600;">Cellier du sous-sol</div>
+        <div style="color:#6A6050; font-size:10px; margin-top:2px;">(porte fermée — rien n'apparaît)</div>
+      </div>
+      <div class="cols-3">
+        <div class="col border-r" style="flex:1;">
+          <div class="col-label">▲ Haut</div>
+          <div style="color:#E8A04C; font-size:16px; font-weight:700;">14.5°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">58%</div>
+        </div>
+        <div class="col border-r" style="flex:1.4; gap:6px;">
+          <div class="col-label">Consigne</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="big-btn">−</div>
+            <div style="color:#D4B96A; font-size:22px; font-weight:700; min-width:52px; text-align:center;">14°C</div>
+            <div class="big-btn">+</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <div class="pill green" style="font-size:9px; padding:2px 7px;">⏻ ON</div>
+            <div class="lock-btn" style="width:22px;height:22px;font-size:11px;">🔓</div>
+          </div>
+        </div>
+        <div class="col" style="flex:1;">
+          <div class="col-label">▼ Bas</div>
+          <div style="color:#70B8E8; font-size:16px; font-weight:700;">12.3°C</div>
+          <div style="color:#6A6050; font-size:10px; margin-top:3px;">62%</div>
+        </div>
+      </div>
+      <div class="fill-bar-row">
+        <span style="color:#8A8070; font-size:10px; font-weight:700;">48 / 120</span>
+        <div class="fill-track"><div class="fill-fill"></div></div>
+        <span style="color:#6A6050; font-size:10px;">40%</span>
+      </div>
+      <div class="side-bars">
+        <div class="light-bar"></div>
+        <div class="side-content"><div class="fake-grid"></div></div>
+        <div class="light-bar"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

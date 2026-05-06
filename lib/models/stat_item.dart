@@ -19,6 +19,7 @@ enum StatItem {
   ajouteesParMois('Bouteilles ajoutées / mois', chartType: StatChartType.barres, allowedTypes: [StatChartType.barres, StatChartType.ligne]),
   buesParMois('Bouteilles bues / mois', chartType: StatChartType.barres, allowedTypes: [StatChartType.barres, StatChartType.ligne]),
   parPays('Bouteilles par pays', chartType: StatChartType.barresH, allowedTypes: [StatChartType.barresH, StatChartType.donut]),
+  carteMonde('Carte du monde', chartType: StatChartType.info, allowedTypes: []),
   parRegion('Bouteilles par région', chartType: StatChartType.barresH, allowedTypes: [StatChartType.barresH, StatChartType.donut]),
   parAppellation('Bouteilles par appellation', chartType: StatChartType.barresH, allowedTypes: [StatChartType.barresH, StatChartType.donut]),
   topDomaines('Top domaines', chartType: StatChartType.barresH, allowedTypes: [StatChartType.barresH, StatChartType.donut]),
@@ -27,7 +28,8 @@ enum StatItem {
   maturiteCalendrier('Calendrier de maturité', chartType: StatChartType.ligne, allowedTypes: [StatChartType.ligne, StatChartType.barres]),
   distributionMillesimes('Distribution des millésimes', chartType: StatChartType.barres, allowedTypes: [StatChartType.barres, StatChartType.ligne, StatChartType.donut]),
   cepagesDonut('Cépages principaux', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut, StatChartType.barresH]),
-  cepagesPart('Cépages - part en cave', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut]);
+  cepagesPart('Cépages - part en cave', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut]),
+  distributionCamembert('Distribution (cépage / pays / région)', chartType: StatChartType.donut, allowedTypes: [StatChartType.donut]);
 
   final String label;
   final StatChartType chartType;
@@ -40,10 +42,12 @@ enum StatItem {
     diversiteStreak,
     typeDonut,
     gardeDonut,
+    distributionCamembert,
     acquisitionVsConsommation,
     ajouteesParMois,
     buesParMois,
     parPays,
+    carteMonde,
     parRegion,
     parAppellation,
     topDomaines,
@@ -59,9 +63,11 @@ enum StatItem {
     [valeurTotale],
     [diversiteStreak],
     [typeDonut, gardeDonut],
+    [distributionCamembert],
     [acquisitionVsConsommation],
     [ajouteesParMois, buesParMois],
     [parPays],
+    [carteMonde],
     [parRegion],
     [parAppellation],
     [topDomaines],

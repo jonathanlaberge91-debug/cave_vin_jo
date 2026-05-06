@@ -1,0 +1,1169 @@
+{
+  "wines": [
+    {
+      "id": "0qtiUasVLt40Gqw9TErn",
+      "name": "Masseto",
+      "producer": "Tenuta Masseto",
+      "vintage": 2014,
+      "appellation": "Toscana IGT",
+      "country": "Italie",
+      "region": "Toscane",
+      "climat": "Masseto",
+      "domaine": "Masseto",
+      "village": "Bolgheri",
+      "domainAddress": "Via Bolgherese, 305, 57022 Bolgheri LI, Italie",
+      "grapes": "100% Merlot",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "drinkPeak": 2031,
+      "drinkTo": 2041,
+      "rating": null,
+      "wineDescription": "Le Masseto 2014 présente une robe d'un rouge rubis profond et intense, avec des reflets grenat qui témoignent de son évolution. Au nez, ce vin offre une complexité aromatique remarquable, s'ouvrant sur des notes de fruits noirs mûrs comme la mûre et la cerise noire, agrémentées de touches de prune. Des arômes secondaires de tabac, de cèdre et de réglisse se mêlent harmonieusement, évoluant vers des nuances tertiaires de sous-bois et de truffe avec l'aération. L'attaque en bouche est élégante et soyeuse, révélant une texture veloutée et une grande finesse. Le milieu de bouche est dense et concentré, mais sans lourdeur, porté par une belle fraîcheur. La structure tannique est présente, mais d'une grande finesse, offrant un grain serré et une intégration parfaite. L'acidité est vive et équilibrée, apportant de la tension et de la persistance à l'ensemble. La finale est longue et savoureuse, laissant des impressions de fruits noirs, d'épices douces et une légère minéralité. Ce millésime, bien que plus frais, a permis de produire un Masseto d'une élégance et d'une pureté exceptionnelles. Il possède un excellent potentiel de garde, pouvant s'épanouir encore pendant de nombreuses années. Il s'accordera parfaitement avec des plats de gibier, comme un civet de chevreuil, des viandes rouges grillées ou en sauce, ou encore des fromages affinés. Un vin de méditation qui révèle toute sa splendeur avec le temps.",
+      "domaineDescription": "Le domaine Masseto est une icône de la viticulture italienne, situé sur la côte toscane, dans la prestigieuse région de Bolgheri. Il est souvent surnommé le 'Pétrus italien' en raison de son cépage unique, le Merlot, et de sa qualité exceptionnelle. Créé en 1986, Masseto est né de la vision de la famille Frescobaldi, propriétaire de Tenuta dell'Ornellaia, de produire un grand vin de Merlot pur sur un terroir unique. Le vignoble de Masseto s'étend sur environ 7 hectares, planté exclusivement de Merlot, sur des sols d'argile bleue riches en fossiles marins, un terroir rare et idéal pour ce cépage. L'exposition ouest-nord-ouest des parcelles assure une maturation lente et progressive des raisins, favorisant la complexité aromatique et la finesse des tanins. La philosophie de vinification est axée sur le respect du terroir et l'expression pure du Merlot. Chaque parcelle est vendangée et vinifiée séparément, avec une attention méticuleuse à chaque étape. L'élevage se fait en fûts de chêne français neufs pendant environ 24 mois, suivi d'un affinage en bouteille. Masseto est un monopole, ce qui signifie que le vin est produit à partir d'un seul vignoble, lui conférant une identité et une cohérence uniques. Le domaine est réputé mondialement pour la concentration, l'élégance et la longévité de ses vins. Il est considéré comme l'un des plus grands vins d'Italie et du monde, atteignant des prix très élevés sur le marché. Sa production est limitée, ce qui en fait un vin très recherché par les collectionneurs et les amateurs éclairés. Le domaine est aujourd'hui dirigé par Axel Heinz, qui perpétue l'excellence et la tradition de Masseto.",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777571534509_masseto2014-tenuta-ornellaia1.jpg?alt=media&token=142806a3-f276-4402-be27-9d915f6ae01f",
+      "critiques": [
+        {
+          "source": "James Suckling",
+          "score": "97/100",
+          "note": "Un vin très structuré et puissant pour le millésime avec des tanins mâchus et une finale longue et savoureuse. Il est corsé et dense. Un vin sérieux pour le millésime. Meilleur après 2022.",
+          "date": {
+            "_seconds": 1501560000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Robert Parker / Wine Advocate (Monica Larner)",
+          "score": "96/100",
+          "note": "Le Masseto 2014 est un vin magnifique qui reflète la nature difficile du millésime avec une grâce et une élégance extraordinaires. Le vin est un Merlot pur, comme toujours, et il présente une texture soyeuse et une finale longue et persistante. Les arômes de cerise noire, de mûre et de prune sont suivis de notes de réglisse, de terre cuite et de goudron. C'est un vin qui a besoin de temps pour s'ouvrir et montrer sa complexité.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "95/100",
+          "note": "Le Masseto 2014 est un vin d'une beauté saisissante. Dans ce millésime difficile, Masseto a produit un vin de finesse et de pureté remarquables. Les arômes de fruits rouges, de fleurs et d'épices sont magnifiquement intégrés. La bouche est soyeuse et élégante, avec une finale persistante. C'est un Masseto qui privilégie l'élégance à la puissance.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "94/100",
+          "note": "Un rouge dense et concentré, avec des saveurs de cerise noire, de prune, d'épices et de tabac. Il est riche et puissant, avec des tanins fermes et une acidité vive qui maintiennent le vin en équilibre. Une finale longue et savoureuse. À boire de 2020 à 2035.",
+          "date": {
+            "_seconds": 1509422400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "94/100",
+          "note": "Malgré un millésime difficile, Masseto a réussi à produire un vin impressionnant en 2014. Il est riche et complexe, avec des notes de fruits noirs, de chocolat et de menthe. La bouche est ample et généreuse, avec des tanins fins et une belle fraîcheur. Un vin à savourer dans les 10 à 15 prochaines années.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1778014378,
+        "_nanoseconds": 389000000
+      }
+    },
+    {
+      "id": "2zBdTgaAsRRDKVrygXHe",
+      "producer": "Marchesi Antinori",
+      "vintage": 2020,
+      "appellation": "Toscana IGT",
+      "country": "Italie",
+      "region": "Toscane",
+      "climat": "Collines du Chianti Classico",
+      "domaine": "Tenuta Tignanello",
+      "domainAddress": "Via di Tignanello, 50026 Mercatale Val di Pesa FI, Italie",
+      "grapes": "Sangiovese (80%), Cabernet Sauvignon (15%), Cabernet Franc (5%)",
+      "alcohol": 14,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "rating": null,
+      "wineDescription": "Le Tignanello 2020 arbore une robe rouge rubis intense et profonde, avec de légers reflets grenat qui témoignent de sa concentration et de son potentiel. Au nez, il révèle une complexité aromatique remarquable, s'ouvrant sur des notes de fruits rouges mûrs comme la cerise et le cassis, entrelacées de touches de fruits noirs plus sombres. Des arômes secondaires issus de l'élevage en barrique se manifestent avec élégance : vanille, épices douces, tabac blond et un soupçon de cuir. On perçoit également des nuances balsamiques et de cacao, ajoutant à sa profondeur olfactive. En bouche, l'attaque est franche et d'une grande finesse, introduisant un milieu de bouche ample et velouté. La structure tannique est présente mais d'une incroyable soyeux, parfaitement intégrée et sans aucune aspérité. L'acidité est vibrante et équilibrée, apportant une fraîcheur bienvenue qui dynamise l'ensemble du palais. La texture est dense, harmonieuse et enveloppante, témoignant d'une maturité parfaite des raisins. La finale est d'une longueur exceptionnelle, laissant persister des saveurs de fruits noirs, de réglisse et des notes minérales. Ce vin possède un excellent potentiel de garde, pouvant évoluer favorablement pendant 15 à 20 ans, voire plus. Il est recommandé de le carafer quelques heures avant dégustation pour qu'il exprime pleinement ses arômes. Il s'accorde merveilleusement avec des viandes rouges grillées ou rôties, comme un filet de bœuf ou un carré d'agneau. Les gibiers à plumes ou à poils, ainsi que les fromages affinés, sont également des partenaires de choix. Un plat aux truffes sublimerait également ses nuances tertiaires.",
+      "domaineDescription": "La famille Antinori est une institution dans le monde du vin, avec une histoire viticole ininterrompue de plus de six siècles, remontant à 1385. Elle est l'une des plus anciennes et des plus prestigieuses maisons viticoles d'Italie, ayant marqué l'histoire du vin toscan. Aujourd'hui, le Marchese Piero Antinori et ses trois filles, Albiera, Allegra et Alessia, perpétuent cet héritage avec passion et vision. La philosophie de vinification d'Antinori est un équilibre subtil entre tradition séculaire et innovation audacieuse. Ils sont notamment les pionniers des \"Super Toscans\", ayant révolutionné la production de vins de qualité en Toscane avec des créations comme Tignanello et Solaia. La Tenuta Tignanello est située au cœur de la région du Chianti Classico, un terroir d'exception. Les sols sont principalement composés d'alberese et de galestro, des roches calcaires et schisteuses qui confèrent aux vins une minéralité distinctive. Les vignobles bénéficient d'une exposition sud-ouest idéale et d'une altitude variant entre 350 et 400 mètres, assurant une maturation optimale des raisins. Le microclimat de la propriété est particulièrement propice à la culture de la vigne. La Tenuta Tignanello s'étend sur 319 hectares, dont 127 hectares sont dédiés à la vigne, incluant les parcelles historiques de Tignanello et Solaia. Bien que classé comme IGT Toscana, le Tignanello est mondialement reconnu comme un vin iconique et l'un des plus grands ambassadeurs de l'Italie. Il a reçu d'innombrables distinctions et des notes élogieuses de la part des critiques internationaux. Sa réputation est celle d'un vin de légende, symbole de l'élégance, de la complexité et du potentiel de garde des vins toscans. Tignanello fut le premier Sangiovese à être élevé en barriques et le premier vin rouge moderne du Chianti Classico à utiliser des cépages non traditionnels comme le Cabernet Sauvignon et le Cabernet Franc.",
+      "photoUrl": null,
+      "createdAt": {
+        "_seconds": 1776389855,
+        "_nanoseconds": 149000000
+      },
+      "name": "Tignanello",
+      "village": "Mercatale Val di Pesa",
+      "drinkTo": 2041,
+      "drinkPeak": 2031
+    },
+    {
+      "id": "BYMFD308Z2KH9lx6Hyec",
+      "name": "Masseto",
+      "vintage": 2014,
+      "climat": "Masseto",
+      "domaine": "Masseto",
+      "village": "Bolgheri",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "rating": null,
+      "createdAt": {
+        "_seconds": 1777556781,
+        "_nanoseconds": 749000000
+      },
+      "country": "Italie",
+      "region": "Toscane",
+      "domainAddress": "Via Bolgherese, 305, 57022 Bolgheri LI, Italie",
+      "domaineDescription": "Le domaine Masseto est une icône de la viticulture italienne, situé sur la côte toscane, dans la prestigieuse région de Bolgheri. Il est souvent surnommé le 'Pétrus italien' en raison de son cépage unique, le Merlot, et de sa qualité exceptionnelle. Créé en 1986, Masseto est né de la vision de la famille Frescobaldi, propriétaire de Tenuta dell'Ornellaia, de produire un grand vin de Merlot pur sur un terroir unique. Le vignoble de Masseto s'étend sur environ 7 hectares, planté exclusivement de Merlot, sur des sols d'argile bleue riches en fossiles marins, un terroir rare et idéal pour ce cépage. L'exposition ouest-nord-ouest des parcelles assure une maturation lente et progressive des raisins, favorisant la complexité aromatique et la finesse des tanins. La philosophie de vinification est axée sur le respect du terroir et l'expression pure du Merlot. Chaque parcelle est vendangée et vinifiée séparément, avec une attention méticuleuse à chaque étape. L'élevage se fait en fûts de chêne français neufs pendant environ 24 mois, suivi d'un affinage en bouteille. Masseto est un monopole, ce qui signifie que le vin est produit à partir d'un seul vignoble, lui conférant une identité et une cohérence uniques. Le domaine est réputé mondialement pour la concentration, l'élégance et la longévité de ses vins. Il est considéré comme l'un des plus grands vins d'Italie et du monde, atteignant des prix très élevés sur le marché. Sa production est limitée, ce qui en fait un vin très recherché par les collectionneurs et les amateurs éclairés. Le domaine est aujourd'hui dirigé par Axel Heinz, qui perpétue l'excellence et la tradition de Masseto.",
+      "producer": "Tenuta Masseto",
+      "wineDescription": "Le Masseto 2014 présente une robe d'un rouge rubis profond et intense, avec des reflets grenat qui témoignent de son évolution. Au nez, ce vin offre une complexité aromatique remarquable, s'ouvrant sur des notes de fruits noirs mûrs comme la mûre et la cerise noire, agrémentées de touches de prune. Des arômes secondaires de tabac, de cèdre et de réglisse se mêlent harmonieusement, évoluant vers des nuances tertiaires de sous-bois et de truffe avec l'aération. L'attaque en bouche est élégante et soyeuse, révélant une texture veloutée et une grande finesse. Le milieu de bouche est dense et concentré, mais sans lourdeur, porté par une belle fraîcheur. La structure tannique est présente, mais d'une grande finesse, offrant un grain serré et une intégration parfaite. L'acidité est vive et équilibrée, apportant de la tension et de la persistance à l'ensemble. La finale est longue et savoureuse, laissant des impressions de fruits noirs, d'épices douces et une légère minéralité. Ce millésime, bien que plus frais, a permis de produire un Masseto d'une élégance et d'une pureté exceptionnelles. Il possède un excellent potentiel de garde, pouvant s'épanouir encore pendant de nombreuses années. Il s'accordera parfaitement avec des plats de gibier, comme un civet de chevreuil, des viandes rouges grillées ou en sauce, ou encore des fromages affinés. Un vin de méditation qui révèle toute sa splendeur avec le temps.",
+      "critiques": [
+        {
+          "source": "James Suckling",
+          "score": "97/100",
+          "note": "Un vin très structuré et puissant pour le millésime avec des tanins mâchus et une finale longue et savoureuse. Il est corsé et dense. Un vin sérieux pour le millésime. Meilleur après 2022.",
+          "date": {
+            "_seconds": 1501560000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Robert Parker / Wine Advocate (Monica Larner)",
+          "score": "96/100",
+          "note": "Le Masseto 2014 est un vin magnifique qui reflète la nature difficile du millésime avec une grâce et une élégance extraordinaires. Le vin est un Merlot pur, comme toujours, et il présente une texture soyeuse et une finale longue et persistante. Les arômes de cerise noire, de mûre et de prune sont suivis de notes de réglisse, de terre cuite et de goudron. C'est un vin qui a besoin de temps pour s'ouvrir et montrer sa complexité.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "95/100",
+          "note": "Le Masseto 2014 est un vin d'une beauté saisissante. Dans ce millésime difficile, Masseto a produit un vin de finesse et de pureté remarquables. Les arômes de fruits rouges, de fleurs et d'épices sont magnifiquement intégrés. La bouche est soyeuse et élégante, avec une finale persistante. C'est un Masseto qui privilégie l'élégance à la puissance.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "94/100",
+          "note": "Un rouge dense et concentré, avec des saveurs de cerise noire, de prune, d'épices et de tabac. Il est riche et puissant, avec des tanins fermes et une acidité vive qui maintiennent le vin en équilibre. Une finale longue et savoureuse. À boire de 2020 à 2035.",
+          "date": {
+            "_seconds": 1509422400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "94/100",
+          "note": "Malgré un millésime difficile, Masseto a réussi à produire un vin impressionnant en 2014. Il est riche et complexe, avec des notes de fruits noirs, de chocolat et de menthe. La bouche est ample et généreuse, avec des tanins fins et une belle fraîcheur. Un vin à savourer dans les 10 à 15 prochaines années.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "grapes": "100% Merlot",
+      "appellation": "Toscana IGT",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777571534509_masseto2014-tenuta-ornellaia1.jpg?alt=media&token=142806a3-f276-4402-be27-9d915f6ae01f",
+      "drinkFrom": 2024,
+      "drinkTo": 2041,
+      "drinkPeak": 2031
+    },
+    {
+      "id": "LXmRIql9ttNn47GK1yIc",
+      "name": "Romanée-Conti",
+      "producer": "Domaine de la Romanée-Conti",
+      "vintage": 2000,
+      "appellation": "Romanée-Conti Grand Cru",
+      "country": "France",
+      "region": "Bourgogne",
+      "climat": "Romanée-Conti",
+      "domaine": "Domaine de la Romanée-Conti (Monopole)",
+      "village": "Vosne-Romanée",
+      "domainAddress": "9, Route Nationale 74, 21700 Vosne-Romanée, France",
+      "grapes": "Pinot Noir (100%)",
+      "alcohol": 13.5,
+      "type": "rouge",
+      "rating": null,
+      "wineDescription": "Le Romanée-Conti 2000 se présente avec une robe rubis profond, évoluant vers des reflets grenat avec l'âge. Son nez est d'une complexité envoûtante, dévoilant des arômes de fruits rouges mûrs comme la cerise et la framboise, entrelacés de notes de sous-bois, de truffe, d'épices douces et de fleurs fanées. En bouche, il offre une élégance suprême, une texture soyeuse et une finesse remarquable. La structure tannique est présente mais parfaitement fondue, soutenue par une acidité vibrante qui assure un équilibre parfait. Les saveurs persistantes de fruits, de minéralité et de notes tertiaires se prolongent dans une finale incroyablement longue et harmonieuse. Ce vin d'exception s'accorde magnifiquement avec des gibiers à plumes raffinés, des plats à base de truffes ou de champignons nobles, ainsi que des fromages affinés comme le Comté ou l'Époisses.",
+      "domaineDescription": "Le Domaine de la Romanée-Conti, souvent désigné par ses initiales DRC, est un domaine viticole légendaire de Bourgogne. Son histoire remonte aux moines cisterciens, et il est devenu un monopole en 1869. Aujourd'hui, il est la propriété conjointe des familles de Villaine et Leroy/Roch. La philosophie du domaine repose sur une adhésion stricte à la biodynamie, un respect profond du terroir et des rendements extrêmement faibles. La vinification est traditionnelle, avec un élevage prolongé en fûts de chêne neufs. Le terroir unique de Romanée-Conti, caractérisé par des sols argilo-calcaires et une exposition est, confère au vin sa signature inimitable. Le Domaine de la Romanée-Conti jouit d'une réputation inégalée, produisant certains des vins les plus prestigieux et les plus chers du monde, véritables icônes de la viticulture bourguignonne.",
+      "photoUrl": null,
+      "critiques": [
+        {
+          "source": "Allen Meadows / Burghound",
+          "score": "96/100",
+          "note": "Un nez légèrement plus profond et réservé d'arômes de fruits rouges et noirs, très épicés et complexes, menant à des saveurs riches, pleines, douces et magnifiquement détaillées, d'une grande pureté et longueur. Il est encore assez primaire et, bien qu'il ne soit pas aussi concentré que le '99, c'est un vin superbe qui devrait vieillir pendant des décennies.",
+          "date": {
+            "_seconds": 1041397200,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "95/100",
+          "note": "Le Romanée-Conti 2000 est un vin plus en retrait, moins généreux que le 1999. Il possède une robe rubis foncé et un nez de cerises noires, de prunes et d'épices. C'est un vin corsé, puissant et concentré avec une finale longue et intense. Il nécessitera au moins 10 à 15 ans de garde en cave.",
+          "date": {
+            "_seconds": 1046408400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Jancis Robinson",
+          "score": "19/20",
+          "note": "Rubis profond. Nez très fin, délicat, éthéré. Très doux, rond et souple. Très flatteur. Pas tout à fait autant de structure que certains, mais très, très long et persistant. Un vin charmant.",
+          "date": {
+            "_seconds": 1041397200,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Stephen Tanzer / Vinous",
+          "score": "96/100",
+          "note": "Belle robe rouge intense. Arômes profonds et complexes de cerise noire, framboise, minéraux, truffe et une touche de gibier. Doux, dense et sèveux, avec une superbe concentration et une texture merveilleusement soyeuse. La finale est d'une grande longueur avec une fine poussière de tanins. Un superbe Romanée-Conti qui aura besoin de temps.",
+          "date": {
+            "_seconds": 1046494800,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1777982188,
+        "_nanoseconds": 366000000
+      },
+      "drinkTo": 2060,
+      "drinkFrom": 2025,
+      "drinkPeak": 2039
+    },
+    {
+      "id": "PAnbZcIbfwfJNPoHW4Ye",
+      "name": "Château Beychevelle",
+      "producer": "Château Beychevelle",
+      "vintage": 2023,
+      "appellation": "Saint-Julien",
+      "country": "France",
+      "region": "Bordeaux",
+      "climat": "",
+      "domaine": "",
+      "village": "Saint-Julien-Beychevelle",
+      "domainAddress": "Route du Port, 33250 Saint-Julien-Beychevelle, France",
+      "grapes": "58% Cabernet Sauvignon, 37% Merlot, 5% Petit Verdot",
+      "alcohol": 13.2,
+      "type": "rouge",
+      "rating": null,
+      "wineDescription": "Le Château Beychevelle 2023 se présente dans une robe pourpre-rubis profonde et éclatante, promesse d'une belle concentration. Le bouquet aromatique est à la fois intense et d'une grande finesse, dévoilant des arômes primaires de fruits noirs purs comme le cassis et la mûre, complétés par des notes florales de violette. Des nuances secondaires de cèdre et de graphite témoignent de son élevage soigné et de son terroir prestigieux. En bouche, l'attaque est précise, fraîche et élégante, caractéristique du millésime. Le milieu de bouche révèle une matière dense mais soyeuse, parfaitement équilibrée par une acidité vibrante qui apporte tension et dynamisme. La structure tannique est remarquable de raffinement ; les tanins sont fins, polis et parfaitement intégrés, conférant au vin une texture veloutée et une grande élégance. La finale est longue, persistante et saline, laissant une impression de fraîcheur et des saveurs persistantes de fruits noirs et d'épices douces. Ce vin possède un potentiel de garde exceptionnel, lui permettant de se bonifier pendant plusieurs décennies. Il s'accordera à merveille avec des plats nobles tels qu'un carré d'agneau rôti, un filet de bœuf en croûte ou encore un magret de canard aux cèpes. Sa structure lui permet également d'accompagner des fromages affinés à pâte dure. C'est un vin qui incarne la quintessence de l'élégance de Saint-Julien, alliant puissance et délicatesse. Il faudra faire preuve de patience pour le laisser atteindre son apogée. Le millésime 2023 est une interprétation classique et magistrale du style Beychevelle.",
+      "domaineDescription": "Surnommé le \"Versailles du Médoc\" pour son architecture classique et ses jardins somptueux, le Château Beychevelle est une icône de l'appellation Saint-Julien. Son histoire est intimement liée à celle des Ducs d'Épernon, grands amiraux de France au XVIIe siècle. La légende raconte que les navires passant devant le domaine devaient baisser leurs voiles en signe d'allégeance, d'où le nom \"Baisse-Voile\" qui devint \"Beychevelle\". Aujourd'hui, la propriété appartient conjointement au groupe japonais Suntory et au groupe français Castel via la société Grands Millésimes de France. Le domaine est classé Quatrième Grand Cru dans le prestigieux classement de 1855. Le vignoble de 90 hectares bénéficie d'un terroir exceptionnel de graves garonnaises profondes, assurant un drainage naturel parfait. L'encépagement est majoritairement composé de Cabernet Sauvignon et de Merlot, complété par du Petit Verdot et du Cabernet Franc. La proximité de l'estuaire de la Gironde crée un microclimat protecteur, idéal à la parfaite maturation des raisins. La philosophie du château allie tradition et innovation, avec une viticulture de précision et un engagement environnemental fort, certifié Haute Valeur Environnementale. Les vinifications sont parcellaires et se déroulent dans un chai ultramoderne, permettant d'exprimer avec justesse la complexité de chaque terroir. Le style des vins de Beychevelle est réputé pour son élégance, sa finesse et son équilibre, plutôt que pour sa puissance brute. Cette signature en fait l'un des vins les plus recherchés de l'appellation. Le château lui-même, avec son emblème de navire à la voile baissée, est un symbole de prestige et d'histoire sur la route des grands crus du Médoc.",
+      "critiques": [
+        {
+          "source": "James Suckling",
+          "score": "96-97/100",
+          "note": "Un Beychevelle très classique et raffiné avec des notes de cassis, de mûre et de chocolat. Il est mi-corsé à corsé avec une texture merveilleusement polie et des tanins très fins qui se prolongent sur la longueur. Très structuré et long. L'un des meilleurs de mémoire récente.",
+          "date": {
+            "_seconds": 1714104000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous",
+          "score": "94-96/100",
+          "note": "Le Beychevelle 2023 présente un bouquet très pur et précis, avec des arômes de mûre, de framboise, de mine de crayon et une touche de pétales de rose. La bouche est moyennement corsée avec des tanins fins. Très frais et tendu, avec une finale saline qui persiste en bouche.",
+          "date": {
+            "_seconds": 1714449600,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Jane Anson / Inside Bordeaux",
+          "score": "95/100",
+          "note": "Un Beychevelle réussi, avec une belle structure et une concentration de fruits de cassis et de mûre. Il est ciselé, avec des tanins fins et une acidité juteuse qui lui confère de l'énergie et de la longueur. Un vin élégant et prometteur.",
+          "date": {
+            "_seconds": 1715313600,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "93-95/100",
+          "note": "Le Beychevelle 2023 se révèle magnifiquement, offrant des arômes de cassis, de baies sauvages et de violette mêlés à des notes de mine de crayon et d'épices douces. Il est mi-corsé à corsé, étagé et velouté, avec un noyau de fruit vibrant et des tanins poudrés qui s'affirment sur la finale longue et saline.",
+          "date": {
+            "_seconds": 1714104000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "95/100",
+          "note": "Parfumé et floral au nez. Souple et vif, les tanins sont fins mais fermes, donnant une sensation crayeuse et poudrée en bouche. C'est un vin droit et concentré, mais pas austère, avec une belle énergie et une finale saline.",
+          "date": {
+            "_seconds": 1711944000,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1777560143,
+        "_nanoseconds": 634000000
+      },
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777638769503_20260430_163811.jpg?alt=media&token=820360fd-e7de-471f-8a4e-c61c403231f2",
+      "drinkFrom": 2028,
+      "drinkTo": 2049,
+      "drinkPeak": 2039
+    },
+    {
+      "id": "T1bs86vFbsCwM4uTFIo0",
+      "producer": "Château Margaux",
+      "vintage": 2008,
+      "appellation": "Margaux",
+      "country": "France",
+      "region": "Bordeaux",
+      "climat": "",
+      "village": "Margaux",
+      "type": "rouge",
+      "rating": null,
+      "createdAt": {
+        "_seconds": 1777571155,
+        "_nanoseconds": 695000000
+      },
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777581580155_20260430_163811.jpg?alt=media&token=3b6971ab-23eb-449c-9d63-79988500ef1d",
+      "name": "Château Margaux",
+      "domaine": "",
+      "alcohol": 13,
+      "drinkTo": 2045,
+      "domaineDescription": "Le Château Margaux est l'un des cinq Premiers Grands Crus Classés de Bordeaux, situé sur la rive gauche de la Garonne. Son histoire remonte au XIIe siècle, mais c'est au XVIIIe siècle qu'il acquiert sa renommée mondiale. Le domaine est réputé pour son terroir exceptionnel, caractérisé par des graves profondes et un microclimat favorable. La philosophie de vinification privilégie l'élégance, la finesse et la complexité, avec un respect profond de la nature et du raisin. Les vignes sont cultivées avec une attention méticuleuse, souvent en agriculture raisonnée. Le chai, conçu par l'architecte Norman Foster, allie tradition et modernité. La réputation du Château Margaux est celle d'un vin d'une qualité constante et d'une capacité de vieillissement remarquable. Il est considéré comme l'un des plus grands vins du monde, incarnant l'essence même de l'appellation Margaux. Chaque millésime est le fruit d'un travail acharné et d'une quête d'excellence.",
+      "wineDescription": "Le Château Margaux 2008 présente une robe d'un rouge grenat profond et brillant. Au nez, il dévoile un bouquet complexe et élégant de cassis, de violette, de mine de crayon et de notes subtiles de tabac et de cèdre. En bouche, l'attaque est précise, offrant une structure raffinée avec des tanins soyeux et une acidité rafraîchissante. Les saveurs de fruits noirs mûrs se mêlent à des touches épicées et minérales, témoignant de la pureté du terroir. La texture est veloutée, enveloppant le palais avec grâce. La finale est longue, persistante et harmonieuse, laissant une impression de finesse et de complexité. Ce vin est un excellent compagnon pour un carré d'agneau rôti, un filet de bœuf Wellington ou des fromages affinés. Il peut également être apprécié avec un magret de canard aux cerises. Sa polyvalence en fait un choix idéal pour les grandes occasions.",
+      "critiques": [
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "94/100",
+          "note": "Le Château Margaux 2008 est un vin magnifique et élégant, avec un bouquet de cassis, de violette et de mine de crayon. En bouche, il est d'une pureté remarquable, avec des tanins fins et une acidité rafraîchissante. C'est un vin qui se distingue par sa finesse et sa persistance, promettant une belle évolution.",
+          "date": {
+            "_seconds": 1298869200,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "James Suckling",
+          "score": "95/100",
+          "note": "Un Margaux 2008 très raffiné et équilibré, offrant des arômes de fruits noirs, de fleurs et de terre humide. La bouche est soyeuse, avec des tanins polis et une finale longue et harmonieuse. Il montre une grande élégance et un potentiel de vieillissement impressionnant.",
+          "date": {
+            "_seconds": 1296536400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Jancis Robinson",
+          "score": "18/20",
+          "note": "Le Château Margaux 2008 est un vin très classique, avec une belle fraîcheur et une structure tannique fine. Des notes de cassis, de cèdre et de sous-bois se mêlent harmonieusement. Il est déjà agréable à boire mais gagnera en complexité avec le temps.",
+          "date": {
+            "_seconds": 1516856400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "94/100",
+          "note": "Un Margaux 2008 élégant et précis, révélant des arômes de fruits rouges mûrs, de graphite et de violette. La bouche est équilibrée, avec une belle tension et des tanins soyeux. Un vin qui incarne la finesse de son appellation, avec une longue finale.",
+          "date": {
+            "_seconds": 1535774400,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "domainAddress": "Château Margaux, 33460 Margaux-Cantenac, France",
+      "grapes": "Cabernet Sauvignon 87%, Merlot 9%, Petit Verdot 2%, Cabernet Franc 2%",
+      "drinkFrom": 2024,
+      "drinkPeak": 2031
+    },
+    {
+      "id": "TGXE22THRPQno3M07xLM",
+      "name": "Masseto",
+      "producer": "Tenuta Masseto",
+      "vintage": 2014,
+      "appellation": "Toscana IGT",
+      "country": "Italie",
+      "region": "Toscane",
+      "climat": "Masseto",
+      "domaine": "Masseto",
+      "village": "Bolgheri",
+      "domainAddress": "Via Bolgherese, 305, 57022 Bolgheri LI, Italie",
+      "grapes": "100% Merlot",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "drinkPeak": 2031,
+      "drinkTo": 2041,
+      "rating": null,
+      "wineDescription": "Le Masseto 2014 présente une robe d'un rouge rubis profond et intense, avec des reflets grenat qui témoignent de son évolution. Au nez, ce vin offre une complexité aromatique remarquable, s'ouvrant sur des notes de fruits noirs mûrs comme la mûre et la cerise noire, agrémentées de touches de prune. Des arômes secondaires de tabac, de cèdre et de réglisse se mêlent harmonieusement, évoluant vers des nuances tertiaires de sous-bois et de truffe avec l'aération. L'attaque en bouche est élégante et soyeuse, révélant une texture veloutée et une grande finesse. Le milieu de bouche est dense et concentré, mais sans lourdeur, porté par une belle fraîcheur. La structure tannique est présente, mais d'une grande finesse, offrant un grain serré et une intégration parfaite. L'acidité est vive et équilibrée, apportant de la tension et de la persistance à l'ensemble. La finale est longue et savoureuse, laissant des impressions de fruits noirs, d'épices douces et une légère minéralité. Ce millésime, bien que plus frais, a permis de produire un Masseto d'une élégance et d'une pureté exceptionnelles. Il possède un excellent potentiel de garde, pouvant s'épanouir encore pendant de nombreuses années. Il s'accordera parfaitement avec des plats de gibier, comme un civet de chevreuil, des viandes rouges grillées ou en sauce, ou encore des fromages affinés. Un vin de méditation qui révèle toute sa splendeur avec le temps.",
+      "domaineDescription": "Le domaine Masseto est une icône de la viticulture italienne, situé sur la côte toscane, dans la prestigieuse région de Bolgheri. Il est souvent surnommé le 'Pétrus italien' en raison de son cépage unique, le Merlot, et de sa qualité exceptionnelle. Créé en 1986, Masseto est né de la vision de la famille Frescobaldi, propriétaire de Tenuta dell'Ornellaia, de produire un grand vin de Merlot pur sur un terroir unique. Le vignoble de Masseto s'étend sur environ 7 hectares, planté exclusivement de Merlot, sur des sols d'argile bleue riches en fossiles marins, un terroir rare et idéal pour ce cépage. L'exposition ouest-nord-ouest des parcelles assure une maturation lente et progressive des raisins, favorisant la complexité aromatique et la finesse des tanins. La philosophie de vinification est axée sur le respect du terroir et l'expression pure du Merlot. Chaque parcelle est vendangée et vinifiée séparément, avec une attention méticuleuse à chaque étape. L'élevage se fait en fûts de chêne français neufs pendant environ 24 mois, suivi d'un affinage en bouteille. Masseto est un monopole, ce qui signifie que le vin est produit à partir d'un seul vignoble, lui conférant une identité et une cohérence uniques. Le domaine est réputé mondialement pour la concentration, l'élégance et la longévité de ses vins. Il est considéré comme l'un des plus grands vins d'Italie et du monde, atteignant des prix très élevés sur le marché. Sa production est limitée, ce qui en fait un vin très recherché par les collectionneurs et les amateurs éclairés. Le domaine est aujourd'hui dirigé par Axel Heinz, qui perpétue l'excellence et la tradition de Masseto.",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777571534509_masseto2014-tenuta-ornellaia1.jpg?alt=media&token=142806a3-f276-4402-be27-9d915f6ae01f",
+      "critiques": [
+        {
+          "source": "James Suckling",
+          "score": "97/100",
+          "note": "Un vin très structuré et puissant pour le millésime avec des tanins mâchus et une finale longue et savoureuse. Il est corsé et dense. Un vin sérieux pour le millésime. Meilleur après 2022.",
+          "date": {
+            "_seconds": 1501560000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Robert Parker / Wine Advocate (Monica Larner)",
+          "score": "96/100",
+          "note": "Le Masseto 2014 est un vin magnifique qui reflète la nature difficile du millésime avec une grâce et une élégance extraordinaires. Le vin est un Merlot pur, comme toujours, et il présente une texture soyeuse et une finale longue et persistante. Les arômes de cerise noire, de mûre et de prune sont suivis de notes de réglisse, de terre cuite et de goudron. C'est un vin qui a besoin de temps pour s'ouvrir et montrer sa complexité.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "95/100",
+          "note": "Le Masseto 2014 est un vin d'une beauté saisissante. Dans ce millésime difficile, Masseto a produit un vin de finesse et de pureté remarquables. Les arômes de fruits rouges, de fleurs et d'épices sont magnifiquement intégrés. La bouche est soyeuse et élégante, avec une finale persistante. C'est un Masseto qui privilégie l'élégance à la puissance.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "94/100",
+          "note": "Un rouge dense et concentré, avec des saveurs de cerise noire, de prune, d'épices et de tabac. Il est riche et puissant, avec des tanins fermes et une acidité vive qui maintiennent le vin en équilibre. Une finale longue et savoureuse. À boire de 2020 à 2035.",
+          "date": {
+            "_seconds": 1509422400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "94/100",
+          "note": "Malgré un millésime difficile, Masseto a réussi à produire un vin impressionnant en 2014. Il est riche et complexe, avec des notes de fruits noirs, de chocolat et de menthe. La bouche est ample et généreuse, avec des tanins fins et une belle fraîcheur. Un vin à savourer dans les 10 à 15 prochaines années.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1778014378,
+        "_nanoseconds": 267000000
+      }
+    },
+    {
+      "id": "YCN8Ieb8cYWjTWs90Z8l",
+      "name": "Sassicaia",
+      "producer": "Tenuta San Guido",
+      "vintage": 1992,
+      "appellation": "Bolgheri Sassicaia DOC",
+      "country": "Italie",
+      "region": "Toscane",
+      "climat": "",
+      "domaine": "",
+      "village": "Bolgheri",
+      "domainAddress": "Tenuta San Guido, Le Capanne, 27, 57022 Bolgheri LI, Italie",
+      "grapes": "85% Cabernet Sauvignon, 15% Cabernet Franc",
+      "alcohol": 13,
+      "type": "rouge",
+      "rating": null,
+      "wineDescription": "Le Sassicaia 1992 est le reflet d'un millésime difficile en Toscane, offrant une expérience de dégustation axée sur la finesse et l'évolution. Sa robe présente une couleur grenat pâle avec des reflets nettement tuilés, témoignant de sa longue maturation en bouteille. Au nez, le bouquet est dominé par des arômes tertiaires complexes et délicats, où le fruit s'est estompé. On y découvre des notes de sous-bois, de feuilles mortes, de champignon séché et de tabac froid. Des effluves de boîte à cigares, de cèdre et une touche de menthol complètent ce profil aromatique évolué. En bouche, l'attaque est souple et délicate, manquant de la concentration et de la puissance caractéristiques des grands millésimes. Le milieu de bouche révèle une structure élégante mais légère, portée par des tanins aujourd'hui complètement fondus qui confèrent une texture soyeuse. L'acidité reste présente, apportant une certaine fraîcheur mais pouvant paraître un peu saillante en l'absence d'une matière fruitée dense pour l'enrober. La finale, de longueur moyenne, s'achève sur des saveurs persistantes de terre humide, de thé noir et une subtile amertume noble. Ce vin a atteint son apogée il y a de nombreuses années et est désormais sur son déclin. Il est à consommer sans plus attendre pour apprécier ses charmes tertiaires. Il s'accorde parfaitement avec des plats délicats comme un risotto aux cèpes, une volaille rôtie aux herbes ou des fromages affinés à pâte dure.",
+      "domaineDescription": "La Tenuta San Guido est une propriété légendaire de la côte toscane, mondialement connue pour être le berceau du Sassicaia, le premier et le plus célèbre des \"Super Toscans\". Son histoire commence dans les années 1940 lorsque le marquis Mario Incisa della Rocchetta, passionné par les grands vins de Bordeaux, décide de planter des vignes de Cabernet Sauvignon et de Cabernet Franc sur ses terres de Bolgheri. Initialement destiné à une consommation familiale, le vin démontre un potentiel extraordinaire. Le premier millésime commercialisé, le 1968, a marqué le début d'une révolution dans le monde du vin italien. Aujourd'hui, le domaine est toujours la propriété de la famille Incisa della Rocchetta. La philosophie de vinification reste axée sur la recherche de l'élégance, de la complexité et d'un potentiel de garde exceptionnel, en rupture avec la tradition toscane du Sangiovese. Le terroir est la clé du succès : les vignobles, d'une superficie d'environ 90 hectares, sont plantés sur des sols riches en graves, argile et calcaire, très similaires à ceux de la région de Graves à Bordeaux. Cette particularité a d'ailleurs donné son nom au vin, \"Sassicaia\" signifiant \"lieu pierreux\". L'influence maritime de la mer Tyrrhénienne toute proche modère le climat et assure une maturation lente et complète des raisins. En 1994, la reconnaissance suprême arrive lorsque le Sassicaia se voit attribuer sa propre appellation, la DOC Bolgheri Sassicaia, un monopole unique en Italie. La réputation du domaine est stellaire, le Sassicaia étant unanimement considéré comme l'un des plus grands vins du monde.",
+      "critiques": [
+        {
+          "source": "Vinous",
+          "score": "88/100",
+          "note": "Le Sassicaia 1992 est un vin délicat et entièrement mature. Des notes de fleurs séchées, de tabac, de menthe et de cerise douce sont toutes nuancées dans ce vin éthéré et gracieux. Le 1992 est un vin à boire maintenant, car il ne fera que décliner à partir d'ici.",
+          "date": {
+            "_seconds": 1477972800,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Jancis Robinson",
+          "score": "16.5/20",
+          "note": "Robe très pâle. Nez très léger, presque aqueux. Un peu de douceur au début mais il s'estompe très rapidement. Très léger. Pas de véritable défaut mais pas beaucoup de vin non plus. À boire.",
+          "date": {
+            "_seconds": 1030852800,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "82/100",
+          "note": "Un Sassicaia léger et élégant, avec des arômes de baies et de cerises et une touche de terre. Il a un corps léger à moyen, des tanins fins et une finale fraîche et délicate. Agréable, mais il lui manque la concentration des meilleurs millésimes. À boire maintenant.",
+          "date": {
+            "_seconds": 815115600,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1777560235,
+        "_nanoseconds": 769000000
+      },
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1777581108032_sass%202018.jpg?alt=media&token=c3a1d903-bd9b-425c-a20f-027e9820df52",
+      "drinkTo": 2028,
+      "drinkFrom": 2024,
+      "drinkPeak": 2026
+    },
+    {
+      "id": "YUg4bVOcQQs42OYlyb2T",
+      "producer": "Marchesi Antinori",
+      "vintage": 2020,
+      "appellation": "Toscana IGT",
+      "country": "Italie",
+      "region": "Toscane",
+      "domaine": "Tenuta Tignanello",
+      "village": "Mercatale Val di Pesa",
+      "domainAddress": "Via di Tignanello, 50026 Mercatale Val di Pesa FI, Italie",
+      "alcohol": 14,
+      "type": "rouge",
+      "rating": null,
+      "wineDescription": "Le Tignanello 2020 se présente avec une robe rouge rubis profond et intense, parsemée de reflets grenat qui témoignent de sa concentration. Son nez est d'une complexité remarquable, s'ouvrant sur des arômes primaires de fruits rouges mûrs comme la cerise et la framboise, complétés par des notes de cassis et de mûre. Rapidement, des notes secondaires issues de l'élevage en fût apparaissent, révélant la vanille, le toast grillé et des épices douces telles que la cannelle et le clou de girofle. Avec un peu d'aération, des nuances tertiaires commencent à émerger, évoquant le cuir fin, le tabac et de subtiles touches balsamiques et terreuses. L'attaque en bouche est puissante et élégante, offrant une sensation immédiate de richesse et de profondeur. Le milieu de bouche révèle une concentration de fruits noirs et rouges, soutenue par une structure tannique ferme mais incroyablement soyeuse et bien intégrée. L'acidité est vibrante et rafraîchissante, apportant un équilibre parfait à la richesse du vin et prolongeant sa vivacité. La texture est veloutée et enveloppante, conférant au vin une sensation de plénitude et de sophistication. La finale est d'une longueur exceptionnelle, persistant longuement sur le palais. Elle laisse des saveurs persistantes de fruits noirs, d'épices et une légère minéralité. Ce millésime 2020 possède un potentiel de garde formidable, capable d'évoluer et de s'affiner pendant 20 à 25 ans, voire plus. Il est recommandé de le carafer quelques heures avant de le servir pour qu'il exprime pleinement son bouquet. Le Tignanello 2020 s'accorde merveilleusement avec les viandes rouges rôties ou grillées, comme un filet de bœuf ou un carré d'agneau. Il sublime également les gibiers à plumes ou à poils, les plats truffés et les fromages affinés. C'est un vin de méditation qui peut aussi être apprécié seul, pour sa complexité et son élégance.",
+      "domaineDescription": "La famille Antinori est l'une des plus anciennes et des plus prestigieuses dynasties viticoles au monde, avec une histoire ininterrompue de production de vin depuis 1385. Cela représente plus de six siècles d'engagement passionné dans l'art de la viticulture en Toscane et au-delà. Aujourd'hui, la maison est dirigée par le Marchese Piero Antinori et ses trois filles, Albiera, Allegra et Alessia, perpétuant l'héritage familial. La philosophie de vinification d'Antinori est un mélange harmonieux de tradition séculaire et d'innovation audacieuse. Ils ont été les pionniers du mouvement des \"Super Toscans\" dans les années 1970, défiant les règles strictes des appellations pour créer des vins de qualité supérieure avec des cépages internationaux. Le Tignanello est le fruit de cette audace, étant le premier Sangiovese à être élevé en barriques et le premier vin rouge moderne à être assemblé avec des cépages non traditionnels comme le Cabernet. Le domaine Tenuta Tignanello est situé au cœur de la région du Chianti Classico, un terroir d'exception. Les sols sont principalement composés de galestro et d'alberese, des roches calcaires et marneuses qui assurent un excellent drainage et confèrent une minéralité distinctive aux vins. Les vignobles sont exposés sud-ouest, à une altitude variant entre 350 et 400 mètres au-dessus du niveau de la mer. Ce microclimat unique, combiné à l'exposition idéale, garantit une maturation optimale des raisins. Le vignoble de Tignanello lui-même s'étend sur environ 57 hectares, tandis que l'ensemble du domaine Tenuta Tignanello couvre 319 hectares, dont 127 sont plantés de vignes. Bien que classé en IGT (Indicazione Geografica Tipica) par choix, le Tignanello est universellement reconnu comme un vin de référence et un symbole de l'excellence viticole toscane. Il reçoit constamment des éloges et des notes élevées de la part des critiques de vin du monde entier. La réputation d'Antinori est bâtie sur une quête incessante de qualité, d'expression du terroir et de recherche constante en œnologie. Le domaine est un véritable laboratoire d'idées, ayant marqué l'histoire du vin italien par ses innovations et son influence durable.",
+      "photoUrl": null,
+      "createdAt": {
+        "_seconds": 1776389672,
+        "_nanoseconds": 586000000
+      },
+      "name": "Tignanello",
+      "grapes": "Sangiovese (80%), Cabernet Sauvignon (15%), Cabernet Franc (5%)",
+      "climat": "Collines du Chianti Classico",
+      "drinkFrom": 2024,
+      "drinkTo": 2043,
+      "drinkPeak": 2031
+    },
+    {
+      "id": "gk4vI48wURbwW29KAbHm",
+      "name": "Dominus",
+      "producer": "Dominus Estate",
+      "vintage": 2010,
+      "appellation": "Napa Valley",
+      "country": "États-Unis",
+      "region": "Californie",
+      "climat": "Napanook Vineyard",
+      "domaine": "Dominus Estate",
+      "village": "Yountville",
+      "domainAddress": "2410 St Helena Hwy, Yountville, CA 94599, États-Unis",
+      "grapes": "87% Cabernet Sauvignon, 9% Petit Verdot, 4% Cabernet Franc",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "rating": null,
+      "wineDescription": "Le Dominus 2010 arbore une robe d'un rouge grenat profond, presque opaque, avec des reflets violacés qui témoignent de sa jeunesse et de sa concentration. Au nez, il déploie une symphonie aromatique complexe, mêlant des notes intenses de cassis, de mûre et de cerise noire, complétées par des touches de graphite, de tabac frais et de cèdre. Des nuances de réglisse, de violette et de terre humide ajoutent à sa profondeur, révélant un bouquet tertiaire prometteur. En bouche, l'attaque est puissante et enveloppante, offrant une richesse de fruits noirs mûrs et une texture veloutée. Le milieu de bouche est dense et concentré, soutenu par une structure tannique ferme mais remarquablement polie et intégrée. L'acidité est vive et équilibrée, apportant fraîcheur et persistance à l'ensemble. La texture est soyeuse, presque crémeuse, reflétant l'élégance et la puissance du millésime. La finale est incroyablement longue et persistante, laissant des saveurs de fruits noirs, d'épices douces et de minéraux. Ce vin possède un potentiel de garde exceptionnel, capable d'évoluer et de se complexifier pendant plusieurs décennies. Il s'accorde merveilleusement avec des viandes rouges grillées, un gigot d'agneau rôti, un civet de chevreuil ou des fromages affinés. Sa complexité et sa structure en font un compagnon idéal pour les plats riches et savoureux. Il est recommandé de le carafer plusieurs heures avant de le servir pour qu'il révèle toute sa splendeur. Un millésime classique et intemporel pour Dominus, alliant puissance et finesse.",
+      "domaineDescription": "Dominus Estate est un domaine viticole emblématique de la Napa Valley, fondé en 1981 par Christian Moueix, le célèbre propriétaire du Château Pétrus à Pomerol. L'histoire du domaine est ancrée dans la vision de Moueix de produire un grand vin californien inspiré des principes bordelais, sur un terroir exceptionnel. Le domaine est situé sur le célèbre Napanook Vineyard, un site historique de la Napa Valley, reconnu pour ses sols graveleux et son microclimat idéal. Christian Moueix est toujours le propriétaire et dirigeant actuel, imprégnant chaque aspect de la production de sa philosophie de vinification minimaliste et respectueuse du terroir. La philosophie de vinification met l'accent sur l'expression pure du vignoble, avec une intervention minimale en cave, des fermentations en cuves de béton et un élevage en fûts de chêne français majoritairement usagés. Le terroir du Napanook Vineyard est caractérisé par des sols graveleux et argileux, bien drainés, avec une exposition ouest qui bénéficie d'un ensoleillement optimal et des brises rafraîchissantes de la baie de San Pablo. Le vignoble s'étend sur environ 42 hectares, plantés principalement de Cabernet Sauvignon, avec des parcelles de Cabernet Franc et de Petit Verdot. Bien que non classé à la manière bordelaise, Dominus jouit d'une réputation mondiale de premier ordre, étant considéré comme l'un des plus grands vins de Californie. Le domaine est réputé pour sa capacité à produire des vins d'une élégance, d'une complexité et d'un potentiel de garde exceptionnels. Une particularité est l'utilisation de la culture sèche (dry farming), une pratique rare en Californie, qui force les vignes à plonger profondément leurs racines pour trouver l'eau, augmentant ainsi la concentration et la complexité des baies. Dominus Estate est un pionnier de l'approche bordelaise en Californie, créant des vins qui marient la puissance du Nouveau Monde à la finesse et à la structure du Vieux Monde. Le domaine est également reconnu pour son architecture moderne et discrète, conçue pour s'intégrer harmonieusement au paysage. Chaque millésime de Dominus est une expression fidèle de son terroir unique et de la vision de son fondateur. Le domaine produit également un second vin, Napanook, qui offre une introduction plus accessible à son style distinctif.",
+      "critiques": [
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "98/100",
+          "note": "Le Dominus 2010 est un vin monumental, d'une profondeur et d'une intensité incroyables. Il offre des arômes de cassis, de graphite, de réglisse et de tabac, avec une structure tannique ferme mais raffinée. Un vin qui vieillira magnifiquement pendant des décennies.",
+          "date": {
+            "_seconds": 1385874000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "James Suckling",
+          "score": "98/100",
+          "note": "Un vin d'une pureté et d'une finesse remarquables. Il présente des notes de fruits noirs, de minéraux et d'épices, avec une bouche pleine et soyeuse, une acidité vive et des tanins polis. Un chef-d'œuvre de l'équilibre et de la complexité.",
+          "date": {
+            "_seconds": 1367380800,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "97/100",
+          "note": "Le Dominus 2010 est un vin d'une beauté époustouflante. Il est riche, profond et incroyablement nuancé, avec des couches de fruits noirs, de fleurs et d'épices. Les tanins sont magnifiquement intégrés, promettant une longue vie.",
+          "date": {
+            "_seconds": 1354338000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "97/100",
+          "note": "Un millésime exceptionnel pour Dominus, montrant une grande concentration et une élégance. Des saveurs de mûre, de cassis et de cèdre, avec une texture veloutée et une longue finale. Un vin avec un immense potentiel de garde.",
+          "date": {
+            "_seconds": 1357016400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "96/100",
+          "note": "Un vin puissant et raffiné, avec des arômes intenses de fruits noirs, de chocolat et de notes terreuses. La bouche est dense et concentrée, avec des tanins fermes qui nécessitent du temps. Une finale persistante et impressionnante.",
+          "date": {
+            "_seconds": 1380600000,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1777692205,
+        "_nanoseconds": 778000000
+      },
+      "drinkFrom": 2024,
+      "drinkTo": 2043,
+      "drinkPeak": 2033,
+      "photoUrl": null
+    },
+    {
+      "id": "wtGU5hYPqsNBGCmEbBBU",
+      "name": "Masseto",
+      "producer": "Masseto",
+      "appellation": "Toscana IGT",
+      "country": "Italie",
+      "region": "Toscane",
+      "climat": "Masseto",
+      "domaine": "Masseto",
+      "village": "Bolgheri",
+      "domainAddress": "Via Bolgherese, 305, 57022 Bolgheri LI, Italie",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "rating": null,
+      "wineDescription": "Le Masseto 2014 présente une robe rubis intense et profonde, presque impénétrable, avec des reflets grenat subtils témoignant de son âge. Au nez, il dévoile une complexité aromatique remarquable, s'ouvrant sur des notes de fruits noirs mûrs comme la mûre et le cassis, entrelacées de nuances tertiaires de tabac, de cuir fin, de truffe et de sous-bois, avec une touche balsamique et épicée. L'attaque en bouche est ample et veloutée, offrant une texture soyeuse qui enveloppe le palais. Le milieu de bouche est dense et concentré, révélant des saveurs de fruits noirs confits, de chocolat noir, d'espresso et de réglisse, soutenues par une minéralité distinctive. La structure tannique est présente mais incroyablement fine et polie, intégrée harmonieusement, tandis que l'acidité vibrante apporte fraîcheur et équilibre. La finale est d'une longueur exceptionnelle, persistante sur des notes de fruits noirs, d'épices douces et de touches terreuses, laissant une impression de grande élégance et de profondeur. Ce millésime, bien que plus délicat que d'autres, montre une capacité de garde impressionnante et continue d'évoluer magnifiquement. Il est idéal à déguster avec des plats riches comme un filet de bœuf aux truffes, un gibier à plume ou des fromages affinés.",
+      "domaineDescription": "Masseto est l'un des vins les plus emblématiques et recherchés d'Italie, souvent surnommé le 'Pétrus de Toscane'. Son histoire débute dans les années 1980, lorsque le domaine Ornellaia, sous l'impulsion du Marquis Lodovico Antinori, découvre le potentiel exceptionnel d'une parcelle d'argile bleue unique. Initialement vinifié comme partie d'Ornellaia, Masseto est devenu un vin à part entière avec son propre domaine et sa propre identité à partir du millésime 1987. Aujourd'hui, Masseto est une entité indépendante au sein du groupe Frescobaldi, dirigée par Axel Heinz. La philosophie de vinification est axée sur l'expression pure du terroir, avec une intervention minimale pour laisser le Merlot s'exprimer pleinement. Le vignoble de Masseto s'étend sur environ 7 hectares, caractérisé par des sols d'argile bleue (Pliocène) riches en minéraux, offrant une rétention d'eau idéale et une libération lente des nutriments, ce qui est parfait pour le Merlot. L'exposition ouest et sud-ouest assure un ensoleillement optimal. Le domaine est réputé pour sa quête incessante de la perfection, avec des rendements très faibles et une sélection drastique des raisins. Bien qu'il n'y ait pas de classement officiel en Toscane comme à Bordeaux, Masseto est universellement reconnu comme un vin de culte, atteignant des prix parmi les plus élevés au monde. Sa particularité réside dans sa capacité à produire un Merlot d'une profondeur, d'une complexité et d'une élégance inégalées, même dans les millésimes les plus difficiles.",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1776574076519_scaled_masseto2014-tenuta-ornellaia1.jpg?alt=media&token=f61d1f88-a596-40e1-a45b-a5b94d0a89b1",
+      "critiques": [
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "94/100",
+          "note": "Le Masseto 2014 est un beau vin issu d'un millésime difficile. Il présente une apparence sombre et impénétrable avec d'épaisses couches de fruits noirs, d'épices, de cuir et de tabac. C'est un vin d'une richesse et d'une concentration texturale énormes, avec une bouche veloutée et une solide colonne vertébrale tannique promettant un long vieillissement.",
+          "date": {
+            "_seconds": 1506571200,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "James Suckling",
+          "score": "97/100",
+          "note": "C'est un Masseto fantastique pour le millésime, avec tant de profondeur et de complexité. Corsé, avec des tanins ultra-fins et une finale très longue. C'est un vin qui montre le vrai caractère du vignoble de Masseto dans une année difficile. À boire à partir de 2020 mais déjà magnifique.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "96/100",
+          "note": "Le Masseto 2014 est un vin magnifique. C'est aussi l'un des Masseto les plus élégants jamais produits. Sombre, sensuel et invitant, le 2014 offre une superbe profondeur et un pedigree. Cerise rouge douce, prune, épices, menthol et réglisse sont magnifiquement définis. C'est un Masseto de nuance et de finesse, plutôt que de puissance.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "95/100",
+          "note": "Un rouge riche et dense, avec un cœur de saveurs de cerise noire, de prune, de cèdre et d'épices. Il est ferme et bien structuré, avec une longue finale savoureuse. Montre un excellent équilibre et une belle longueur. À boire de 2020 à 2035.",
+          "date": {
+            "_seconds": 1509422400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Jancis Robinson",
+          "score": "17.5/20",
+          "note": "Robe cramoisie profonde. Nez très profond et concentré de fruits noirs mûrs avec une touche de menthe. La bouche est pleine et riche, avec un bel équilibre de fruits et d'acidité. Les tanins sont présents mais très fins. Finale longue et élégante. Un vin très réussi pour le millésime.",
+          "date": {
+            "_seconds": 1504238400,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1776574078,
+        "_nanoseconds": 617000000
+      },
+      "grapes": "Merlot (100%)",
+      "vintage": 2014,
+      "drinkTo": 2041,
+      "drinkPeak": 2031
+    },
+    {
+      "id": "xfVJzmEgycbZhCmmv32T",
+      "name": "Dominus",
+      "producer": "Dominus Estate",
+      "vintage": 2010,
+      "appellation": "Napa Valley",
+      "country": "États-Unis",
+      "region": "Californie",
+      "climat": "Napanook Vineyard",
+      "domaine": "Dominus Estate",
+      "village": "Yountville",
+      "domainAddress": "2410 St Helena Hwy, Yountville, CA 94599, États-Unis",
+      "grapes": "87% Cabernet Sauvignon, 9% Petit Verdot, 4% Cabernet Franc",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "drinkPeak": 2033,
+      "drinkTo": 2043,
+      "rating": null,
+      "wineDescription": "Le Dominus 2010 arbore une robe d'un rouge grenat profond, presque opaque, avec des reflets violacés qui témoignent de sa jeunesse et de sa concentration. Au nez, il déploie une symphonie aromatique complexe, mêlant des notes intenses de cassis, de mûre et de cerise noire, complétées par des touches de graphite, de tabac frais et de cèdre. Des nuances de réglisse, de violette et de terre humide ajoutent à sa profondeur, révélant un bouquet tertiaire prometteur. En bouche, l'attaque est puissante et enveloppante, offrant une richesse de fruits noirs mûrs et une texture veloutée. Le milieu de bouche est dense et concentré, soutenu par une structure tannique ferme mais remarquablement polie et intégrée. L'acidité est vive et équilibrée, apportant fraîcheur et persistance à l'ensemble. La texture est soyeuse, presque crémeuse, reflétant l'élégance et la puissance du millésime. La finale est incroyablement longue et persistante, laissant des saveurs de fruits noirs, d'épices douces et de minéraux. Ce vin possède un potentiel de garde exceptionnel, capable d'évoluer et de se complexifier pendant plusieurs décennies. Il s'accorde merveilleusement avec des viandes rouges grillées, un gigot d'agneau rôti, un civet de chevreuil ou des fromages affinés. Sa complexité et sa structure en font un compagnon idéal pour les plats riches et savoureux. Il est recommandé de le carafer plusieurs heures avant de le servir pour qu'il révèle toute sa splendeur. Un millésime classique et intemporel pour Dominus, alliant puissance et finesse.",
+      "domaineDescription": "Dominus Estate est un domaine viticole emblématique de la Napa Valley, fondé en 1981 par Christian Moueix, le célèbre propriétaire du Château Pétrus à Pomerol. L'histoire du domaine est ancrée dans la vision de Moueix de produire un grand vin californien inspiré des principes bordelais, sur un terroir exceptionnel. Le domaine est situé sur le célèbre Napanook Vineyard, un site historique de la Napa Valley, reconnu pour ses sols graveleux et son microclimat idéal. Christian Moueix est toujours le propriétaire et dirigeant actuel, imprégnant chaque aspect de la production de sa philosophie de vinification minimaliste et respectueuse du terroir. La philosophie de vinification met l'accent sur l'expression pure du vignoble, avec une intervention minimale en cave, des fermentations en cuves de béton et un élevage en fûts de chêne français majoritairement usagés. Le terroir du Napanook Vineyard est caractérisé par des sols graveleux et argileux, bien drainés, avec une exposition ouest qui bénéficie d'un ensoleillement optimal et des brises rafraîchissantes de la baie de San Pablo. Le vignoble s'étend sur environ 42 hectares, plantés principalement de Cabernet Sauvignon, avec des parcelles de Cabernet Franc et de Petit Verdot. Bien que non classé à la manière bordelaise, Dominus jouit d'une réputation mondiale de premier ordre, étant considéré comme l'un des plus grands vins de Californie. Le domaine est réputé pour sa capacité à produire des vins d'une élégance, d'une complexité et d'un potentiel de garde exceptionnels. Une particularité est l'utilisation de la culture sèche (dry farming), une pratique rare en Californie, qui force les vignes à plonger profondément leurs racines pour trouver l'eau, augmentant ainsi la concentration et la complexité des baies. Dominus Estate est un pionnier de l'approche bordelaise en Californie, créant des vins qui marient la puissance du Nouveau Monde à la finesse et à la structure du Vieux Monde. Le domaine est également reconnu pour son architecture moderne et discrète, conçue pour s'intégrer harmonieusement au paysage. Chaque millésime de Dominus est une expression fidèle de son terroir unique et de la vision de son fondateur. Le domaine produit également un second vin, Napanook, qui offre une introduction plus accessible à son style distinctif.",
+      "critiques": [
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "98/100",
+          "note": "Le Dominus 2010 est un vin monumental, d'une profondeur et d'une intensité incroyables. Il offre des arômes de cassis, de graphite, de réglisse et de tabac, avec une structure tannique ferme mais raffinée. Un vin qui vieillira magnifiquement pendant des décennies.",
+          "date": {
+            "_seconds": 1385874000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "James Suckling",
+          "score": "98/100",
+          "note": "Un vin d'une pureté et d'une finesse remarquables. Il présente des notes de fruits noirs, de minéraux et d'épices, avec une bouche pleine et soyeuse, une acidité vive et des tanins polis. Un chef-d'œuvre de l'équilibre et de la complexité.",
+          "date": {
+            "_seconds": 1367380800,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "97/100",
+          "note": "Le Dominus 2010 est un vin d'une beauté époustouflante. Il est riche, profond et incroyablement nuancé, avec des couches de fruits noirs, de fleurs et d'épices. Les tanins sont magnifiquement intégrés, promettant une longue vie.",
+          "date": {
+            "_seconds": 1354338000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "97/100",
+          "note": "Un millésime exceptionnel pour Dominus, montrant une grande concentration et une élégance. Des saveurs de mûre, de cassis et de cèdre, avec une texture veloutée et une longue finale. Un vin avec un immense potentiel de garde.",
+          "date": {
+            "_seconds": 1357016400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "96/100",
+          "note": "Un vin puissant et raffiné, avec des arômes intenses de fruits noirs, de chocolat et de notes terreuses. La bouche est dense et concentrée, avec des tanins fermes qui nécessitent du temps. Une finale persistante et impressionnante.",
+          "date": {
+            "_seconds": 1380600000,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1778014378,
+        "_nanoseconds": 671000000
+      },
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1778067267129_2678_67376673373_511693373_1480251_548593_n.jpg?alt=media&token=d985cf86-2831-4488-a939-39f25590178a"
+    },
+    {
+      "id": "zqe1ygpecp7oQgQVcJIC",
+      "name": "Dominus",
+      "producer": "Dominus Estate",
+      "vintage": 2010,
+      "appellation": "Napa Valley",
+      "country": "États-Unis",
+      "region": "Californie",
+      "climat": "Napanook Vineyard",
+      "domaine": "Dominus Estate",
+      "village": "Yountville",
+      "domainAddress": "2410 St Helena Hwy, Yountville, CA 94599, États-Unis",
+      "grapes": "87% Cabernet Sauvignon, 9% Petit Verdot, 4% Cabernet Franc",
+      "alcohol": 14.5,
+      "type": "rouge",
+      "drinkFrom": 2024,
+      "drinkPeak": 2033,
+      "drinkTo": 2043,
+      "rating": null,
+      "wineDescription": "Le Dominus 2010 arbore une robe d'un rouge grenat profond, presque opaque, avec des reflets violacés qui témoignent de sa jeunesse et de sa concentration. Au nez, il déploie une symphonie aromatique complexe, mêlant des notes intenses de cassis, de mûre et de cerise noire, complétées par des touches de graphite, de tabac frais et de cèdre. Des nuances de réglisse, de violette et de terre humide ajoutent à sa profondeur, révélant un bouquet tertiaire prometteur. En bouche, l'attaque est puissante et enveloppante, offrant une richesse de fruits noirs mûrs et une texture veloutée. Le milieu de bouche est dense et concentré, soutenu par une structure tannique ferme mais remarquablement polie et intégrée. L'acidité est vive et équilibrée, apportant fraîcheur et persistance à l'ensemble. La texture est soyeuse, presque crémeuse, reflétant l'élégance et la puissance du millésime. La finale est incroyablement longue et persistante, laissant des saveurs de fruits noirs, d'épices douces et de minéraux. Ce vin possède un potentiel de garde exceptionnel, capable d'évoluer et de se complexifier pendant plusieurs décennies. Il s'accorde merveilleusement avec des viandes rouges grillées, un gigot d'agneau rôti, un civet de chevreuil ou des fromages affinés. Sa complexité et sa structure en font un compagnon idéal pour les plats riches et savoureux. Il est recommandé de le carafer plusieurs heures avant de le servir pour qu'il révèle toute sa splendeur. Un millésime classique et intemporel pour Dominus, alliant puissance et finesse.",
+      "domaineDescription": "Dominus Estate est un domaine viticole emblématique de la Napa Valley, fondé en 1981 par Christian Moueix, le célèbre propriétaire du Château Pétrus à Pomerol. L'histoire du domaine est ancrée dans la vision de Moueix de produire un grand vin californien inspiré des principes bordelais, sur un terroir exceptionnel. Le domaine est situé sur le célèbre Napanook Vineyard, un site historique de la Napa Valley, reconnu pour ses sols graveleux et son microclimat idéal. Christian Moueix est toujours le propriétaire et dirigeant actuel, imprégnant chaque aspect de la production de sa philosophie de vinification minimaliste et respectueuse du terroir. La philosophie de vinification met l'accent sur l'expression pure du vignoble, avec une intervention minimale en cave, des fermentations en cuves de béton et un élevage en fûts de chêne français majoritairement usagés. Le terroir du Napanook Vineyard est caractérisé par des sols graveleux et argileux, bien drainés, avec une exposition ouest qui bénéficie d'un ensoleillement optimal et des brises rafraîchissantes de la baie de San Pablo. Le vignoble s'étend sur environ 42 hectares, plantés principalement de Cabernet Sauvignon, avec des parcelles de Cabernet Franc et de Petit Verdot. Bien que non classé à la manière bordelaise, Dominus jouit d'une réputation mondiale de premier ordre, étant considéré comme l'un des plus grands vins de Californie. Le domaine est réputé pour sa capacité à produire des vins d'une élégance, d'une complexité et d'un potentiel de garde exceptionnels. Une particularité est l'utilisation de la culture sèche (dry farming), une pratique rare en Californie, qui force les vignes à plonger profondément leurs racines pour trouver l'eau, augmentant ainsi la concentration et la complexité des baies. Dominus Estate est un pionnier de l'approche bordelaise en Californie, créant des vins qui marient la puissance du Nouveau Monde à la finesse et à la structure du Vieux Monde. Le domaine est également reconnu pour son architecture moderne et discrète, conçue pour s'intégrer harmonieusement au paysage. Chaque millésime de Dominus est une expression fidèle de son terroir unique et de la vision de son fondateur. Le domaine produit également un second vin, Napanook, qui offre une introduction plus accessible à son style distinctif.",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/cave-vin-jo.firebasestorage.app/o/wines%2F1778013208499_3157_75927623373_5266386_n.jpg?alt=media&token=4861161e-52bb-4648-b646-b0e787fc3919",
+      "critiques": [
+        {
+          "source": "Robert Parker / Wine Advocate",
+          "score": "98/100",
+          "note": "Le Dominus 2010 est un vin monumental, d'une profondeur et d'une intensité incroyables. Il offre des arômes de cassis, de graphite, de réglisse et de tabac, avec une structure tannique ferme mais raffinée. Un vin qui vieillira magnifiquement pendant des décennies.",
+          "date": {
+            "_seconds": 1385874000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "James Suckling",
+          "score": "98/100",
+          "note": "Un vin d'une pureté et d'une finesse remarquables. Il présente des notes de fruits noirs, de minéraux et d'épices, avec une bouche pleine et soyeuse, une acidité vive et des tanins polis. Un chef-d'œuvre de l'équilibre et de la complexité.",
+          "date": {
+            "_seconds": 1367380800,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Vinous (Antonio Galloni)",
+          "score": "97/100",
+          "note": "Le Dominus 2010 est un vin d'une beauté époustouflante. Il est riche, profond et incroyablement nuancé, avec des couches de fruits noirs, de fleurs et d'épices. Les tanins sont magnifiquement intégrés, promettant une longue vie.",
+          "date": {
+            "_seconds": 1354338000,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Decanter",
+          "score": "97/100",
+          "note": "Un millésime exceptionnel pour Dominus, montrant une grande concentration et une élégance. Des saveurs de mûre, de cassis et de cèdre, avec une texture veloutée et une longue finale. Un vin avec un immense potentiel de garde.",
+          "date": {
+            "_seconds": 1357016400,
+            "_nanoseconds": 0
+          }
+        },
+        {
+          "source": "Wine Spectator",
+          "score": "96/100",
+          "note": "Un vin puissant et raffiné, avec des arômes intenses de fruits noirs, de chocolat et de notes terreuses. La bouche est dense et concentrée, avec des tanins fermes qui nécessitent du temps. Une finale persistante et impressionnante.",
+          "date": {
+            "_seconds": 1380600000,
+            "_nanoseconds": 0
+          }
+        }
+      ],
+      "createdAt": {
+        "_seconds": 1778014378,
+        "_nanoseconds": 716000000
+      }
+    }
+  ],
+  "bottles": [
+    {
+      "id": "6FRlUqWMVyATRUsjKHQi",
+      "wineId": "gk4vI48wURbwW29KAbHm",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777922233,
+        "_nanoseconds": 216000000
+      },
+      "slotRow": 0,
+      "cellarId": "xMz8IgwO2ALV4KqrWxLy",
+      "location": "C2-A5",
+      "slotCol": 4,
+      "marketValue": 750
+    },
+    {
+      "id": "8cM4WiJdyOWM1QrCZJXt",
+      "format": "3000 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777922203,
+        "_nanoseconds": 29000000
+      },
+      "slotRow": 0,
+      "cellarId": "xMz8IgwO2ALV4KqrWxLy",
+      "location": "C2-A7",
+      "slotCol": 6,
+      "marketValue": 4500,
+      "wineId": "xfVJzmEgycbZhCmmv32T"
+    },
+    {
+      "id": "AQeJWxx4RtQ7Jc7sYjUK",
+      "wineId": "2zBdTgaAsRRDKVrygXHe",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777558911,
+        "_nanoseconds": 940000000
+      },
+      "slotRow": 0,
+      "cellarId": "hmRMS3WVp6MgtHk88RuO",
+      "marketValue": 189,
+      "location": "C1-A4",
+      "slotCol": 3
+    },
+    {
+      "id": "JT89OsZWWGfIOtsOwKZR",
+      "wineId": "LXmRIql9ttNn47GK1yIc",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "marketValue": 35000,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777982188,
+        "_nanoseconds": 366000000
+      },
+      "slotRow": 10,
+      "cellarId": "hmRMS3WVp6MgtHk88RuO",
+      "location": "C1-K9",
+      "slotCol": 8
+    },
+    {
+      "id": "TdnPFW25mrfFd4AAMja9",
+      "wineId": "PAnbZcIbfwfJNPoHW4Ye",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777560143,
+        "_nanoseconds": 634000000
+      },
+      "cellarId": "hmRMS3WVp6MgtHk88RuO",
+      "marketValue": 115,
+      "slotRow": 8,
+      "location": "C1-I6",
+      "slotCol": 5
+    },
+    {
+      "id": "TexwirFM6uvtfmHu5wYC",
+      "wineId": "T1bs86vFbsCwM4uTFIo0",
+      "format": "750 ML",
+      "purchasePrice": 500,
+      "purchaseYear": 2026,
+      "source": "SAQ",
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777571155,
+        "_nanoseconds": 695000000
+      },
+      "marketValue": 1250,
+      "slotRow": 6,
+      "cellarId": "hmRMS3WVp6MgtHk88RuO",
+      "location": "C1-G9",
+      "slotCol": 8
+    },
+    {
+      "id": "a2lFJj4sNw78CUkIRp1J",
+      "wineId": "2zBdTgaAsRRDKVrygXHe",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777558911,
+        "_nanoseconds": 940000000
+      },
+      "slotRow": 0,
+      "cellarId": "hmRMS3WVp6MgtHk88RuO",
+      "location": "C1-A1",
+      "slotCol": 0,
+      "marketValue": 189
+    },
+    {
+      "id": "nM906tgn3jrY1Aet72rt",
+      "location": "",
+      "cellarId": null,
+      "slotCol": null,
+      "slotRow": null,
+      "format": "750 ML",
+      "purchasePrice": null,
+      "marketValue": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777923194,
+        "_nanoseconds": 460000000
+      },
+      "wineId": "0qtiUasVLt40Gqw9TErn"
+    },
+    {
+      "id": "sENygFYWwqt5dpA4bMDf",
+      "wineId": "2zBdTgaAsRRDKVrygXHe",
+      "location": "",
+      "cellarId": null,
+      "slotCol": null,
+      "slotRow": null,
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777558911,
+        "_nanoseconds": 940000000
+      },
+      "marketValue": 189
+    },
+    {
+      "id": "tGKcBhZnRVNSXNhxE1fi",
+      "wineId": "YCN8Ieb8cYWjTWs90Z8l",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777560235,
+        "_nanoseconds": 769000000
+      },
+      "cellarId": "xMz8IgwO2ALV4KqrWxLy",
+      "slotRow": 14,
+      "location": "C2-O10",
+      "slotCol": 9,
+      "marketValue": 525
+    },
+    {
+      "id": "vdwbUZEtQKp3fRrFn3UD",
+      "wineId": "BYMFD308Z2KH9lx6Hyec",
+      "location": "",
+      "cellarId": null,
+      "slotCol": null,
+      "slotRow": null,
+      "purchaseYear": 2026,
+      "source": "SAQ",
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777920630,
+        "_nanoseconds": 311000000
+      },
+      "format": "3000 ML",
+      "purchasePrice": 300,
+      "marketValue": 1350
+    },
+    {
+      "id": "wOi1EdL5pTduXZoRrecX",
+      "wineId": "gk4vI48wURbwW29KAbHm",
+      "format": "750 ML",
+      "purchasePrice": null,
+      "purchaseYear": null,
+      "source": null,
+      "status": "inCave",
+      "isGift": false,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "drunkLocation": null,
+      "createdAt": {
+        "_seconds": 1777692205,
+        "_nanoseconds": 778000000
+      },
+      "slotRow": 0,
+      "cellarId": "xMz8IgwO2ALV4KqrWxLy",
+      "location": "C2-A6",
+      "slotCol": 5,
+      "marketValue": 750
+    },
+    {
+      "id": "xc2AdKd1E0CPR5zFyYUH",
+      "wineId": "BYMFD308Z2KH9lx6Hyec",
+      "status": "inCave",
+      "isGift": true,
+      "giftFrom": "",
+      "giftOccasion": "",
+      "giftDate": null,
+      "drunkAt": null,
+      "drunkRating": null,
+      "drunkNote": null,
+      "createdAt": {
+        "_seconds": 1777556781,
+        "_nanoseconds": 749000000
+      },
+      "format": "3000 ML",
+      "cellarId": "xMz8IgwO2ALV4KqrWxLy",
+      "slotRow": 0,
+      "location": "C2-A1",
+      "slotCol": 0,
+      "purchaseYear": 2025,
+      "source": "Importation privée",
+      "purchasePrice": 250,
+      "marketValue": 1350
+    }
+  ]
+}

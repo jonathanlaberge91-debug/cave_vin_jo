@@ -10,6 +10,8 @@ import '../models/bottle.dart';
 import '../services/cave_service.dart';
 import '../services/storage_service.dart';
 import '../services/gemini_service.dart';
+import '../services/ai_cross_check.dart';
+import '../dialogs/disagreement_dialog.dart';
 import '../theme/app_text.dart';
 import '../theme/app_colors.dart';
 import '../widgets/native_image.dart';
@@ -40,9 +42,33 @@ class AddWineDialog extends StatefulWidget {
   State<AddWineDialog> createState() => _AddWineDialogState();
 }
 
+String _normalizeWineName(String s) {
+  if (s.trim().isEmpty) return '';
+  const accents = {
+    'à': 'a', 'á': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a',
+    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+    'ò': 'o', 'ó': 'o', 'ô': 'o', 'ö': 'o', 'õ': 'o',
+    'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u',
+    'ñ': 'n', 'ç': 'c',
+    'œ': 'oe', 'æ': 'ae',
+  };
+  var t = s.toLowerCase();
+  accents.forEach((k, v) => t = t.replaceAll(k, v));
+  t = t
+      .replaceAll(RegExp(r"[^a-z0-9 ]+"), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return t;
+}
+
 class _AddWineDialogState extends State<AddWineDialog> {
   final _formKey = GlobalKey<FormState>();
   final _picker = ImagePicker();
+
+  List<Wine> _existingWines = [];
+  List<Bottle> _existingBottles = [];
+  bool _dupDismissed = false;
 
   final _aiName = TextEditingController();
   final _aiDomaine = TextEditingController();
@@ -98,6 +124,9 @@ class _AddWineDialogState extends State<AddWineDialog> {
   @override
   void initState() {
     super.initState();
+    _loadExistingForDuplicates();
+    _name.addListener(_onDupSourceChanged);
+    _vintage.addListener(_onDupSourceChanged);
     final w = widget.wine;
     if (w == null) return;
     _name.text = w.name;
@@ -137,8 +166,45 @@ class _AddWineDialogState extends State<AddWineDialog> {
     }
   }
 
+  Future<void> _loadExistingForDuplicates() async {
+    try {
+      final wines = await CaveService.wines().first;
+      final bottles = await CaveService.bottlesInCave().first;
+      if (!mounted) return;
+      setState(() {
+        _existingWines = wines;
+        _existingBottles = bottles;
+      });
+    } catch (_) {}
+  }
+
+  void _onDupSourceChanged() {
+    if (_dupDismissed) return;
+    if (mounted) setState(() {});
+  }
+
+  List<Wine> _findDuplicates() {
+    final key = _normalizeWineName(_name.text);
+    if (key.isEmpty || key.length < 3) return const [];
+    final vintage = int.tryParse(_vintage.text);
+    return _existingWines.where((w) {
+      if (_editing && w.id == widget.wine!.id) return false;
+      if (_normalizeWineName(w.name) != key) return false;
+      if (vintage != null && w.vintage != null && w.vintage != vintage) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  List<Bottle> _bottlesForWine(String wineId) {
+    return _existingBottles.where((b) => b.wineId == wineId).toList();
+  }
+
   @override
   void dispose() {
+    _name.removeListener(_onDupSourceChanged);
+    _vintage.removeListener(_onDupSourceChanged);
     platform_img.revokeBlobUrl(_photoBlobUrl);
     for (final c in [
       _aiName, _aiDomaine, _aiVintage,
@@ -230,9 +296,9 @@ class _AddWineDialogState extends State<AddWineDialog> {
       _error = null;
     });
     try {
-      final result = await GeminiService.searchByPhoto(bytes);
+      final cc = await AiCrossCheck.searchByPhoto(bytes);
       if (!mounted) return;
-      _applyGeminiResult(result);
+      await _applyCrossCheck(cc);
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
@@ -250,13 +316,13 @@ class _AddWineDialogState extends State<AddWineDialog> {
       _error = null;
     });
     try {
-      final result = await GeminiService.searchByText(
+      final cc = await AiCrossCheck.searchByText(
         name: _aiName.text.trim(),
         domaine: _aiDomaine.text.trim(),
         vintage: _aiVintage.text.trim(),
       );
       if (!mounted) return;
-      _applyGeminiResult(result);
+      await _applyCrossCheck(cc);
       if (_aiVintage.text.isNotEmpty) {
         setState(() => _vintage.text = _aiVintage.text.trim());
       }
@@ -265,6 +331,28 @@ class _AddWineDialogState extends State<AddWineDialog> {
     } finally {
       if (mounted) setState(() => _aiLoading = false);
     }
+  }
+
+  Future<void> _applyCrossCheck(CrossCheckResult cc) async {
+    if (cc.disagreements.isEmpty) {
+      _applyGeminiResult(cc.merged);
+      if (cc.errors.isNotEmpty) {
+        final msg = cc.errors.entries
+            .map((e) => '${e.key.label}: ${e.value}')
+            .join(' · ');
+        setState(() => _error = 'IA secondaire(s) indisponible(s) : $msg');
+      }
+      return;
+    }
+    final chosen = await showDisagreementDialog(context, cc.disagreements);
+    if (!mounted) return;
+    if (chosen == null) {
+      // Annulé : on applique tout de même la version mergée (par défaut Gemini).
+      _applyGeminiResult(cc.merged);
+      return;
+    }
+    final finalResult = AiCrossCheck.applyChoices(cc, chosen);
+    _applyGeminiResult(finalResult);
   }
 
 
@@ -637,10 +725,15 @@ class _AddWineDialogState extends State<AddWineDialog> {
   }
 
   Widget _buildContent() {
+    final duplicates = _dupDismissed ? const <Wine>[] : _findDuplicates();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _aiBar(),
+        if (duplicates.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _duplicateBanner(duplicates),
+        ],
         const SizedBox(height: 22),
 
         _section('Identification'),
@@ -1156,6 +1249,78 @@ class _AddWineDialogState extends State<AddWineDialog> {
     );
   }
 
+  Widget _duplicateBanner(List<Wine> duplicates) {
+    final orange = const Color(0xFFD49A4C);
+    int totalBottles = 0;
+    final lines = <Widget>[];
+    for (final w in duplicates) {
+      final bottles = _bottlesForWine(w.id);
+      if (bottles.isEmpty) continue;
+      totalBottles += bottles.length;
+      final locations = bottles
+          .map((b) => b.location.isEmpty ? 'sans emplacement' : b.location)
+          .toSet()
+          .toList()
+        ..sort();
+      final locText = locations.length > 4
+          ? '${locations.take(4).join(', ')} +${locations.length - 4}'
+          : locations.join(', ');
+      final vint = w.vintage != null ? ' ${w.vintage}' : '';
+      lines.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            '• ${w.name}$vint — ${bottles.length} bouteille${bottles.length > 1 ? 's' : ''} ($locText)',
+            style: AppText.sans(color: AppColors.text2, fontSize: 12, height: 1.35),
+          ),
+        ),
+      );
+    }
+    if (lines.isEmpty || totalBottles == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: const Color(0x1FD49A4C),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: orange.withValues(alpha: 0.55)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: orange, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _editing
+                      ? 'Doublon possible avec un autre vin de ta cave'
+                      : 'Tu as peut-être déjà ce vin',
+                  style: AppText.sans(
+                    color: orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                ...lines,
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: () => setState(() => _dupDismissed = true),
+            borderRadius: BorderRadius.circular(20),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.close, size: 16, color: AppColors.text3),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _aiBar() {
     final hasPhoto = _photoBytes != null;
     return Container(
@@ -1194,7 +1359,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
             children: [
               Expanded(
                 child: _aiBtn(
-                  label: 'Prendre photo',
+                  label: '📷 Prendre photo',
                   onTap: _aiLoading
                       ? null
                       : () => _pickPhoto(ImageSource.camera),

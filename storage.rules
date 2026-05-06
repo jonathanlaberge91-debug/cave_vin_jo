@@ -2,8 +2,17 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Photos de vins : lecture publique (utilisé dans les images du site
+    // sans token), écriture authentifiée seulement.
+    match /wines/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 20 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    // Tout le reste : auth requise pour lecture et écriture.
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -15,6 +15,175 @@ void openWinePrintSheetImpl(Wine wine, List<Bottle> bottles) {
   web.window.open(url, '_blank');
 }
 
+void exportInventoryCsvImpl(List<Wine> wines, List<Bottle> bottles) {
+  final csv = _buildCsv(wines, bottles);
+  final blob = web.Blob(
+    [csv.toJS].toJS,
+    web.BlobPropertyBag(type: 'text/csv;charset=utf-8;'),
+  );
+  final url = web.URL.createObjectURL(blob);
+  final a = web.HTMLAnchorElement()
+    ..href = url
+    ..download = 'cave_${_stamp()}.csv';
+  web.document.body!.append(a);
+  a.click();
+  a.remove();
+  web.URL.revokeObjectURL(url);
+}
+
+void exportInventoryPdfImpl(List<Wine> wines, List<Bottle> bottles) {
+  final html = _buildInventoryHtml(wines, bottles);
+  final blob = web.Blob(
+    [html.toJS].toJS,
+    web.BlobPropertyBag(type: 'text/html'),
+  );
+  final url = web.URL.createObjectURL(blob);
+  web.window.open(url, '_blank');
+}
+
+String _stamp() {
+  final n = DateTime.now();
+  return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+}
+
+String _csvField(String s) {
+  if (s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r')) {
+    return '"${s.replaceAll('"', '""')}"';
+  }
+  return s;
+}
+
+String _buildCsv(List<Wine> wines, List<Bottle> bottles) {
+  const headers = [
+    'Nom', 'Producteur', 'Millésime', 'Appellation', 'Région', 'Pays',
+    'Domaine', 'Cépages', 'Alcool %', 'Format', 'Qté', "Prix d'achat",
+    'Note', 'Garde de', 'Apogée', "Garde jusqu'à", 'Type',
+  ];
+
+  final grouped = <String, Map<BottleFormat, List<Bottle>>>{};
+  for (final b in bottles) {
+    grouped
+        .putIfAbsent(b.wineId, () => <BottleFormat, List<Bottle>>{})
+        .putIfAbsent(b.format, () => <Bottle>[])
+        .add(b);
+  }
+
+  final rows = <List<String>>[headers];
+  for (final wine in wines) {
+    final byFormat = grouped[wine.id];
+    if (byFormat == null) continue;
+    for (final entry in byFormat.entries) {
+      final btls = entry.value;
+      final priceBottle =
+          btls.firstWhere((b) => b.purchasePrice != null, orElse: () => btls.first);
+      rows.add([
+        wine.name,
+        wine.producer,
+        wine.vintage?.toString() ?? '',
+        wine.appellation,
+        wine.region,
+        wine.country,
+        wine.domaine,
+        wine.grapes,
+        wine.alcohol?.toStringAsFixed(1) ?? '',
+        entry.key.label,
+        btls.length.toString(),
+        priceBottle.purchasePrice?.toStringAsFixed(2) ?? '',
+        wine.rating?.toString() ?? '',
+        wine.drinkFrom?.toString() ?? '',
+        wine.drinkPeak?.toString() ?? '',
+        wine.drinkTo?.toString() ?? '',
+        wineTypeLabel(wine.type),
+      ]);
+    }
+  }
+
+  return rows.map((r) => r.map(_csvField).join(',')).join('\r\n');
+}
+
+String _buildInventoryHtml(List<Wine> wines, List<Bottle> bottles) {
+  final grouped = <String, Map<BottleFormat, List<Bottle>>>{};
+  for (final b in bottles) {
+    grouped
+        .putIfAbsent(b.wineId, () => <BottleFormat, List<Bottle>>{})
+        .putIfAbsent(b.format, () => <Bottle>[])
+        .add(b);
+  }
+
+  final today = _stamp();
+  final totalQty = bottles.length;
+  final rows = StringBuffer();
+
+  for (final wine in wines) {
+    final byFormat = grouped[wine.id];
+    if (byFormat == null) continue;
+    for (final entry in byFormat.entries) {
+      final btls = entry.value;
+      final priceBottle =
+          btls.firstWhere((b) => b.purchasePrice != null, orElse: () => btls.first);
+      final price = priceBottle.purchasePrice;
+      final gardeParts = [
+        if (wine.drinkFrom != null) wine.drinkFrom.toString(),
+        if (wine.drinkPeak != null) '&#9670;&nbsp;${wine.drinkPeak}',
+        if (wine.drinkTo != null) wine.drinkTo.toString(),
+      ];
+      final garde = gardeParts.join(' – ');
+      rows.write('''<tr>
+        <td>${_esc(wine.name)}</td>
+        <td>${_esc(wine.producer)}</td>
+        <td style="text-align:center;">${wine.vintage ?? ''}</td>
+        <td>${_esc(wine.appellation)}</td>
+        <td>${_esc(wine.region)}</td>
+        <td style="text-align:center;">${_esc(wineTypeLabel(wine.type))}</td>
+        <td style="text-align:center;">${_esc(entry.key.label)}</td>
+        <td style="text-align:center;font-weight:bold;">${btls.length}</td>
+        <td style="text-align:right;">${price != null ? '${price.toStringAsFixed(0)}&nbsp;\$' : ''}</td>
+        <td style="text-align:center;">${wine.rating != null ? '<b>${wine.rating}</b>' : ''}</td>
+        <td>$garde</td>
+      </tr>''');
+    }
+  }
+
+  return '''<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Inventaire cave – $today</title>
+<style>
+@page { size: A4 landscape; margin: 12mm; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: Georgia, 'Times New Roman', serif; color:#1a1a1a; background:#fffdf5; font-size:10px; }
+.header { text-align:center; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #8b6914; }
+h1 { font-size:20px; color:#8b6914; letter-spacing:3px; font-weight:bold; }
+.meta { font-size:10px; color:#999; margin-top:4px; }
+table { width:100%; border-collapse:collapse; }
+thead tr { background:#8b6914; color:#fff; }
+thead th { padding:6px 8px; text-align:left; font-size:9px; letter-spacing:1px; font-weight:bold; }
+tbody tr:nth-child(even) { background:#f9f5ea; }
+td { padding:4px 8px; border-bottom:1px solid #e8dfc0; vertical-align:middle; }
+.footer { margin-top:10px; text-align:right; color:#8b6914; font-size:10px; font-style:italic; }
+@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>INVENTAIRE DE LA CAVE</h1>
+  <div class="meta">Exporté le $today &middot; $totalQty bouteilles &middot; ${wines.length} vins</div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Nom</th><th>Producteur</th><th>Mill.</th><th>Appellation</th><th>Région</th>
+      <th>Type</th><th>Format</th><th>Qté</th><th>Prix</th><th>Note</th><th>Garde</th>
+    </tr>
+  </thead>
+  <tbody>$rows</tbody>
+</table>
+<div class="footer">Cave Vino &middot; $today</div>
+</body>
+</html>''';
+}
+
 String _buildHtml(Wine wine, List<Bottle> bottles) {
   final vintage = wine.vintage != null ? '${wine.vintage}' : '';
   final type = wineTypeLabel(wine.type);
@@ -25,6 +194,7 @@ String _buildHtml(Wine wine, List<Bottle> bottles) {
   final grapeParts = _parseGrapes(wine.grapes);
   final donutSvg = _buildDonut(grapeParts);
   final legend = _buildLegend(grapeParts);
+  final grapesHtml = _buildGrapesSection(wine.grapes, donutSvg, legend);
   final timeline = _buildTimeline(wine.drinkFrom, wine.drinkPeak, wine.drinkTo);
 
   final nameLen = wine.name.length;
@@ -76,10 +246,6 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
       <div style="font-size:28px; font-weight:bold; color:#8b6914; margin-top:4px;">$vintage</div>
       <div style="font-size:14px; color:#666; margin-top:6px;">${_esc(wine.producer)} · $type · $format</div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:52px; font-weight:bold; color:#8b6914; line-height:1;">$rating</div>
-      <div style="font-size:10px; color:#999; letter-spacing:2px;">/100</div>
-    </div>
   </div>
 
   <div style="height:2px; background:#8b6914; margin-bottom:16px;"></div>
@@ -89,13 +255,7 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
       <div style="font-size:10px; color:#8b6914; letter-spacing:3px; margin-bottom:8px;">ORIGINE</div>
       $originGrid
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:6px;">CÉPAGES</div>
-      <div style="display:flex; align-items:center; gap:14px;">
-        $donutSvg
-        <div style="text-align:left;">$legend</div>
-      </div>
-    </div>
+    $grapesHtml
   </div>
 
   $timeline
@@ -143,9 +303,30 @@ String _buildOriginGrid(Wine wine, String alcohol) {
   return '<div style="display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:11px;">$rows</div>';
 }
 
+String _buildGrapesSection(String rawGrapes, String donutSvg, String legend) {
+  if (rawGrapes.isEmpty) return '';
+  if (donutSvg.isNotEmpty) {
+    return '''<div style="text-align:center;">
+      <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:6px;">CÉPAGES</div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        $donutSvg
+        <div style="text-align:left;">$legend</div>
+      </div>
+    </div>''';
+  }
+  final items = rawGrapes.split(RegExp(r'[,;/]')).map((s) => s.trim()).where((s) => s.isNotEmpty);
+  final listHtml = items.map((g) =>
+    '<div style="font-size:10px; margin-bottom:3px; color:#333;">• ${_esc(g)}</div>'
+  ).join('');
+  return '''<div>
+    <div style="font-size:9px; color:#8b6914; letter-spacing:3px; margin-bottom:6px;">CÉPAGES</div>
+    $listHtml
+  </div>''';
+}
+
 List<({String name, int pct})> _parseGrapes(String grapes) {
   if (grapes.isEmpty) return [];
-  final parts = grapes.split(RegExp(r'[,;/]'));
+  final parts = grapes.split(RegExp(r'[,;/\n]'));
   final result = <({String name, int pct})>[];
   for (final p in parts) {
     final trimmed = p.trim();

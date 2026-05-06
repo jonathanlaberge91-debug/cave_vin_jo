@@ -85,7 +85,22 @@
       "PowerShell(gh secret *)",
       "Bash(where npm *)",
       "Bash(npm list *)",
-      "PowerShell(ls C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\functions 2>$null; if \\(-not $?\\) { \"No functions dir\" })"
+      "PowerShell(ls C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\functions 2>$null; if \\(-not $?\\) { \"No functions dir\" })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jonat\\\\cave_vin_jo\" -Force -Recurse)",
+      "Bash(Select-Object -First 50)",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"$PWD\\\\assets\\\\images\\\\logo.png\"\\); Write-Output \"Size: $\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "WebFetch(domain:developer.govee.com)",
+      "Bash(Select-String -Pattern \"Error|error\")",
+      "Bash(firebase functions:log *)",
+      "PowerShell(flutter analyze *)",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(py --version)",
+      "Bash(sharp *)",
+      "PowerShell(firebase *)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\mockups\\\\table_options.html\")",
+      "Bash(firebase functions:secrets:set TUYA_ACCESS_SECRET --data-file=-)",
+      "Bash(curl -s -X GET \"https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy/cellars\" -H \"Origin: https://cave-vin-jo.web.app\" -i)"
     ]
   }
 }
