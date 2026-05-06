@@ -1664,13 +1664,13 @@ class _SlotCellState extends State<_SlotCell> {
         height: widget.size,
         decoration: BoxDecoration(
           gradient: isApogee && isOccupied && !dragging
-              ? LinearGradient(
+              ? const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFFB8860B).withValues(alpha: hovered ? 0.65 : 0.45),
-                    const Color(0xFFD4A843).withValues(alpha: hovered ? 0.50 : 0.32),
-                    const Color(0xFFF5E6A3).withValues(alpha: hovered ? 0.28 : 0.16),
+                    Color(0xFFB8860B),
+                    Color(0xFFD4A843),
+                    Color(0xFFF5E6A3),
                   ],
                 )
               : null,
@@ -1688,7 +1688,7 @@ class _SlotCellState extends State<_SlotCell> {
             color: dragging
                 ? cellColor.withValues(alpha: 0.25)
                 : isApogee && isOccupied
-                    ? const Color(0xFFD4A843).withValues(alpha: 0.80)
+                    ? const Color(0xFFD4A843)
                     : showGold
                         ? AppColors.gold
                         : isOccupied
