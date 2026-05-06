@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:web/web.dart' as web;
 import '../models/wine.dart';
 import '../models/bottle.dart';
 import '../services/actualisation_service.dart';
@@ -13,6 +14,17 @@ import '../dialogs/drink_bottle_dialog.dart';
 import '../theme/date_format.dart';
 import '../widgets/native_image.dart';
 import 'add_wine_dialog.dart';
+
+void _openSaqSearch(Wine wine) {
+  final parts = <String>[
+    if (wine.producer.trim().isNotEmpty) wine.producer.trim(),
+    if (wine.name.trim().isNotEmpty) wine.name.trim(),
+    if (wine.vintage != null) wine.vintage.toString(),
+  ];
+  final query = parts.join(' ').trim();
+  final encoded = Uri.encodeQueryComponent(query);
+  web.window.open('https://www.saq.com/fr/produits?q=$encoded', '_blank');
+}
 
 Future<void> showWineDetail(
   BuildContext context, {
@@ -104,6 +116,15 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
                         child: _DialogBody(wine: wine, bottles: mine),
                       );
                     },
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 140,
+                  child: _HeaderAction(
+                    icon: Icons.shopping_cart_outlined,
+                    tooltip: 'Chercher sur SAQ.com',
+                    onTap: () => _openSaqSearch(wine),
                   ),
                 ),
                 Positioned(
@@ -1190,7 +1211,12 @@ class _BottlesSection extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: InkWell(
-              onTap: () => showAddBottles(context, wine),
+              onTap: () => showAddBottles(
+                context,
+                wine,
+                existingFormats: {bottles.first.format},
+                initialFormat: bottles.first.format,
+              ),
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 padding: const EdgeInsets.symmetric(
