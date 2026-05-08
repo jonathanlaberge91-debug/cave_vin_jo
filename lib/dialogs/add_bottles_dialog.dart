@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart';
+import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
@@ -44,7 +45,7 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
   final _price = TextEditingController();
   final _marketValue = TextEditingController();
   final _purchaseYear = TextEditingController();
-  BottleSource? _source;
+  String? _source;
   final List<SlotSelection?> _slots = [null];
   bool _saving = false;
   String? _error;
@@ -126,7 +127,10 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
       }
 
       final price = double.tryParse(_price.text.replaceAll(',', '.'));
-      final market = double.tryParse(_marketValue.text.replaceAll(',', '.'));
+      final market750 = double.tryParse(_marketValue.text.replaceAll(',', '.'));
+      final market = market750 != null
+          ? (market750 * _format.marketMultiplier).roundToDouble()
+          : null;
       final year = int.tryParse(_purchaseYear.text);
       final now = DateTime.now();
 
@@ -399,7 +403,7 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeled(
-                'Valeur marché (\$)',
+                'Valeur marché 750mL (\$)',
                 TextField(
                   controller: _marketValue,
                   keyboardType: TextInputType.number,
@@ -428,28 +432,37 @@ class AddBottlesDialogState extends State<AddBottlesDialog> {
             Expanded(
               child: _buildLabeled(
                 'Provenance',
-                _buildDropdownContainer(
-                  DropdownButton<BottleSource?>(
-                    value: _source,
-                    isExpanded: true,
-                    dropdownColor: AppColors.bg2,
-                    hint: Text('Choisir…',
-                        style: AppText.sans(
-                            color: AppColors.text3, fontSize: 13)),
-                    style:
-                        AppText.sans(color: AppColors.text, fontSize: 13),
-                    items: [
-                      DropdownMenuItem<BottleSource?>(
-                        value: null,
-                        child: Text('—',
+                ValueListenableBuilder<List<String>>(
+                  valueListenable: CavePreferencesService.customSources,
+                  builder: (context, _, __) {
+                    final labels =
+                        CavePreferencesService.allSourceLabels;
+                    final hasCurrent =
+                        _source == null || labels.contains(_source);
+                    return _buildDropdownContainer(
+                      DropdownButton<String?>(
+                        value: hasCurrent ? _source : null,
+                        isExpanded: true,
+                        dropdownColor: AppColors.bg2,
+                        hint: Text('Choisir…',
                             style: AppText.sans(
                                 color: AppColors.text3, fontSize: 13)),
+                        style: AppText.sans(
+                            color: AppColors.text, fontSize: 13),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('—',
+                                style: AppText.sans(
+                                    color: AppColors.text3, fontSize: 13)),
+                          ),
+                          ...labels.map((s) =>
+                              DropdownMenuItem(value: s, child: Text(s))),
+                        ],
+                        onChanged: (v) => setState(() => _source = v),
                       ),
-                      ...BottleSource.values.map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s.label))),
-                    ],
-                    onChanged: (v) => setState(() => _source = v),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),

@@ -100,7 +100,8 @@
       "PowerShell(firebase *)",
       "PowerShell(Start-Process \"C:\\\\Users\\\\jonat\\\\cave_vin_jo\\\\mockups\\\\table_options.html\")",
       "Bash(firebase functions:secrets:set TUYA_ACCESS_SECRET --data-file=-)",
-      "Bash(curl -s -X GET \"https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy/cellars\" -H \"Origin: https://cave-vin-jo.web.app\" -i)"
+      "Bash(curl -s -X GET \"https://us-east1-cave-vin-jo.cloudfunctions.net/tuyaProxy/cellars\" -H \"Origin: https://cave-vin-jo.web.app\" -i)",
+      "Bash(flutter install *)"
     ]
   }
 }

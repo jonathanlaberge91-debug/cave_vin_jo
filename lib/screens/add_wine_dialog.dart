@@ -7,10 +7,13 @@ import 'dart:async';
 import '../utils/platform_image.dart' as platform_img;
 import '../models/wine.dart';
 import '../models/bottle.dart';
+import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import '../services/storage_service.dart';
 import '../services/gemini_service.dart';
 import '../services/ai_cross_check.dart';
+import '../services/ai_search_job.dart';
+import '../services/ai_search_job_service.dart';
 import '../services/ocr_service.dart';
 import '../dialogs/disagreement_dialog.dart';
 import '../theme/app_text.dart';
@@ -19,11 +22,11 @@ import '../widgets/native_image.dart';
 import '../dialogs/photo_crop_dialog.dart';
 import 'slot_picker.dart';
 
-Future<void> showAddWineDialog(BuildContext context) {
+Future<void> showAddWineDialog(BuildContext context, {AiSearchJob? job}) {
   return showDialog(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (_) => const AddWineDialog(),
+    builder: (_) => AddWineDialog(initialJob: job),
   );
 }
 
@@ -37,7 +40,8 @@ Future<void> showEditWineDialog(BuildContext context, Wine wine) {
 
 class AddWineDialog extends StatefulWidget {
   final Wine? wine;
-  const AddWineDialog({super.key, this.wine});
+  final AiSearchJob? initialJob;
+  const AddWineDialog({super.key, this.wine, this.initialJob});
 
   @override
   State<AddWineDialog> createState() => _AddWineDialogState();
@@ -94,7 +98,7 @@ class _AddWineDialogState extends State<AddWineDialog> {
   final _price = TextEditingController();
   final _marketValue = TextEditingController();
   final _purchaseYear = TextEditingController();
-  BottleSource? _source;
+  String? _source;
   final List<SlotSelection?> _slots = [null];
 
   final _drinkFrom = TextEditingController();
@@ -132,33 +136,90 @@ class _AddWineDialogState extends State<AddWineDialog> {
     _name.addListener(_onDupSourceChanged);
     _vintage.addListener(_onDupSourceChanged);
     final w = widget.wine;
-    if (w == null) return;
-    _name.text = w.name;
-    _aiName.text = w.name;
-    if (w.domaine.isNotEmpty) _aiDomaine.text = w.domaine;
-    if (w.vintage != null) {
-      _vintage.text = w.vintage.toString();
-      _aiVintage.text = w.vintage.toString();
+    if (w != null) {
+      _name.text = w.name;
+      _aiName.text = w.name;
+      if (w.domaine.isNotEmpty) _aiDomaine.text = w.domaine;
+      if (w.vintage != null) {
+        _vintage.text = w.vintage.toString();
+        _aiVintage.text = w.vintage.toString();
+      }
+      _producer.text = w.producer;
+      _appellation.text = w.appellation;
+      _country.text = w.country;
+      _region.text = w.region;
+      _climat.text = w.climat;
+      _domaine.text = w.domaine;
+      _village.text = w.village;
+      _domainAddress.text = w.domainAddress;
+      _grapes.text = w.grapes;
+      if (w.alcohol != null) _alcohol.text = w.alcohol.toString();
+      _type = w.type;
+      if (w.drinkFrom != null) _drinkFrom.text = w.drinkFrom.toString();
+      if (w.drinkPeak != null) _drinkPeak.text = w.drinkPeak.toString();
+      if (w.drinkTo != null) _drinkTo.text = w.drinkTo.toString();
+      _rating = w.rating;
+      _wineDescription.text = w.wineDescription;
+      _domaineDescription.text = w.domaineDescription;
+      _critiques.addAll(w.critiques);
+      _existingPhotoUrl = w.photoUrl;
     }
-    _producer.text = w.producer;
-    _appellation.text = w.appellation;
-    _country.text = w.country;
-    _region.text = w.region;
-    _climat.text = w.climat;
-    _domaine.text = w.domaine;
-    _village.text = w.village;
-    _domainAddress.text = w.domainAddress;
-    _grapes.text = w.grapes;
-    if (w.alcohol != null) _alcohol.text = w.alcohol.toString();
-    _type = w.type;
-    if (w.drinkFrom != null) _drinkFrom.text = w.drinkFrom.toString();
-    if (w.drinkPeak != null) _drinkPeak.text = w.drinkPeak.toString();
-    if (w.drinkTo != null) _drinkTo.text = w.drinkTo.toString();
-    _rating = w.rating;
-    _wineDescription.text = w.wineDescription;
-    _domaineDescription.text = w.domaineDescription;
-    _critiques.addAll(w.critiques);
-    _existingPhotoUrl = w.photoUrl;
+    // Si on rouvre depuis un job IA terminé : pré-remplir
+    final job = widget.initialJob;
+    if (job != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _applyJobOnOpen(job);
+      });
+    }
+  }
+
+  Future<void> _applyJobOnOpen(AiSearchJob job) async {
+    // Restaurer la photo si présente
+    if (job.photoBytes != null) {
+      _updateBlobUrl(job.photoBytes);
+      setState(() {
+        _photoBytes = job.photoBytes;
+        _photoFileName = job.photoFileName;
+      });
+    }
+    // Champs de recherche
+    if (job.searchName != null && job.searchName!.isNotEmpty) {
+      _aiName.text = job.searchName!;
+    }
+    if (job.searchDomaine != null && job.searchDomaine!.isNotEmpty) {
+      _aiDomaine.text = job.searchDomaine!;
+    }
+    if (job.searchVintage != null && job.searchVintage!.isNotEmpty) {
+      _aiVintage.text = job.searchVintage!;
+    }
+    // Données partielles bouteille
+    final d = job.draftData;
+    setState(() {
+      _format = d.format;
+      _quantity = d.quantity;
+      while (_slots.length < _quantity) {
+        _slots.add(null);
+      }
+      while (_slots.length > _quantity) {
+        _slots.removeLast();
+      }
+      if (d.purchasePrice != null) {
+        _price.text = d.purchasePrice!.toStringAsFixed(0);
+      }
+      if (d.purchaseYear != null) {
+        _purchaseYear.text = d.purchaseYear.toString();
+      }
+      _source = d.source;
+      _isGift = d.isGift;
+      _giftFrom.text = d.giftFrom;
+      _giftOccasion.text = d.giftOccasion;
+      _giftDate = d.giftDate;
+    });
+    // Appliquer le résultat IA si succès
+    final result = job.result;
+    if (result != null) {
+      await _applyCrossCheck(result);
+    }
   }
 
   void _updateBlobUrl(Uint8List? bytes) {
@@ -298,21 +359,60 @@ class _AddWineDialogState extends State<AddWineDialog> {
     await _analyzePhotoWithGemini(_photoBytes!);
   }
 
+  WineDraftData _captureDraft() {
+    return WineDraftData(
+      format: _format,
+      quantity: _quantity,
+      purchasePrice: double.tryParse(_price.text.replaceAll(',', '.')),
+      purchaseYear: int.tryParse(_purchaseYear.text),
+      source: _source,
+      isGift: _isGift,
+      giftFrom: _giftFrom.text,
+      giftOccasion: _giftOccasion.text,
+      giftDate: _giftDate,
+    );
+  }
+
   Future<void> _analyzePhotoWithGemini(Uint8List bytes) async {
-    setState(() {
-      _aiLoading = true;
-      _error = null;
-    });
-    try {
-      final cc = await AiCrossCheck.searchByPhoto(bytes,
-          ocrFuture: _ocrFuture);
-      if (!mounted) return;
-      await _applyCrossCheck(cc);
-    } catch (e) {
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _aiLoading = false);
+    // En mode édition : exécution synchrone (l'utilisateur veut rafraîchir).
+    if (_editing) {
+      setState(() {
+        _aiLoading = true;
+        _error = null;
+      });
+      try {
+        final manualVintage = _aiVintage.text.trim().isNotEmpty
+            ? _aiVintage.text.trim()
+            : (_vintage.text.trim().isNotEmpty ? _vintage.text.trim() : null);
+        final cc = await AiCrossCheck.searchByPhoto(
+          bytes,
+          ocrFuture: _ocrFuture,
+          vintageHint: manualVintage,
+        );
+        if (!mounted) return;
+        await _applyCrossCheck(cc);
+        if (manualVintage != null && manualVintage.isNotEmpty) {
+          setState(() => _vintage.text = manualVintage);
+        }
+      } catch (e) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      } finally {
+        if (mounted) setState(() => _aiLoading = false);
+      }
+      return;
     }
+    // Nouveau vin : on enqueue le job en arrière-plan + on ferme.
+    _enqueueAndClose();
+    unawaited(AiSearchJobService.enqueuePhoto(
+      photoBytes: bytes,
+      photoFileName: _photoFileName,
+      searchName: _aiName.text.trim().isEmpty ? null : _aiName.text.trim(),
+      searchDomaine:
+          _aiDomaine.text.trim().isEmpty ? null : _aiDomaine.text.trim(),
+      searchVintage:
+          _aiVintage.text.trim().isEmpty ? null : _aiVintage.text.trim(),
+      draftData: _captureDraft(),
+    ));
   }
 
   Future<void> _searchWithGemini() async {
@@ -320,26 +420,67 @@ class _AddWineDialogState extends State<AddWineDialog> {
       setState(() => _error = 'Entre un nom de vin pour utiliser Gemini.');
       return;
     }
-    setState(() {
-      _aiLoading = true;
-      _error = null;
-    });
-    try {
-      final cc = await AiCrossCheck.searchByText(
-        name: _aiName.text.trim(),
-        domaine: _aiDomaine.text.trim(),
-        vintage: _aiVintage.text.trim(),
-      );
-      if (!mounted) return;
-      await _applyCrossCheck(cc);
-      if (_aiVintage.text.isNotEmpty) {
-        setState(() => _vintage.text = _aiVintage.text.trim());
+    if (_editing) {
+      setState(() {
+        _aiLoading = true;
+        _error = null;
+      });
+      try {
+        final cc = await AiCrossCheck.searchByText(
+          name: _aiName.text.trim(),
+          domaine: _aiDomaine.text.trim(),
+          vintage: _aiVintage.text.trim(),
+        );
+        if (!mounted) return;
+        await _applyCrossCheck(cc);
+        if (_aiVintage.text.isNotEmpty) {
+          setState(() => _vintage.text = _aiVintage.text.trim());
+        }
+      } catch (e) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      } finally {
+        if (mounted) setState(() => _aiLoading = false);
       }
-    } catch (e) {
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _aiLoading = false);
+      return;
     }
+    _enqueueAndClose();
+    unawaited(AiSearchJobService.enqueueText(
+      name: _aiName.text.trim(),
+      domaine:
+          _aiDomaine.text.trim().isEmpty ? null : _aiDomaine.text.trim(),
+      vintage:
+          _aiVintage.text.trim().isEmpty ? null : _aiVintage.text.trim(),
+      draftData: _captureDraft(),
+    ));
+  }
+
+  void _enqueueAndClose() {
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.gold,
+        duration: const Duration(seconds: 4),
+        content: Row(
+          children: [
+            const Icon(Icons.cloud_sync_outlined,
+                size: 18, color: Color(0xFF1A1408)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Recherche IA lancée. Suivi : Paramètres → Recherches IA',
+                style: AppText.sans(
+                  color: const Color(0xFF1A1408),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _applyCrossCheck(CrossCheckResult cc) async {
@@ -519,6 +660,11 @@ class _AddWineDialogState extends State<AddWineDialog> {
         photoStatus = ' ✓ avec photo';
       } else {
         photoStatus = ' ⚠ PHOTO ÉCHOUÉE — ${photoUploadError ?? "raison inconnue"}';
+      }
+
+      // Retire le job de recherche IA si on est arrivé via un job (option 5D).
+      if (widget.initialJob != null) {
+        AiSearchJobService.remove(widget.initialJob!.id);
       }
 
       Navigator.pop(context);
@@ -1010,24 +1156,34 @@ class _AddWineDialogState extends State<AddWineDialog> {
   Widget _buildSourceDropdown() {
     return _labeled(
       'Provenance',
-      _dropdownContainer(
-        DropdownButton<BottleSource?>(
-          value: _source,
-          isExpanded: true,
-          dropdownColor: AppColors.bg2,
-          hint: Text('Choisir…',
-              style: AppText.sans(color: AppColors.text3, fontSize: 13)),
-          style: AppText.sans(color: AppColors.text, fontSize: 13),
-          items: [
-            DropdownMenuItem<BottleSource?>(
-              value: null,
-              child: Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 13)),
+      ValueListenableBuilder<List<String>>(
+        valueListenable: CavePreferencesService.customSources,
+        builder: (context, _, __) {
+          final labels = CavePreferencesService.allSourceLabels;
+          // Garde le _source courant si c'était une valeur supprimée.
+          final hasCurrent = _source == null || labels.contains(_source);
+          return _dropdownContainer(
+            DropdownButton<String?>(
+              value: hasCurrent ? _source : null,
+              isExpanded: true,
+              dropdownColor: AppColors.bg2,
+              hint: Text('Choisir…',
+                  style: AppText.sans(color: AppColors.text3, fontSize: 13)),
+              style: AppText.sans(color: AppColors.text, fontSize: 13),
+              items: [
+                DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('—',
+                      style: AppText.sans(
+                          color: AppColors.text3, fontSize: 13)),
+                ),
+                ...labels.map(
+                    (s) => DropdownMenuItem(value: s, child: Text(s))),
+              ],
+              onChanged: (v) => setState(() => _source = v),
             ),
-            ...BottleSource.values.map((s) =>
-                DropdownMenuItem(value: s, child: Text(s.label))),
-          ],
-          onChanged: (v) => setState(() => _source = v),
-        ),
+          );
+        },
       ),
     );
   }

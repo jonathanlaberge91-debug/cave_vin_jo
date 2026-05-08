@@ -11,46 +11,90 @@ import 'native_image.dart';
 class GardeInfo {
   final String label;
   final Color color;
-  const GardeInfo(this.label, this.color);
+  final int? drinkFrom;
+  final int? drinkPeak;
+  final int? drinkTo;
 
-  static GardeInfo? fromWine(Wine w) {
+  const GardeInfo(
+    this.label,
+    this.color, {
+    this.drinkFrom,
+    this.drinkPeak,
+    this.drinkTo,
+  });
+
+  /// Format court "24-29-36" (2 derniers chiffres de drinkFrom-Peak-To).
+  /// Retourne '' si aucune année. '·' à la place d'une année manquante.
+  String get windowShort {
+    if (drinkFrom == null && drinkPeak == null && drinkTo == null) {
+      return '';
+    }
+    String s(int? y) =>
+        y == null ? '·' : (y % 100).toString().padLeft(2, '0');
+    return '${s(drinkFrom)}-${s(drinkPeak)}-${s(drinkTo)}';
+  }
+
+  static GardeInfo? fromWine(Wine w, {int gardeOffset = 0}) {
     if (w.drinkFrom == null && w.drinkPeak == null && w.drinkTo == null) {
       return null;
     }
-    final now = DateTime.now().year;
-    if (w.drinkTo != null && now > w.drinkTo!) {
-      return const GardeInfo('Passé', Color(0xFFC62828));
-    }
-    if (w.drinkPeak != null && (now - w.drinkPeak!).abs() <= 2) {
-      return const GardeInfo('Apogée', Color(0xFFD4A843));
-    }
-    if (w.drinkFrom != null && now >= w.drinkFrom!) {
-      return const GardeInfo('À boire', Color(0xFF2E7D32));
-    }
-    if (w.drinkFrom != null && now < w.drinkFrom!) {
-      return const GardeInfo('Garde', Color(0xFF546E7A));
-    }
-    return const GardeInfo('À boire', Color(0xFF2E7D32));
+    int? shift(int? v) => v == null ? null : v + gardeOffset;
+    return _compute(
+      drinkFrom: shift(w.drinkFrom),
+      drinkPeak: shift(w.drinkPeak),
+      drinkTo: shift(w.drinkTo),
+    );
   }
+
+  static GardeInfo? fromWineFormat(Wine w, BottleFormat format) =>
+      fromWine(w, gardeOffset: format.gardeOffset);
 
   static GardeInfo? fromWish(WishWine w) {
     if (w.drinkFrom == null && w.drinkPeak == null && w.drinkTo == null) {
       return null;
     }
+    return _compute(
+      drinkFrom: w.drinkFrom,
+      drinkPeak: w.drinkPeak,
+      drinkTo: w.drinkTo,
+    );
+  }
+
+  static GardeInfo _compute({
+    int? drinkFrom,
+    int? drinkPeak,
+    int? drinkTo,
+  }) {
     final now = DateTime.now().year;
-    if (w.drinkTo != null && now > w.drinkTo!) {
-      return const GardeInfo('Passé', Color(0xFFC62828));
+    String label;
+    Color color;
+    if (drinkTo != null && now > drinkTo) {
+      label = 'Passé';
+      color = const Color(0xFFC62828);
+    } else if (drinkFrom != null && now < drinkFrom) {
+      label = 'Garde';
+      color = const Color(0xFF546E7A);
+    } else if (drinkPeak != null &&
+        now >= drinkPeak &&
+        now <= drinkPeak + 4) {
+      label = 'Apogée';
+      color = const Color(0xFFD4A843);
+    } else if (drinkFrom == null &&
+        drinkPeak != null &&
+        now < drinkPeak) {
+      label = 'Garde';
+      color = const Color(0xFF546E7A);
+    } else {
+      label = 'À boire';
+      color = const Color(0xFF2E7D32);
     }
-    if (w.drinkPeak != null && (now - w.drinkPeak!).abs() <= 2) {
-      return const GardeInfo('Apogée', Color(0xFFD4A843));
-    }
-    if (w.drinkFrom != null && now >= w.drinkFrom!) {
-      return const GardeInfo('À boire', Color(0xFF2E7D32));
-    }
-    if (w.drinkFrom != null && now < w.drinkFrom!) {
-      return const GardeInfo('Garde', Color(0xFF546E7A));
-    }
-    return const GardeInfo('À boire', Color(0xFF2E7D32));
+    return GardeInfo(
+      label,
+      color,
+      drinkFrom: drinkFrom,
+      drinkPeak: drinkPeak,
+      drinkTo: drinkTo,
+    );
   }
 }
 
@@ -107,8 +151,8 @@ class CaveDataRow extends StatefulWidget {
   final WineRow row;
   final List<CaveColumn> columns;
   final VoidCallback onTap;
-  final GardeInfo? Function(Wine) gardeFor;
-  final void Function(Bottle bottle)? onDrink;
+  final GardeInfo? Function(WineRow) gardeFor;
+  final void Function(List<Bottle> bottles)? onDrink;
   final void Function(Wine wine)? onSommelier;
 
   const CaveDataRow({
@@ -144,7 +188,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         ? null
         : pricesAll.reduce((a, b) => a + b) / pricesAll.length;
     final mixedPrices = pricesAll.toSet().length > 1;
-    final garde = widget.gardeFor(w);
+    final garde = widget.gardeFor(widget.row);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -217,7 +261,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
                   child: Tooltip(
                     message: 'Bue',
                     child: GestureDetector(
-                      onTap: () => widget.onDrink!(bottles.first),
+                      onTap: () => widget.onDrink!(bottles),
                       child: Container(
                         width: 28,
                         height: 28,
@@ -548,7 +592,26 @@ class _CaveDataRowState extends State<CaveDataRow> {
         overflow: TextOverflow.ellipsis,
       ),
     );
-    if (lines.isEmpty) return badge;
+    final badgeWithWindow = garde.windowShort.isEmpty
+        ? badge
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              badge,
+              const SizedBox(height: 2),
+              Text(
+                garde.windowShort,
+                style: AppText.sans(
+                  color: garde.color.withValues(alpha: 0.7),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          );
+    if (lines.isEmpty) return badgeWithWindow;
     return Tooltip(
       preferBelow: false,
       verticalOffset: 20,
@@ -584,7 +647,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
         ],
       ),
       padding: EdgeInsets.zero,
-      child: badge,
+      child: badgeWithWindow,
     );
   }
 
@@ -728,7 +791,7 @@ class _CaveDataRowState extends State<CaveDataRow> {
   }
 
   Widget _sourceCell(List<Bottle> bottles) {
-    final sources = bottles.map((b) => b.source?.label).toSet();
+    final sources = bottles.map((b) => b.source).toSet();
     if (sources.isEmpty || (sources.length == 1 && sources.first == null)) {
       return Text('—',
           style: AppText.sans(color: AppColors.text3, fontSize: 11));

@@ -42,6 +42,25 @@ class _DomainPin {
   });
 }
 
+enum _MissingReason {
+  noAddress, // Le vin n'a pas de domainAddress.
+  geocodeFailed, // L'adresse n'a pas pu être géolocalisée.
+}
+
+class _MissingWineEntry {
+  final Wine wine;
+  final List<_WineFormatEntry> formatEntries;
+  final int totalBottles;
+  final _MissingReason reason;
+
+  _MissingWineEntry({
+    required this.wine,
+    required this.formatEntries,
+    required this.totalBottles,
+    required this.reason,
+  });
+}
+
 class CarteScreen extends StatefulWidget {
   const CarteScreen({super.key});
   @override
@@ -59,6 +78,7 @@ class _CarteScreenState extends State<CarteScreen> {
   String _loadingStatus = 'Chargement des vins…';
   List<_DomainPin> _pins = [];
   List<_DomainPin> _allPins = [];
+  List<_MissingWineEntry> _missing = [];
   CascadeFilterState _cascadeFilter = const CascadeFilterState();
   List<CascadeFilterData> _filterData = [];
   Map<String, Wine> _winesById = {};
@@ -149,14 +169,47 @@ class _CarteScreenState extends State<CarteScreen> {
 
       _winesById = {for (final w in wines) w.id: w};
 
+      // Construit les format entries pour un vin (utilisé pour map + missing).
+      List<_WineFormatEntry> buildFormatEntries(Wine w) {
+        final wBottles = bottles.where((b) => b.wineId == w.id).toList();
+        if (wBottles.isEmpty) return const [];
+        final byFormat = <String, int>{};
+        for (final b in wBottles) {
+          byFormat[b.format.label] = (byFormat[b.format.label] ?? 0) + 1;
+        }
+        return byFormat.entries
+            .map((fe) =>
+                _WineFormatEntry(wine: w, formatLabel: fe.key, count: fe.value))
+            .toList();
+      }
+
+      // Vins sans adresse → "missing" avec raison noAddress.
+      final missing = <_MissingWineEntry>[];
       final addressGroups = <String, List<Wine>>{};
       for (final w in wines) {
-        if (w.domainAddress.isEmpty) continue;
+        if (w.domainAddress.trim().isEmpty) {
+          final fEntries = buildFormatEntries(w);
+          if (fEntries.isNotEmpty) {
+            missing.add(_MissingWineEntry(
+              wine: w,
+              formatEntries: fEntries,
+              totalBottles: fEntries.fold<int>(0, (s, e) => s + e.count),
+              reason: _MissingReason.noAddress,
+            ));
+          }
+          continue;
+        }
         addressGroups.putIfAbsent(w.domainAddress, () => []).add(w);
       }
 
       if (addressGroups.isEmpty) {
-        setState(() { _loading = false; _error = 'Aucun vin avec une adresse de domaine dans ta cave.'; });
+        _missing = missing;
+        setState(() {
+          _loading = false;
+          _error = missing.isEmpty
+              ? 'Aucun vin avec une adresse de domaine dans ta cave.'
+              : 'Aucun de tes vins n\'a d\'adresse de domaine. Édite leurs fiches pour les voir sur la carte.';
+        });
         return;
       }
 
@@ -169,23 +222,32 @@ class _CarteScreenState extends State<CarteScreen> {
         final coord = await MapsService.geocode(entry.key);
         completed++;
         if (mounted) setState(() => _loadingStatus = 'Géolocalisation $completed/$total…');
-        if (coord == null) return null;
 
         final formatEntries = <_WineFormatEntry>[];
         int tot = 0;
         for (final w in entry.value) {
-          final wBottles = bottles.where((b) => b.wineId == w.id).toList();
-          if (wBottles.isEmpty) continue;
-          final byFormat = <String, int>{};
-          for (final b in wBottles) {
-            byFormat[b.format.label] = (byFormat[b.format.label] ?? 0) + 1;
-          }
-          for (final fe in byFormat.entries) {
-            formatEntries.add(_WineFormatEntry(wine: w, formatLabel: fe.key, count: fe.value));
-            tot += fe.value;
+          final wEntries = buildFormatEntries(w);
+          formatEntries.addAll(wEntries);
+          for (final fe in wEntries) {
+            tot += fe.count;
           }
         }
         if (formatEntries.isEmpty) return null;
+
+        if (coord == null) {
+          // Géocodage échoué : ces vins iront dans la liste "missing".
+          for (final w in entry.value) {
+            final wEntries = buildFormatEntries(w);
+            if (wEntries.isEmpty) continue;
+            missing.add(_MissingWineEntry(
+              wine: w,
+              formatEntries: wEntries,
+              totalBottles: wEntries.fold<int>(0, (s, e) => s + e.count),
+              reason: _MissingReason.geocodeFailed,
+            ));
+          }
+          return null;
+        }
 
         final firstWine = formatEntries.first.wine;
         return _DomainPin(
@@ -200,8 +262,15 @@ class _CarteScreenState extends State<CarteScreen> {
       final results = await Future.wait(pinFutures);
       final pins = results.whereType<_DomainPin>().toList();
 
+      _missing = missing;
+
       if (pins.isEmpty) {
-        setState(() { _loading = false; _error = 'Aucune adresse n\'a pu être géolocalisée.\nVérifie ta clé API Google Maps et les adresses des domaines.'; });
+        setState(() {
+          _loading = false;
+          _error = missing.isEmpty
+              ? 'Aucune adresse n\'a pu être géolocalisée.\nVérifie ta clé API Google Maps et les adresses des domaines.'
+              : 'Aucun pin à afficher. ${missing.length} vin${missing.length > 1 ? 's' : ''} sans adresse géolocalisable. Clique sur le bouton ci-dessous pour les voir.';
+        });
         return;
       }
 
@@ -484,7 +553,6 @@ class _CarteScreenState extends State<CarteScreen> {
     });
 
     mk.addListener('mouseover', function() {
-      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
       if (pinnedIW && pinnedIW !== iw) return;
       if (openIW && openIW !== iw) openIW.close();
       iw.open(map, mk);
@@ -492,29 +560,10 @@ class _CarteScreenState extends State<CarteScreen> {
     });
 
     mk.addListener('mouseout', function() {
+      // Fermeture instantanée au mouseout, sauf si épinglée par un clic.
       if (pinnedIW === iw) return;
-      closeTimer = setTimeout(function() {
-        if (pinnedIW === iw) return;
-        iw.close();
-        if (openIW === iw) openIW = null;
-      }, 400);
-    });
-
-    google.maps.event.addListener(iw, 'domready', function() {
-      var iwEl = document.querySelector('.gm-style-iw-c');
-      if (iwEl) {
-        iwEl.addEventListener('mouseenter', function() {
-          if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
-        });
-        iwEl.addEventListener('mouseleave', function() {
-          if (pinnedIW === iw) return;
-          closeTimer = setTimeout(function() {
-            if (pinnedIW === iw) return;
-            iw.close();
-            if (openIW === iw) openIW = null;
-          }, 300);
-        });
-      }
+      iw.close();
+      if (openIW === iw) openIW = null;
     });
 
     mk.addListener('click', function() {
@@ -610,23 +659,30 @@ class _CarteScreenState extends State<CarteScreen> {
 
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.map_outlined,
-                size: 48, color: AppColors.text3),
-            const SizedBox(height: 14),
-            Text(
-              'Carte des domaines',
-              style: AppText.serif(color: AppColors.text2, fontSize: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: AppText.sans(color: AppColors.text3, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.map_outlined,
+                  size: 48, color: AppColors.text3),
+              const SizedBox(height: 14),
+              Text(
+                'Carte des domaines',
+                style: AppText.serif(color: AppColors.text2, fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: AppText.sans(color: AppColors.text3, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              if (_missing.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                _missingButton(),
+              ],
+            ],
+          ),
         ),
       );
     }
@@ -703,10 +759,72 @@ class _CarteScreenState extends State<CarteScreen> {
             ),
           ),
         ),
+        if (_missing.isNotEmpty)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: _missingButton(),
+          ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _missingButton() {
+    final count = _missing.length;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openMissingDialog,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3A2A18).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE07060)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.location_off_outlined,
+                  size: 16, color: Color(0xFFE07060)),
+              const SizedBox(width: 8),
+              Text(
+                '$count vin${count > 1 ? 's' : ''} absent${count > 1 ? 's' : ''}',
+                style: AppText.sans(
+                  color: const Color(0xFFE8C97A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMissingDialog() async {
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (_) => _MissingWinesDialog(
+        missing: _missing,
+        onTapWine: (id) {
+          Navigator.of(context).pop();
+          _openWineDetail(id);
+        },
+      ),
     );
   }
 
@@ -716,4 +834,232 @@ class _CarteScreenState extends State<CarteScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 10),
         color: AppColors.border,
       );
+}
+
+class _MissingWinesDialog extends StatelessWidget {
+  final List<_MissingWineEntry> missing;
+  final ValueChanged<String> onTapWine;
+
+  const _MissingWinesDialog({
+    required this.missing,
+    required this.onTapWine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final maxWidth = size.width > 720 ? 660.0 : size.width - 32;
+    final maxHeight = size.height * 0.88;
+
+    final byReason = <_MissingReason, List<_MissingWineEntry>>{};
+    for (final m in missing) {
+      byReason.putIfAbsent(m.reason, () => []).add(m);
+    }
+    final noAddress = byReason[_MissingReason.noAddress] ?? const [];
+    final geocodeFailed = byReason[_MissingReason.geocodeFailed] ?? const [];
+    final totalBottles =
+        missing.fold<int>(0, (s, m) => s + m.totalBottles);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints:
+            BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bg2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border2),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: const BoxDecoration(
+                  border:
+                      Border(bottom: BorderSide(color: AppColors.border)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_off_outlined,
+                        color: Color(0xFFE07060), size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Vins absents de la carte',
+                            style: AppText.serif(
+                              color: AppColors.gold2,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${missing.length} vin${missing.length > 1 ? 's' : ''} · '
+                            '$totalBottles bouteille${totalBottles > 1 ? 's' : ''}',
+                            style: AppText.sans(
+                                color: AppColors.text3, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close,
+                          color: AppColors.text3),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  children: [
+                    if (noAddress.isNotEmpty) ...[
+                      _sectionTitle('Sans adresse de domaine',
+                          'Édite la fiche du vin pour ajouter une adresse.'),
+                      for (final m in noAddress) _row(m),
+                    ],
+                    if (geocodeFailed.isNotEmpty) ...[
+                      _sectionTitle('Adresse non géolocalisée',
+                          'Google Maps n\'a pas trouvé l\'adresse. Vérifie l\'orthographe.'),
+                      for (final m in geocodeFailed) _row(m),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: AppText.sans(
+              color: AppColors.text3,
+              fontSize: 11,
+              letterSpacing: 1.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: AppText.sans(color: AppColors.text3, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(_MissingWineEntry m) {
+    final w = m.wine;
+    final qty = m.totalBottles;
+    final formats = m.formatEntries
+        .map((e) => '${e.count}× ${e.formatLabel}')
+        .join(' · ');
+    final originParts = <String>[
+      if (w.appellation.isNotEmpty) w.appellation,
+      if (w.region.isNotEmpty) w.region,
+      if (w.country.isNotEmpty) w.country,
+    ];
+    final origin = originParts.join(' · ');
+    final addressLine = m.reason == _MissingReason.geocodeFailed
+        ? 'Adresse : ${w.domainAddress}'
+        : null;
+
+    return InkWell(
+      onTap: () => onTapWine(w.id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.wine_bar_outlined,
+                size: 18, color: AppColors.gold2),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    w.vintage != null ? '${w.name} ${w.vintage}' : w.name,
+                    style: AppText.serif(
+                      color: AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (origin.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        origin,
+                        style: AppText.sans(
+                            color: AppColors.text3, fontSize: 11),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      formats,
+                      style: AppText.sans(
+                          color: AppColors.text2, fontSize: 11),
+                    ),
+                  ),
+                  if (addressLine != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        addressLine,
+                        style: AppText.sans(
+                          color: const Color(0xFFE07060),
+                          fontSize: 10,
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.bg3,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                '$qty bout.',
+                style: AppText.sans(
+                  color: AppColors.text2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right,
+                size: 18, color: AppColors.text3),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -1,12 +1,13 @@
 {
     "name": "Cave à Vin",
     "short_name": "Cave à Vin",
-    "start_url": ".",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#0E0C0A",
     "theme_color": "#C9A84C",
     "description": "Gestion de cave à vin",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

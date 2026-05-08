@@ -23,6 +23,54 @@
   <!-- Google Identity Services (GIS) — OAuth 2.0 token client -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+  <!-- IndexedDB — stockage des blobs photo des jobs IA en arrière-plan -->
+  <script>
+    window.cvIdb = (function() {
+      var dbPromise = null;
+      function getDb() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise(function(resolve, reject) {
+          var req = indexedDB.open('cave_vin_blobs', 1);
+          req.onupgradeneeded = function(e) {
+            e.target.result.createObjectStore('blobs');
+          };
+          req.onsuccess = function() { resolve(req.result); };
+          req.onerror = function() { reject(req.error); };
+        });
+        return dbPromise;
+      }
+      return {
+        put: async function(key, b64) {
+          var db = await getDb();
+          return new Promise(function(resolve, reject) {
+            var tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').put(b64, key);
+            tx.oncomplete = function() { resolve(); };
+            tx.onerror = function() { reject(tx.error); };
+          });
+        },
+        get: async function(key) {
+          var db = await getDb();
+          return new Promise(function(resolve, reject) {
+            var tx = db.transaction('blobs', 'readonly');
+            var req = tx.objectStore('blobs').get(key);
+            req.onsuccess = function() { resolve(req.result || null); };
+            req.onerror = function() { reject(req.error); };
+          });
+        },
+        del: async function(key) {
+          var db = await getDb();
+          return new Promise(function(resolve, reject) {
+            var tx = db.transaction('blobs', 'readwrite');
+            tx.objectStore('blobs').delete(key);
+            tx.oncomplete = function() { resolve(); };
+            tx.onerror = function() { reject(tx.error); };
+          });
+        },
+      };
+    })();
+  </script>
+
   <!-- Tesseract.js — OCR pour pré-traiter les étiquettes de vin -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <script>
@@ -44,6 +92,97 @@
       } catch (e) {
         console.warn('OCR Tesseract erreur:', e);
         return null;
+      }
+    };
+  </script>
+
+  <!-- WebAuthn — biométrie navigateur (Face ID, Touch ID, Windows Hello…) -->
+  <script>
+    function _b64FromBuf(buf) {
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function _bufFromB64(b64) {
+      let s = b64.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      const bin = atob(s);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    window.cvBiometricSupported = async function() {
+      try {
+        if (!window.PublicKeyCredential) return false;
+        if (!PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+          return false;
+        }
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      } catch (e) {
+        return false;
+      }
+    };
+
+    window.cvBiometricRegister = async function() {
+      try {
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+        const userId = crypto.getRandomValues(new Uint8Array(16));
+        const cred = await navigator.credentials.create({
+          publicKey: {
+            challenge: challenge,
+            rp: { name: 'Cave à Vin' },
+            user: {
+              id: userId,
+              name: 'cave-user',
+              displayName: 'Cave',
+            },
+            pubKeyCredParams: [
+              { type: 'public-key', alg: -7 },
+              { type: 'public-key', alg: -257 },
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
+              requireResidentKey: false,
+            },
+            timeout: 60000,
+            attestation: 'none',
+          },
+        });
+        if (!cred) return null;
+        return _b64FromBuf(cred.rawId);
+      } catch (e) {
+        console.warn('WebAuthn register failed:', e);
+        return null;
+      }
+    };
+
+    window.cvBiometricAuthenticate = async function(credIdBase64Csv) {
+      try {
+        if (!credIdBase64Csv) return false;
+        const ids = String(credIdBase64Csv)
+          .split(',')
+          .map(function(s) { return s.trim(); })
+          .filter(function(s) { return s.length > 0; });
+        if (ids.length === 0) return false;
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+        const allowCredentials = ids.map(function(b64) {
+          return { type: 'public-key', id: _bufFromB64(b64) };
+        });
+        const assertion = await navigator.credentials.get({
+          publicKey: {
+            challenge: challenge,
+            allowCredentials: allowCredentials,
+            userVerification: 'required',
+            timeout: 60000,
+          },
+        });
+        return !!assertion;
+      } catch (e) {
+        console.warn('WebAuthn auth failed:', e);
+        return false;
       }
     };
   </script>

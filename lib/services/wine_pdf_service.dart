@@ -9,6 +9,10 @@ void openWinePrintSheet(Wine wine, List<Bottle> bottles) {
   platform.openWinePrintSheetImpl(wine, bottles);
 }
 
+void openAllWinesPrintSheet(List<Wine> wines, List<Bottle> bottles) {
+  platform.openAllWinesPrintSheetImpl(wines, bottles);
+}
+
 void exportInventoryCsv(List<Wine> wines, List<Bottle> bottles) {
   platform.exportInventoryCsvImpl(wines, bottles);
 }

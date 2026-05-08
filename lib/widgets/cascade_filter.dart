@@ -122,42 +122,56 @@ class CascadeFilterBar extends StatelessWidget {
           ..sort())
         : <String>[];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    final groups = <Widget>[
+      _buildGroup('Pays', countries, filter.countries, (v) {
+        var next = filter.copyWith(countries: v);
+        if (v.isEmpty || v != filter.countries) {
+          next = next.copyWith(regions: {}, appellations: {}, climats: {});
+        }
+        onChanged(next);
+      }),
+    ];
+
+    if (filter.countries.isNotEmpty && regions.isNotEmpty) {
+      groups.add(_buildGroup('Région', regions, filter.regions, (v) {
+        var next = filter.copyWith(regions: v);
+        if (v.isEmpty || v != filter.regions) {
+          next = next.copyWith(appellations: {}, climats: {});
+        }
+        onChanged(next);
+      }));
+    }
+
+    if (filter.regions.isNotEmpty && appellations.isNotEmpty) {
+      groups.add(_buildGroup(
+        'Appellation',
+        appellations,
+        filter.appellations,
+        (v) => onChanged(filter.copyWith(appellations: v)),
+      ));
+    }
+
+    if (filter.regions.isNotEmpty && climats.isNotEmpty) {
+      groups.add(_buildGroup(
+        'Climat',
+        climats,
+        filter.climats,
+        (v) => onChanged(filter.copyWith(climats: v)),
+      ));
+    }
+
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildGroup('Pays', countries, filter.countries, (v) {
-            var next = filter.copyWith(countries: v);
-            if (v.isEmpty || v != filter.countries) {
-              next = next.copyWith(regions: {}, appellations: {}, climats: {});
-            }
-            onChanged(next);
-          }),
-          if (filter.countries.isNotEmpty && regions.isNotEmpty) ...[
-            _divider(),
-            _buildGroup('Région', regions, filter.regions, (v) {
-              var next = filter.copyWith(regions: v);
-              if (v.isEmpty || v != filter.regions) {
-                next = next.copyWith(appellations: {}, climats: {});
-              }
-              onChanged(next);
-            }),
-          ],
-          if (filter.regions.isNotEmpty && appellations.isNotEmpty) ...[
-            _divider(),
-            _buildGroup('Appellation', appellations, filter.appellations, (v) {
-              onChanged(filter.copyWith(appellations: v));
-            }),
-          ],
-          if (filter.regions.isNotEmpty && climats.isNotEmpty) ...[
-            _divider(),
-            _buildGroup('Climat', climats, filter.climats, (v) {
-              onChanged(filter.copyWith(climats: v));
-            }),
+          for (var i = 0; i < groups.length; i++) ...[
+            groups[i],
+            if (i < groups.length - 1) const SizedBox(height: 6),
           ],
           if (!filter.isEmpty) ...[
-            const SizedBox(width: 8),
+            const SizedBox(height: 8),
             _resetButton(),
           ],
         ],
@@ -172,48 +186,48 @@ class CascadeFilterBar extends StatelessWidget {
     ValueChanged<Set<String>> onChanged,
   ) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppText.sans(
-            color: AppColors.text3,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
+        SizedBox(
+          width: 80,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              label.toUpperCase(),
+              style: AppText.sans(
+                color: AppColors.text3,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 6),
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: options.map((opt) {
-            final active = selected.contains(opt);
-            return _FilterChip(
-              label: opt,
-              active: active,
-              onTap: () {
-                final next = {...selected};
-                if (active) {
-                  next.remove(opt);
-                } else {
-                  next.add(opt);
-                }
-                onChanged(next);
-              },
-            );
-          }).toList(),
+        Expanded(
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: options.map((opt) {
+              final active = selected.contains(opt);
+              return _FilterChip(
+                label: opt,
+                active: active,
+                onTap: () {
+                  final next = {...selected};
+                  if (active) {
+                    next.remove(opt);
+                  } else {
+                    next.add(opt);
+                  }
+                  onChanged(next);
+                },
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
   }
-
-  Widget _divider() => Container(
-        width: 1,
-        height: 20,
-        margin: const EdgeInsets.symmetric(horizontal: 10),
-        color: AppColors.border,
-      );
 
   Widget _resetButton() {
     return InkWell(

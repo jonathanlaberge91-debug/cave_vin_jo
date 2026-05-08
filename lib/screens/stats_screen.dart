@@ -559,7 +559,7 @@ class _GardeDonutCard extends StatelessWidget {
     for (final b in cave) {
       final w = wines[b.wineId];
       if (w == null) { inconnu++; continue; }
-      final g = GardeInfo.fromWine(w);
+      final g = GardeInfo.fromWineFormat(w, b.format);
       if (g == null) { inconnu++; continue; }
       switch (g.label) {
         case 'À boire': aBoire++;
@@ -1394,7 +1394,7 @@ class _GardeBarCard extends StatelessWidget {
     for (final b in cave) {
       final w = wines[b.wineId];
       if (w == null) { counts['Inconnu'] = (counts['Inconnu'] ?? 0) + 1; continue; }
-      final g = GardeInfo.fromWine(w);
+      final g = GardeInfo.fromWineFormat(w, b.format);
       if (g == null) { counts['Inconnu'] = (counts['Inconnu'] ?? 0) + 1; continue; }
       counts[g.label] = (counts[g.label] ?? 0) + 1;
     }

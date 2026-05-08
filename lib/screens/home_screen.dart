@@ -6,6 +6,7 @@ import '../widgets/cave_card.dart';
 import '../models/cave_column.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart';
+import '../services/ai_search_job_service.dart';
 import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import 'add_wine_dialog.dart';
@@ -51,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.wine_bar_outlined, 'Bouteilles bues'),
     (Icons.favorite_border, 'Liste de souhaits'),
     (Icons.bar_chart_outlined, 'Statistiques'),
+    (Icons.cloud_sync_outlined, 'Recherches IA'),
     (Icons.key_outlined, 'Clés API'),
     (Icons.sensors_outlined, 'Capteurs Govee'),
     (Icons.thermostat_outlined, 'Wine CellR'),
@@ -247,13 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
       drawer: isWide ? null : Drawer(child: _buildSidebar()),
-      floatingActionButton: (!isWide && _items[_selectedIndex].label == 'Ma Cave')
-          ? FloatingActionButton(
-              onPressed: _openAddWine,
-              backgroundColor: AppColors.gold,
-              child: const Icon(Icons.add, color: AppColors.bg),
-            )
-          : null,
+      bottomNavigationBar: isWide ? null : _buildMobileBottomNav(),
       body: Column(
         children: [
           const OfflineBanner(),
@@ -268,6 +264,170 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Items affichés dans la barre du bas sur mobile.
+  // Chaque tuple : (icône, label court, action) où action est :
+  //   un int >= 0 → index dans _items
+  //   -1 → ouvre le dialog Ajouter
+  //   -2 → ouvre le bottom sheet "Plus"
+  static const _bottomNavItems = <(IconData, String, int)>[
+    (Icons.wine_bar, 'Cave', 0),
+    (Icons.grid_view_rounded, 'Cellier', 1),
+    (Icons.add_circle_outline, 'Ajouter', -1),
+    (Icons.restaurant_outlined, 'Accords', 4),
+    (Icons.bar_chart_outlined, 'Stats', 5),
+    (Icons.map_outlined, 'Carte', 6),
+    (Icons.more_horiz, 'Plus', -2),
+  ];
+
+  Widget _buildMobileBottomNav() {
+    final mainIndexes = _bottomNavItems
+        .where((i) => i.$3 >= 0)
+        .map((i) => i.$3)
+        .toSet();
+
+    int currentBottomIdx = -1;
+    for (var i = 0; i < _bottomNavItems.length; i++) {
+      if (_bottomNavItems[i].$3 == _selectedIndex) {
+        currentBottomIdx = i;
+        break;
+      }
+    }
+    // Si la section actuelle n'est pas dans la barre → highlight "Plus"
+    if (currentBottomIdx == -1 &&
+        !mainIndexes.contains(_selectedIndex)) {
+      currentBottomIdx = _bottomNavItems.length - 1;
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bg2,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: ValueListenableBuilder<int>(
+            valueListenable: AiSearchJobService.pendingCount,
+            builder: (context, badge, _) => Row(
+              children: [
+                for (var i = 0; i < _bottomNavItems.length; i++)
+                  Expanded(
+                    child: _BottomNavButton(
+                      icon: _bottomNavItems[i].$1,
+                      label: _bottomNavItems[i].$2,
+                      selected: i == currentBottomIdx,
+                      // Badge sur "Plus" (qui mène vers Paramètres)
+                      badgeCount:
+                          _bottomNavItems[i].$3 == -2 ? badge : 0,
+                      onTap: () {
+                        final action = _bottomNavItems[i].$3;
+                        if (action == -1) {
+                          _openAddWine();
+                        } else if (action == -2) {
+                          _showMoreSheet();
+                        } else {
+                          setState(() {
+                            _selectedIndex = action;
+                            if (!_searchableLabels
+                                .contains(_items[action].label)) {
+                              _clearSearch();
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMoreSheet() {
+    // Indexes restants dans _items qui ne sont pas dans la bottom nav
+    final mainIndexes = _bottomNavItems
+        .where((i) => i.$3 >= 0)
+        .map((i) => i.$3)
+        .toSet();
+    final extraIndexes = <int>[];
+    for (var i = 0; i < _items.length; i++) {
+      if (i == 2) continue; // Ajouter (déjà dans la barre via dialog)
+      if (mainIndexes.contains(i)) continue;
+      extraIndexes.add(i);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bg2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border2,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                child: Text(
+                  'Plus',
+                  style: AppText.serif(
+                    color: AppColors.gold2,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              for (final i in extraIndexes)
+                ListTile(
+                  leading: Icon(
+                    _items[i].icon,
+                    color: i == _selectedIndex
+                        ? AppColors.gold
+                        : AppColors.text2,
+                  ),
+                  title: Text(
+                    _items[i].label!,
+                    style: AppText.sans(
+                      color: i == _selectedIndex
+                          ? AppColors.gold
+                          : AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetCtx).pop();
+                    setState(() {
+                      _selectedIndex = i;
+                      if (!_searchableLabels
+                          .contains(_items[i].label)) {
+                        _clearSearch();
+                      }
+                    });
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -687,7 +847,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       rows: rows,
                                       onTap: _openWineDetail,
                                       gardeFor: _gardeLabel,
-                                      onDrink: (bottle) => showDrinkBottleDialog(context, bottle),
+                                      onDrink: (bottles) =>
+                                          showDrinkBottleDialog(
+                                              context, bottles.first,
+                                              candidates: bottles),
                                       onSommelier: (wine) => showSommelierDialog(context, wine),
                                     );
                                   }
@@ -747,7 +910,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     columns: cols,
                     onTap: () => _openWineDetail(row),
                     gardeFor: _gardeLabel,
-                    onDrink: (bottle) => showDrinkBottleDialog(context, bottle),
+                    onDrink: (bottles) => showDrinkBottleDialog(
+                        context, bottles.first,
+                        candidates: bottles),
                     onSommelier: (wine) => showSommelierDialog(context, wine),
                   );
                 },
@@ -901,8 +1066,8 @@ class _HomeScreenState extends State<HomeScreen> {
             .compareTo(b.bottles.first.format.index);
       case CaveColumn.source:
         return strCmp(
-          a.bottles.first.source?.label ?? '',
-          b.bottles.first.source?.label ?? '',
+          a.bottles.first.source ?? '',
+          b.bottles.first.source ?? '',
         );
       case CaveColumn.purchaseYear:
         return numCmp(a.bottles.first.purchaseYear,
@@ -948,7 +1113,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  GardeInfo? _gardeLabel(Wine w) => GardeInfo.fromWine(w);
+  GardeInfo? _gardeLabel(WineRow row) {
+    if (row.bottles.isEmpty) return GardeInfo.fromWine(row.wine);
+    return GardeInfo.fromWineFormat(row.wine, row.bottles.first.format);
+  }
 }
 
 class _NavEntry {
@@ -963,6 +1131,82 @@ class _NavEntry {
       : icon = null,
         label = null,
         isSeparator = true;
+}
+
+class _BottomNavButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final int badgeCount;
+
+  const _BottomNavButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.gold : AppColors.text3;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, size: 22, color: color),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -6,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      constraints: const BoxConstraints(
+                          minWidth: 16, minHeight: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8667A),
+                        borderRadius: BorderRadius.circular(8),
+                        border:
+                            Border.all(color: AppColors.bg2, width: 1.5),
+                      ),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        textAlign: TextAlign.center,
+                        style: AppText.sans(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: AppText.sans(
+                color: color,
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatefulWidget {
@@ -1952,18 +2196,32 @@ class _WishRowState extends State<_WishRow> {
         }
         return Align(
           alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: g.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: g.color.withValues(alpha: 0.35)),
-            ),
-            child: Text(g.label,
-                style: AppText.sans(
-                    color: g.color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: g.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: g.color.withValues(alpha: 0.35)),
+                ),
+                child: Text(g.label,
+                    style: AppText.sans(
+                        color: g.color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700)),
+              ),
+              if (g.windowShort.isNotEmpty) ...[
+                const SizedBox(height: 1),
+                Text(g.windowShort,
+                    style: AppText.sans(
+                        color: g.color.withValues(alpha: 0.7),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ],
           ),
         );
       case WishColumn.drinkFrom:
@@ -2311,25 +2569,42 @@ class _DrunkRowState extends State<_DrunkRow> {
         );
       case DrunkColumn.gardeStatus:
         if (w == null) return const SizedBox.shrink();
-        final g = GardeInfo.fromWine(w);
+        final g = GardeInfo.fromWineFormat(w, b.format);
         if (g == null) return Text('—', style: AppText.sans(color: AppColors.text3, fontSize: 11));
         return Align(
           alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: g.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: g.color.withValues(alpha: 0.35)),
-            ),
-            child: Text(
-              g.label,
-              style: AppText.sans(
-                color: g.color,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: g.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: g.color.withValues(alpha: 0.35)),
+                ),
+                child: Text(
+                  g.label,
+                  style: AppText.sans(
+                    color: g.color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
+              if (g.windowShort.isNotEmpty) ...[
+                const SizedBox(height: 1),
+                Text(
+                  g.windowShort,
+                  style: AppText.sans(
+                    color: g.color.withValues(alpha: 0.7),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
           ),
         );
       case DrunkColumn.drinkFrom:
@@ -2361,7 +2636,7 @@ class _DrunkRowState extends State<_DrunkRow> {
         );
       case DrunkColumn.source:
         return Text(
-          b.source?.label ?? '—',
+          b.source ?? '—',
           style: AppText.sans(color: AppColors.text2, fontSize: 11),
           overflow: TextOverflow.ellipsis,
         );

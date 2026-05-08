@@ -14,6 +14,7 @@ import '../theme/wine_type_helpers.dart';
 import '../dialogs/edit_bottle_dialog.dart';
 import '../dialogs/add_bottles_dialog.dart';
 import '../dialogs/drink_bottle_dialog.dart';
+import '../dialogs/sommelier_dialog.dart';
 import '../theme/date_format.dart';
 import '../widgets/native_image.dart';
 import 'add_wine_dialog.dart';
@@ -98,67 +99,117 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
           initialData: widget.wine,
           builder: (context, wineSnap) {
             final wine = wineSnap.data ?? widget.wine;
-            return Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: StreamBuilder<List<Bottle>>(
-                    stream: CaveService.bottlesByWine(widget.wine.id).map(
-                      (list) => list.where((b) => b.format == widget.format).toList(),
-                    ),
-                    initialData: widget.bottles,
-                    builder: (context, snap) {
-                      final mine = snap.data ?? const <Bottle>[];
-                      if (mine.isEmpty) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) Navigator.of(context).maybePop();
-                        });
-                        return const SizedBox.shrink();
-                      }
-                      return SingleChildScrollView(
-                        child: _DialogBody(wine: wine, bottles: mine),
-                      );
-                    },
-                  ),
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: StreamBuilder<List<Bottle>>(
+                stream: CaveService.bottlesByWine(widget.wine.id).map(
+                  (list) => list
+                      .where((b) => b.format == widget.format)
+                      .toList(),
                 ),
-                Positioned(
-                  top: 14,
-                  right: 140,
-                  child: _HeaderAction(
-                    icon: Icons.shopping_cart_outlined,
-                    tooltip: 'Chercher sur SAQ.com',
-                    onTap: () => _openSaqSearch(wine),
-                  ),
-                ),
-                Positioned(
-                  top: 14,
-                  right: 98,
-                  child: _HeaderAction(
-                    icon: Icons.print_outlined,
-                    tooltip: 'Fiche imprimable',
-                    onTap: () => openWinePrintSheet(wine, widget.bottles),
-                  ),
-                ),
-                Positioned(
-                  top: 14,
-                  right: 56,
-                  child: _HeaderAction(
-                    icon: Icons.edit_outlined,
-                    tooltip: 'Modifier le vin',
-                    onTap: () => showEditWineDialog(context, wine),
-                  ),
-                ),
-                Positioned(
-                  top: 14,
-                  right: 14,
-                  child: _CloseButton(
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
+                initialData: widget.bottles,
+                builder: (context, snap) {
+                  final mine = snap.data ?? const <Bottle>[];
+                  if (mine.isEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) Navigator.of(context).maybePop();
+                    });
+                    return const SizedBox.shrink();
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _TopActionBar(
+                        actions: [
+                          _HeaderAction(
+                            icon: Icons.restaurant_outlined,
+                            tooltip: 'Sommelier',
+                            onTap: () => showSommelierDialog(context, wine),
+                          ),
+                          _HeaderAction(
+                            icon: Icons.local_bar_outlined,
+                            tooltip: 'Marquer comme bue',
+                            onTap: () => _onDrinkAction(context, mine),
+                          ),
+                          _HeaderAction(
+                            icon: Icons.shopping_cart_outlined,
+                            tooltip: 'Chercher sur SAQ.com',
+                            onTap: () => _openSaqSearch(wine),
+                          ),
+                          _HeaderAction(
+                            icon: Icons.print_outlined,
+                            tooltip: 'Fiche imprimable',
+                            onTap: () => openWinePrintSheet(
+                                wine, widget.bottles),
+                          ),
+                          _HeaderAction(
+                            icon: Icons.edit_outlined,
+                            tooltip: 'Modifier le vin',
+                            onTap: () =>
+                                showEditWineDialog(context, wine),
+                          ),
+                        ],
+                        onClose: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _DialogBody(wine: wine, bottles: mine),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+Future<void> _onDrinkAction(
+    BuildContext context, List<Bottle> bottles) async {
+  if (bottles.isEmpty) return;
+  // Le dialog gère lui-même la sélection si plusieurs bouteilles
+  await showDrinkBottleDialog(
+    context,
+    bottles.first,
+    candidates: bottles,
+  );
+}
+
+class _TopActionBar extends StatelessWidget {
+  final List<Widget> actions;
+  final VoidCallback onClose;
+  const _TopActionBar({required this.actions, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: const BoxDecoration(
+        color: AppColors.bg2,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    actions[i],
+                    if (i < actions.length - 1) const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          _CloseButton(onTap: onClose),
+        ],
       ),
     );
   }
@@ -365,17 +416,16 @@ class _DialogBodyState extends State<_DialogBody> {
               ),
               const SizedBox(height: 20),
               _StatsRow(stats: stats),
-              if (!hasMarket) ...[
-                const SizedBox(height: 10),
-                _EstimateMarketButton(
-                  loading: _loadingMarket,
-                  onTap: () async {
-                    setState(() => _loadingMarket = true);
-                    await ActualisationService.refreshMarketValue(wine);
-                    if (mounted) setState(() => _loadingMarket = false);
-                  },
-                ),
-              ],
+              const SizedBox(height: 10),
+              _EstimateMarketButton(
+                loading: _loadingMarket,
+                hasExisting: hasMarket,
+                onTap: () async {
+                  setState(() => _loadingMarket = true);
+                  await ActualisationService.refreshMarketValue(wine);
+                  if (mounted) setState(() => _loadingMarket = false);
+                },
+              ),
               const SizedBox(height: 24),
               _OriginSection(wine: wine, bottles: bottles),
               if (_hasGarde(wine)) ...[
@@ -574,11 +624,21 @@ class _StatTileData {
 
 class _EstimateMarketButton extends StatelessWidget {
   final bool loading;
+  final bool hasExisting;
   final VoidCallback onTap;
-  const _EstimateMarketButton({required this.loading, required this.onTap});
+  const _EstimateMarketButton({
+    required this.loading,
+    required this.hasExisting,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final label = loading
+        ? 'Estimation...'
+        : hasExisting
+            ? 'Ré-estimer la valeur marchande'
+            : 'Estimer la valeur marchande';
     return GestureDetector(
       onTap: loading ? null : onTap,
       child: Container(
@@ -598,10 +658,7 @@ class _EstimateMarketButton extends StatelessWidget {
             else
               const Icon(Icons.trending_up, size: 15, color: AppColors.gold),
             const SizedBox(width: 8),
-            Text(
-              loading ? 'Estimation...' : 'Estimer la valeur marchande',
-              style: const TextStyle(color: AppColors.gold, fontSize: 12),
-            ),
+            Text(label, style: const TextStyle(color: AppColors.gold, fontSize: 12)),
           ],
         ),
       ),
@@ -1352,7 +1409,7 @@ class _BottleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = bottle;
     final metaParts = <String>[
-      if (b.source != null) b.source!.label,
+      if (b.source != null) b.source!,
       if (b.purchaseYear != null) 'achetée en ${b.purchaseYear}',
       'ajoutée le ${fmtDate(b.createdAt)}',
     ];

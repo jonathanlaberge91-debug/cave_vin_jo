@@ -15,6 +15,54 @@ void openWinePrintSheetImpl(Wine wine, List<Bottle> bottles) {
   web.window.open(url, '_blank');
 }
 
+void openAllWinesPrintSheetImpl(List<Wine> wines, List<Bottle> bottles) {
+  if (wines.isEmpty) return;
+  final byWine = <String, List<Bottle>>{};
+  for (final b in bottles) {
+    byWine.putIfAbsent(b.wineId, () => []).add(b);
+  }
+  final pages = <String>[];
+  for (final w in wines) {
+    final btls = byWine[w.id] ?? const <Bottle>[];
+    pages.add(_buildPageBody(w, btls));
+  }
+  final body = pages.join(
+    '<div style="page-break-after:always; height:0;"></div>',
+  );
+  final html = '''<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Cave – ${wines.length} fiches</title>
+<style>
+@page { size: A4; margin: 0; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Didot', 'Bodoni MT', Georgia, serif; color:#1a1a1a; background:#fffdf5; }
+.page { width:210mm; height:297mm; padding:40px 48px; position:relative; display:flex; flex-direction:column; overflow:hidden; page-break-inside:avoid; }
+.border1 { position:absolute;top:18px;left:18px;right:18px;bottom:18px;border:1px solid #c9a96e;pointer-events:none; }
+.border2 { position:absolute;top:22px;left:22px;right:22px;bottom:22px;border:1px solid #8b6914;pointer-events:none; }
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+$body
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 600);
+  });
+</script>
+</body>
+</html>''';
+  final blob = web.Blob(
+    [html.toJS].toJS,
+    web.BlobPropertyBag(type: 'text/html'),
+  );
+  final url = web.URL.createObjectURL(blob);
+  web.window.open(url, '_blank');
+}
+
 void exportInventoryCsvImpl(List<Wine> wines, List<Bottle> bottles) {
   final csv = _buildCsv(wines, bottles);
   final blob = web.Blob(
@@ -186,29 +234,7 @@ td { padding:4px 8px; border-bottom:1px solid #e8dfc0; vertical-align:middle; }
 
 String _buildHtml(Wine wine, List<Bottle> bottles) {
   final vintage = wine.vintage != null ? '${wine.vintage}' : '';
-  final type = wineTypeLabel(wine.type);
-  final format = bottles.isNotEmpty ? bottles.first.format.label : '750 ML';
-  final alcohol = wine.alcohol != null ? '${wine.alcohol!.toStringAsFixed(1)}%' : '';
-  final rating = wine.rating ?? 0;
-
-  final grapeParts = _parseGrapes(wine.grapes);
-  final donutSvg = _buildDonut(grapeParts);
-  final legend = _buildLegend(grapeParts);
-  final grapesHtml = _buildGrapesSection(wine.grapes, donutSvg, legend);
-  final timeline = _buildTimeline(wine.drinkFrom, wine.drinkPeak, wine.drinkTo);
-
-  final nameLen = wine.name.length;
-  final nameFontSize = nameLen > 30 ? 28 : nameLen > 20 ? 34 : 40;
-
-  final critiquesHtml = wine.critiques.map((c) => '''
-    <div style="flex:1; border:1.5px solid #8b6914; padding:10px; text-align:center;">
-      <div style="font-size:11px; color:#555;">${_esc(c.source)}</div>
-      <div style="font-size:20px; font-weight:bold; color:#8b6914; margin-top:4px;">${_esc(c.score)}</div>
-    </div>
-  ''').join('');
-
-  final originGrid = _buildOriginGrid(wine, alcohol);
-
+  final body = _buildPageBody(wine, bottles);
   return '''<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -227,7 +253,37 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
 </style>
 </head>
 <body>
-<div class="page">
+$body
+</body>
+</html>''';
+}
+
+String _buildPageBody(Wine wine, List<Bottle> bottles) {
+  final vintage = wine.vintage != null ? '${wine.vintage}' : '';
+  final type = wineTypeLabel(wine.type);
+  final format = bottles.isNotEmpty ? bottles.first.format.label : '750 ML';
+  final alcohol = wine.alcohol != null ? '${wine.alcohol!.toStringAsFixed(1)}%' : '';
+  final rating = wine.rating ?? 0;
+
+  final grapeParts = _parseGrapes(wine.grapes);
+  final donutSvg = _buildDonut(grapeParts);
+  final legend = _buildLegend(grapeParts);
+  final grapesHtml = _buildGrapesSection(wine.grapes, donutSvg, legend);
+  final timeline = _buildTimeline(wine.drinkFrom, wine.drinkPeak, wine.drinkTo);
+
+  final nameLen = wine.name.length;
+  final nameFontSize = nameLen > 30 ? 28 : nameLen > 20 ? 34 : 40;
+
+  final critiquesHtml = wine.critiques.map((c) => '''
+    <div style="flex:1; border:1.5px solid #8b6914; padding:8px 10px; text-align:center; display:flex; flex-direction:column; justify-content:space-between;">
+      <div style="font-size:11px; color:#555; line-height:1.3;">${_esc(c.source)}</div>
+      <div style="font-size:18px; font-weight:bold; color:#8b6914; margin-top:4px;">${_esc(c.score)}</div>
+    </div>
+  ''').join('');
+
+  final originGrid = _buildOriginGrid(wine, alcohol);
+
+  return '''<div class="page">
   <div class="border1"></div>
   <div class="border2"></div>
 
@@ -279,9 +335,7 @@ body { width:210mm; height:297mm; font-family: 'Didot', 'Bodoni MT', Georgia, se
       $critiquesHtml
     </div>
   </div>
-</div>
-</body>
-</html>''';
+</div>''';
 }
 
 String _buildOriginGrid(Wine wine, String alcohol) {
@@ -366,11 +420,27 @@ String _buildDonut(List<({String name, int pct})> grapes) {
   final colors = ['#8b6914', '#c9a96e', '#e8d5a3', '#b8956b', '#d4c4a0'];
   const size = 90, cx = 45.0, cy = 45.0, r = 41.0, innerR = 21.0;
   var svg = '<svg width="$size" height="$size" viewBox="0 0 $size $size">';
-  var startAngle = -90.0;
   final total = grapes.fold<int>(0, (s, g) => s + g.pct);
   if (total == 0) return '';
+
+  // Cas 1 cépage = anneau plein. Les arcs SVG ne dessinent rien quand
+  // start == end ; on utilise deux cercles concentriques.
+  final fullCircleIndex =
+      grapes.indexWhere((g) => g.pct == total);
+  if (grapes.length == 1 || fullCircleIndex >= 0) {
+    final color = colors[(fullCircleIndex >= 0 ? fullCircleIndex : 0) %
+        colors.length];
+    svg +=
+        '<circle cx="$cx" cy="$cy" r="$r" fill="$color"/>'
+        '<circle cx="$cx" cy="$cy" r="$innerR" fill="#fffdf5"/>'
+        '</svg>';
+    return svg;
+  }
+
+  var startAngle = -90.0;
   for (var i = 0; i < grapes.length; i++) {
     final angle = (grapes[i].pct / total) * 360;
+    if (angle <= 0) continue;
     final endAngle = startAngle + angle;
     final startRad = startAngle * 3.14159265 / 180;
     final endRad = endAngle * 3.14159265 / 180;

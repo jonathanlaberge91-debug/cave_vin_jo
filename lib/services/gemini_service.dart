@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -113,6 +115,35 @@ class GeminiResult {
       critiques: critiques,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'producer': producer,
+        'vintage': vintage,
+        'appellation': appellation,
+        'country': country,
+        'region': region,
+        'climat': climat,
+        'domaine': domaine,
+        'village': village,
+        'domainAddress': domainAddress,
+        'grapes': grapes,
+        'alcohol': alcohol,
+        'type': type,
+        'drinkFrom': drinkFrom,
+        'drinkPeak': drinkPeak,
+        'drinkTo': drinkTo,
+        'marketValue': marketValue,
+        'wineDescription': wineDescription,
+        'domaineDescription': domaineDescription,
+        'critiques': critiques.map((c) {
+          final m = c.toMap();
+          if (m['date'] is Timestamp) {
+            m['date'] = (m['date'] as Timestamp).toDate().toIso8601String();
+          }
+          return m;
+        }).toList(),
+      };
 }
 
 class PairingSuggestion {
@@ -476,34 +507,70 @@ Toutes les valeurs textuelles EN FRANÇAIS.
     }
   }
 
+  /// Recherche par photo en 2 étapes :
+  /// 1. Identification du vin depuis l'image (sans grounding, JSON strict, ~10s)
+  /// 2. Recherche complète par texte avec grounding web (comme searchByText, ~20s)
+  /// Bien plus fiable qu'un seul appel grounding+image qui dépasse souvent les délais.
   static Future<GeminiResult> searchByPhoto(
     Uint8List imageBytes, {
     String? ocrHint,
+    String? vintageHint,
   }) async {
     if (!isConfigured) {
       throw Exception('Clé API Gemini non configurée. Va dans Paramètres.');
     }
 
+    // Étape 1 : identification rapide depuis la photo
+    final identity = await _identifyFromPhoto(imageBytes, ocrHint: ocrHint);
+
+    final name = (identity['name'] as String? ?? '').trim();
+    final producer = (identity['producer'] as String? ?? '').trim();
+    final identifiedVintage = identity['vintage']?.toString();
+    final effectiveVintage = (vintageHint != null && vintageHint.trim().isNotEmpty)
+        ? vintageHint.trim()
+        : identifiedVintage;
+
+    if (name.isEmpty && producer.isEmpty) {
+      throw Exception('Impossible d\'identifier le vin sur cette étiquette.');
+    }
+
+    // Étape 2 : recherche complète avec grounding (texte seulement, fiable)
+    return searchByText(
+      name: name.isNotEmpty ? name : producer,
+      domaine: producer.isNotEmpty ? producer : null,
+      vintage: effectiveVintage,
+    );
+  }
+
+  /// Identification minimale depuis une photo : retourne name/producer/vintage.
+  /// Sans grounding → JSON strict possible → rapide et fiable.
+  static Future<Map<String, dynamic>> _identifyFromPhoto(
+    Uint8List imageBytes, {
+    String? ocrHint,
+  }) async {
     final ocrSection = (ocrHint != null && ocrHint.trim().isNotEmpty)
-        ? '\n\nTexte OCR extrait de l\'étiquette (utilise-le pour confirmer l\'orthographe exacte des noms et chiffres) :\n---\n${ocrHint.trim()}\n---'
+        ? '\n\nTexte OCR de l\'étiquette (orthographe exacte des noms et millésime) :\n${ocrHint.trim()}'
         : '';
 
     final prompt =
-        'Tu es un expert sommelier francophone. Analyse cette photo d\'étiquette de vin et identifie le vin.\n\n'
-        'IMPORTANT : Utilise tes outils de recherche web pour vérifier le vin une fois identifié sur l\'étiquette (producteur officiel, appellation exacte, cépages, fenêtre de garde, valeur marchande actuelle). '
-        'Si une info n\'est pas vérifiable via le web, retourne null/chaîne vide plutôt que d\'inventer.$ocrSection\n\n'
-        'Réponds UNIQUEMENT avec un JSON valide EN FRANÇAIS (toutes les valeurs textuelles en français même si l\'étiquette est dans une autre langue), sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
+        'Identifie le vin sur cette étiquette. '
+        'Réponds UNIQUEMENT avec ce JSON, sans texte avant ou après :\n'
+        '{"name": "nom du vin sans millésime", "producer": "producteur/domaine/château", "vintage": 2018}\n'
+        'vintage = null si non visible.$ocrSection';
 
-    final json = await _callGeminiJson([
+    final apiBytes = _resizeForApi(imageBytes);
+    return _callGeminiJson([
       {'text': prompt},
       {
         'inlineData': {
           'mimeType': 'image/jpeg',
-          'data': base64Encode(imageBytes),
+          'data': base64Encode(apiBytes),
         }
       }
-    ], useGrounding: true);
-    return GeminiResult.fromJson(json);
+    ]).timeout(
+      const Duration(seconds: 25),
+      onTimeout: () => throw Exception('Identification photo trop lente. Réessaie.'),
+    );
   }
 
 
@@ -657,6 +724,16 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
     'gemini-flash-latest',
   ];
 
+  static Uint8List _resizeForApi(Uint8List bytes, {int maxDim = 1280}) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return bytes;
+    if (decoded.width <= maxDim && decoded.height <= maxDim) return bytes;
+    final resized = decoded.width >= decoded.height
+        ? img.copyResize(decoded, width: maxDim)
+        : img.copyResize(decoded, height: maxDim);
+    return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+  }
+
   static Future<Map<String, dynamic>> _callGeminiJson(
     List<Map<String, dynamic>> parts, {
     bool useGrounding = false,
@@ -693,6 +770,9 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
             url,
             headers: {'Content-Type': 'application/json'},
             body: body,
+          ).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('Délai 30s dépassé', const Duration(seconds: 30)),
           );
 
           if (response.statusCode == 200) {
@@ -729,6 +809,11 @@ LANGUE OBLIGATOIRE : Toutes les valeurs en FRANÇAIS.''';
           if (attempt < 2) {
             final delayMs = 800 * (1 << attempt);
             await Future.delayed(Duration(milliseconds: delayMs));
+          }
+        } on TimeoutException catch (e) {
+          lastError = e;
+          if (attempt < 2) {
+            await Future.delayed(Duration(milliseconds: 800 * (1 << attempt)));
           }
         } catch (e) {
           lastError = e;

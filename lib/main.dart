@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'services/actualisation_service.dart';
+import 'services/ai_search_job.dart';
+import 'services/ai_search_job_service.dart';
 import 'services/auth_service.dart';
 import 'services/backup_service.dart';
 import 'services/biometric_service.dart';
@@ -44,6 +46,7 @@ void main() async {
   await BackupService.init();
   await DriveBackupService.init();
   await BiometricService.init();
+  await AiSearchJobService.init();
   runApp(const MyApp());
 
   // Background auto-refresh: ne tourne que si déjà signé en Google
@@ -107,10 +110,82 @@ class _AuthGate extends StatelessWidget {
         if (user == null || user.isAnonymous) {
           return const _SignInScreen();
         }
-        return const _BiometricGate(child: HomeScreen());
+        return const _BiometricGate(
+            child: _JobSnackbarHost(child: HomeScreen()));
       },
     );
   }
+}
+
+/// Affiche une snackbar à chaque fin de job IA (succès ou échec).
+class _JobSnackbarHost extends StatefulWidget {
+  final Widget child;
+  const _JobSnackbarHost({required this.child});
+
+  @override
+  State<_JobSnackbarHost> createState() => _JobSnackbarHostState();
+}
+
+class _JobSnackbarHostState extends State<_JobSnackbarHost> {
+  String? _lastShownJobId;
+
+  @override
+  void initState() {
+    super.initState();
+    AiSearchJobService.lastFinished.addListener(_onJobFinished);
+  }
+
+  @override
+  void dispose() {
+    AiSearchJobService.lastFinished.removeListener(_onJobFinished);
+    super.dispose();
+  }
+
+  void _onJobFinished() {
+    final job = AiSearchJobService.lastFinished.value;
+    if (job == null) return;
+    if (job.id == _lastShownJobId) return;
+    _lastShownJobId = job.id;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    final isSuccess = job.status == AiSearchJobStatus.success;
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor:
+            isSuccess ? AppColors.gold : const Color(0xFFB23A48),
+        duration: const Duration(seconds: 5),
+        content: Row(
+          children: [
+            Icon(
+              isSuccess ? Icons.check_circle : Icons.error_outline,
+              size: 18,
+              color: isSuccess
+                  ? const Color(0xFF1A1408)
+                  : Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isSuccess
+                    ? 'Recherche IA terminée : ${job.displayLabel}'
+                    : 'Échec recherche IA : ${job.displayLabel}',
+                style: AppText.sans(
+                  color: isSuccess
+                      ? const Color(0xFF1A1408)
+                      : Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _SplashScreen extends StatelessWidget {

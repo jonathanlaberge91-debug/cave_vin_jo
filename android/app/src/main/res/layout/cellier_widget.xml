@@ -47,11 +47,12 @@
             android:orientation="horizontal">
 
             <!-- Left side bar D -->
-            <View
+            <ImageView
                 android:id="@+id/celld_side_left"
                 android:layout_width="4dp"
                 android:layout_height="match_parent"
-                android:background="@drawable/side_off"/>
+                android:background="@drawable/side_off"
+                android:contentDescription="@null"/>
 
             <!-- Col wrapper D -->
             <LinearLayout
@@ -65,14 +66,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="5dp"
                     android:orientation="horizontal">
-                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
-                    <View
+                    <ImageView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:contentDescription="@null"/>
+                    <ImageView
                         android:id="@+id/celld_top_led"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="2"
-                        android:background="@drawable/top_led_off"/>
-                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                        android:background="@drawable/top_led_off"
+                        android:contentDescription="@null"/>
+                    <ImageView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:contentDescription="@null"/>
                 </LinearLayout>
 
                 <!-- Panel D -->
@@ -146,12 +148,13 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <View
+                    <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#0DFFFFFF"
                         android:layout_marginTop="3dp"
-                        android:layout_marginBottom="3dp"/>
+                        android:layout_marginBottom="3dp"
+                        android:contentDescription="@null"/>
 
                     <!-- Bas D -->
                     <LinearLayout
@@ -193,15 +196,16 @@
             </LinearLayout>
 
             <!-- Right side bar D -->
-            <View
+            <ImageView
                 android:id="@+id/celld_side_right"
                 android:layout_width="4dp"
                 android:layout_height="match_parent"
-                android:background="@drawable/side_off"/>
+                android:background="@drawable/side_off"
+                android:contentDescription="@null"/>
         </LinearLayout>
 
         <!-- Gap between columns -->
-        <View android:layout_width="8dp" android:layout_height="match_parent"/>
+        <ImageView android:layout_width="8dp" android:layout_height="match_parent" android:contentDescription="@null"/>
 
         <!-- ══ CellR G ══ -->
         <LinearLayout
@@ -211,11 +215,12 @@
             android:orientation="horizontal">
 
             <!-- Left side bar G -->
-            <View
+            <ImageView
                 android:id="@+id/cellg_side_left"
                 android:layout_width="4dp"
                 android:layout_height="match_parent"
-                android:background="@drawable/side_off"/>
+                android:background="@drawable/side_off"
+                android:contentDescription="@null"/>
 
             <!-- Col wrapper G -->
             <LinearLayout
@@ -229,14 +234,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="5dp"
                     android:orientation="horizontal">
-                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
-                    <View
+                    <ImageView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:contentDescription="@null"/>
+                    <ImageView
                         android:id="@+id/cellg_top_led"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="2"
-                        android:background="@drawable/top_led_off"/>
-                    <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+                        android:background="@drawable/top_led_off"
+                        android:contentDescription="@null"/>
+                    <ImageView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:contentDescription="@null"/>
                 </LinearLayout>
 
                 <!-- Panel G -->
@@ -310,12 +316,13 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <View
+                    <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#0DFFFFFF"
                         android:layout_marginTop="3dp"
-                        android:layout_marginBottom="3dp"/>
+                        android:layout_marginBottom="3dp"
+                        android:contentDescription="@null"/>
 
                     <!-- Bas G -->
                     <LinearLayout
@@ -357,11 +364,12 @@
             </LinearLayout>
 
             <!-- Right side bar G -->
-            <View
+            <ImageView
                 android:id="@+id/cellg_side_right"
                 android:layout_width="4dp"
                 android:layout_height="match_parent"
-                android:background="@drawable/side_off"/>
+                android:background="@drawable/side_off"
+                android:contentDescription="@null"/>
         </LinearLayout>
 
     </LinearLayout>

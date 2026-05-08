@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/bottle.dart';
 import '../models/cave_column.dart';
 import '../models/drunk_column.dart';
 import '../models/stat_item.dart';
@@ -40,8 +41,20 @@ class CavePreferencesService {
   static final ValueNotifier<Map<StatItem, StatChartType>> statsChartTypes =
       ValueNotifier({});
 
+  static const _tableKey = 'table_columns';
+  static final ValueNotifier<Set<CaveColumn>> tableVisible = ValueNotifier({
+    CaveColumn.name, CaveColumn.vintage, CaveColumn.type,
+    CaveColumn.region, CaveColumn.domaine, CaveColumn.appellation,
+    CaveColumn.rating, CaveColumn.garde, CaveColumn.drinkFrom,
+    CaveColumn.apogee, CaveColumn.drinkTo, CaveColumn.qty, CaveColumn.price,
+  });
+
   static const _hidePricesKey = 'hide_prices';
   static final ValueNotifier<bool> hidePrices = ValueNotifier(false);
+
+  static const _customSourcesKey = 'custom_sources';
+  static final ValueNotifier<List<String>> customSources =
+      ValueNotifier(const []);
 
   static const _autoRefreshEnabledKey = 'auto_refresh_enabled';
   static const _autoRefreshPercentKey = 'auto_refresh_percent';
@@ -87,9 +100,20 @@ class CavePreferencesService {
       statsChartTypes.value = _decodeChartTypes(chartTypesLocal);
     }
 
+    final tableLocal = prefs.getStringList(_tableKey);
+    if (tableLocal != null) {
+      final decoded = _decodeCols(tableLocal);
+      if (decoded.isNotEmpty) tableVisible.value = decoded;
+    }
+
     final hidePricesLocal = prefs.getBool(_hidePricesKey);
     if (hidePricesLocal != null) {
       hidePrices.value = hidePricesLocal;
+    }
+
+    final customSourcesLocal = prefs.getStringList(_customSourcesKey);
+    if (customSourcesLocal != null) {
+      customSources.value = List.unmodifiable(customSourcesLocal);
     }
 
     final arEnabled = prefs.getBool(_autoRefreshEnabledKey);
@@ -182,6 +206,21 @@ class CavePreferencesService {
         await _settingsDoc.set({'hidePrices': hidePricesLocal}, SetOptions(merge: true));
       }
 
+      final remoteCustomSources = snap.data()?['customSources'] as List?;
+      if (remoteCustomSources != null) {
+        final list = remoteCustomSources
+            .map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+        customSources.value = List.unmodifiable(list);
+        await prefs.setStringList(_customSourcesKey, list);
+      } else if (customSourcesLocal != null) {
+        await _settingsDoc.set(
+          {'customSources': customSourcesLocal},
+          SetOptions(merge: true),
+        );
+      }
+
       final remoteHidePrices = snap.data()?['statsHidePrices'] as bool?;
       if (remoteHidePrices != null) {
         statsHidePrices.value = remoteHidePrices;
@@ -229,6 +268,21 @@ class CavePreferencesService {
     } catch (_) {}
   }
 
+  static Set<CaveColumn> _decodeCols(List<String> ids) {
+    final result = <CaveColumn>{};
+    for (final id in ids) {
+      try { result.add(CaveColumn.values.byName(id)); } catch (_) {}
+    }
+    return result;
+  }
+
+  static Future<void> setTableVisible(Set<CaveColumn> cols) async {
+    tableVisible.value = cols;
+    final ids = cols.map((c) => c.name).toList();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_tableKey, ids);
+  }
+
   static Future<void> setVisible(Set<CaveColumn> v) async {
     final withEssentials = {...v, ...CaveColumn.essentials};
     visible.value = withEssentials;
@@ -240,6 +294,47 @@ class CavePreferencesService {
     try {
       await _settingsDoc.set(
         {'caveColumns': ids},
+        SetOptions(merge: true),
+      );
+    } catch (_) {}
+  }
+
+  static List<String> get allSourceLabels {
+    final defaults = BottleSource.defaultLabels;
+    final custom = customSources.value
+        .where((s) => !defaults.contains(s))
+        .toList();
+    return [...defaults, ...custom];
+  }
+
+  static Future<void> addCustomSource(String label) async {
+    final clean = label.trim();
+    if (clean.isEmpty) return;
+    final defaults = BottleSource.defaultLabels;
+    if (defaults.contains(clean)) return;
+    final current = List<String>.from(customSources.value);
+    if (current.contains(clean)) return;
+    current.add(clean);
+    customSources.value = List.unmodifiable(current);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_customSourcesKey, current);
+    try {
+      await _settingsDoc.set(
+        {'customSources': current},
+        SetOptions(merge: true),
+      );
+    } catch (_) {}
+  }
+
+  static Future<void> removeCustomSource(String label) async {
+    final current = List<String>.from(customSources.value);
+    if (!current.remove(label)) return;
+    customSources.value = List.unmodifiable(current);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_customSourcesKey, current);
+    try {
+      await _settingsDoc.set(
+        {'customSources': current},
         SetOptions(merge: true),
       );
     } catch (_) {}

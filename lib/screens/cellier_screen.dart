@@ -64,7 +64,7 @@ class _CellierScreenState extends State<CellierScreen> {
     _unplacedStream = CaveService.unplacedBottlesInCave();
     _loadCachedTuya();
     _loadBridge();
-    _loadCachedGovee();
+    GoveeService.init().then((_) => _loadCachedGovee());
     _goveeTimer = Timer.periodic(const Duration(seconds: 60), (_) => _fetchGovee());
   }
 
@@ -270,7 +270,12 @@ class _CellierScreenState extends State<CellierScreen> {
           );
         }
         final cellars = snap.data ?? [];
-        if (_cellars != cellars) _cellars = cellars;
+        if (_cellars != cellars) {
+          _cellars = cellars;
+          if (_goveeSensors != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _updateWidget());
+          }
+        }
         final isMobile = MediaQuery.of(context).size.width < 600;
 
         if (isMobile) return _buildMobileLayout(cellars);
@@ -1410,6 +1415,56 @@ class _CellierScreenState extends State<CellierScreen> {
     );
   }
 
+  bool get _isMobileLayout =>
+      MediaQuery.of(context).size.width < 900;
+
+  Future<bool> _confirmMove(String message) async {
+    if (!_isMobileLayout) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border2),
+        ),
+        title: Text(
+          'Confirmer le déplacement',
+          style: AppText.serif(color: AppColors.gold2, fontSize: 18),
+        ),
+        content: Text(
+          message,
+          style: AppText.sans(color: AppColors.text2, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annuler',
+                style: AppText.sans(color: AppColors.text2, fontSize: 13)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: const Color(0xFF1A1408),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Confirmer',
+              style: AppText.sans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _onDropOnSlot(
     Bottle dropped,
     Cellar c,
@@ -1424,6 +1479,11 @@ class _CellierScreenState extends State<CellierScreen> {
       return;
     }
 
+    final targetLabel = formatFullSlotLabel(c.number, row, col);
+    final fromLabel = dropped.location.isEmpty
+        ? 'À placer'
+        : dropped.location;
+
     for (var s = 0; s < span; s++) {
       final key = '$row::${col + s}';
       final existing = occupied[key];
@@ -1437,6 +1497,10 @@ class _CellierScreenState extends State<CellierScreen> {
           _showError('Cette case est déjà occupée.');
           return;
         }
+        final ok = await _confirmMove(
+          'Échanger les bouteilles entre $fromLabel et $targetLabel ?',
+        );
+        if (!ok) return;
         await CaveService.swapSlots(
           a: dropped,
           b: existing,
@@ -1445,6 +1509,11 @@ class _CellierScreenState extends State<CellierScreen> {
         return;
       }
     }
+
+    final ok = await _confirmMove(
+      'Déplacer la bouteille de $fromLabel vers $targetLabel ?',
+    );
+    if (!ok) return;
 
     await CaveService.assignSlot(
       bottleId: dropped.id,
@@ -1457,6 +1526,11 @@ class _CellierScreenState extends State<CellierScreen> {
 
   Future<void> _onDropToUnplaced(Bottle bottle) async {
     if (bottle.cellarId == null || bottle.cellarId!.isEmpty) return;
+    final fromLabel = bottle.location.isEmpty ? 'son emplacement' : bottle.location;
+    final ok = await _confirmMove(
+      'Retirer la bouteille de $fromLabel et la mettre dans « À placer » ?',
+    );
+    if (!ok) return;
     await CaveService.unassignSlot(bottle.id);
   }
 
@@ -1669,7 +1743,11 @@ class _SlotCellState extends State<_SlotCell> {
         child: IgnorePointer(
           child: Material(
             color: Colors.transparent,
-            child: _SlotHoverCard(wine: wine, label: label),
+            child: _SlotHoverCard(
+              wine: wine,
+              bottle: widget.bottle,
+              label: label,
+            ),
           ),
         ),
       );
@@ -1700,7 +1778,11 @@ class _SlotCellState extends State<_SlotCell> {
   @override
   Widget build(BuildContext context) {
     final isOccupied = widget.bottle != null;
-    final garde = widget.wine != null ? GardeInfo.fromWine(widget.wine!) : null;
+    final garde = widget.wine != null
+        ? (widget.bottle != null
+            ? GardeInfo.fromWineFormat(widget.wine!, widget.bottle!.format)
+            : GardeInfo.fromWine(widget.wine!))
+        : null;
     final isApogee = garde?.label == 'Apogée';
     final cellColor = garde?.color ?? wineTypeColor(widget.wine?.type ?? WineType.rouge);
     final vintageText = widget.wine?.vintage != null
@@ -2481,14 +2563,21 @@ class _WineInfoCard extends StatelessWidget {
 
 class _SlotHoverCard extends StatelessWidget {
   final Wine wine;
+  final Bottle? bottle;
   final String label;
-  const _SlotHoverCard({required this.wine, required this.label});
+  const _SlotHoverCard({
+    required this.wine,
+    required this.label,
+    this.bottle,
+  });
 
   @override
   Widget build(BuildContext context) {
     final w = wine;
     final color = wineTypeColor(w.type);
-    final garde = GardeInfo.fromWine(w);
+    final garde = bottle != null
+        ? GardeInfo.fromWineFormat(w, bottle!.format)
+        : GardeInfo.fromWine(w);
 
     final details = <_CardDetail>[];
     if (w.producer.isNotEmpty) details.add(_CardDetail(w.producer));
@@ -2602,30 +2691,47 @@ class _SlotHoverCard extends StatelessWidget {
               ),
               if (garde != null) ...[
                 const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    gradient: garde.label == 'Apogée'
-                        ? const LinearGradient(
-                            colors: [Color(0xFFB8860B), Color(0xFFD4A843), Color(0xFFF5E6A3)],
-                          )
-                        : null,
-                    color: garde.label != 'Apogée' ? garde.color.withValues(alpha: 0.18) : null,
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(
-                      color: garde.label == 'Apogée'
-                          ? const Color(0xFFD4A843)
-                          : garde.color.withValues(alpha: 0.4),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: garde.label == 'Apogée'
+                            ? const LinearGradient(
+                                colors: [Color(0xFFB8860B), Color(0xFFD4A843), Color(0xFFF5E6A3)],
+                              )
+                            : null,
+                        color: garde.label != 'Apogée' ? garde.color.withValues(alpha: 0.18) : null,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: garde.label == 'Apogée'
+                              ? const Color(0xFFD4A843)
+                              : garde.color.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        garde.label,
+                        style: AppText.sans(
+                          color: garde.label == 'Apogée' ? const Color(0xFF1A1408) : garde.color,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    garde.label,
-                    style: AppText.sans(
-                      color: garde.label == 'Apogée' ? const Color(0xFF1A1408) : garde.color,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                    if (garde.windowShort.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        garde.windowShort,
+                        style: AppText.sans(
+                          color: garde.color.withValues(alpha: 0.7),
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
               const Spacer(),

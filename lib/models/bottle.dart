@@ -34,6 +34,16 @@ enum BottleFormat {
     }
   }
 
+  double get marketMultiplier {
+    switch (this) {
+      case ml375:  return 0.55;
+      case ml750:  return 1.0;
+      case ml1500: return 2.5;
+      case ml3000: return 6.0;
+      case ml6000: return 14.0;
+    }
+  }
+
   static BottleFormat fromLabel(String? label) =>
       values.firstWhere((f) => f.label == label, orElse: () => ml750);
 }
@@ -55,6 +65,9 @@ enum BottleSource {
     }
     return null;
   }
+
+  static List<String> get defaultLabels =>
+      values.map((s) => s.label).toList();
 }
 
 class Bottle {
@@ -68,7 +81,7 @@ class Bottle {
   final double? purchasePrice;
   final double? marketValue;
   final int? purchaseYear;
-  final BottleSource? source;
+  final String? source;
   final BottleStatus status;
   final bool isGift;
   final String giftFrom;
@@ -114,7 +127,7 @@ class Bottle {
         'purchasePrice': purchasePrice,
         'marketValue': marketValue,
         'purchaseYear': purchaseYear,
-        'source': source?.label,
+        'source': source,
         'status': status.name,
         'isGift': isGift,
         'giftFrom': giftFrom,
@@ -140,7 +153,7 @@ class Bottle {
       purchasePrice: (data['purchasePrice'] as num?)?.toDouble(),
       marketValue: (data['marketValue'] as num?)?.toDouble(),
       purchaseYear: data['purchaseYear'],
-      source: BottleSource.fromLabel(data['source']),
+      source: data['source'] as String?,
       status: BottleStatus.values.firstWhere(
         (s) => s.name == data['status'],
         orElse: () => BottleStatus.inCave,

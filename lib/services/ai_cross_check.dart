@@ -30,6 +30,45 @@ class FieldDisagreement {
     AiSource? chosen,
   }) : chosen = chosen ??
             (values.isEmpty ? AiSource.gemini : values.keys.first);
+
+  Map<String, dynamic> toJson() => {
+        'fieldKey': fieldKey,
+        'label': label,
+        'values': {for (final e in values.entries) e.key.name: e.value},
+        'chosen': chosen.name,
+      };
+
+  factory FieldDisagreement.fromJson(Map<String, dynamic> j) {
+    final raw = (j['values'] as Map?) ?? const {};
+    final values = <AiSource, String>{};
+    raw.forEach((k, v) {
+      if (k is! String) return;
+      AiSource? src;
+      for (final s in AiSource.values) {
+        if (s.name == k) {
+          src = s;
+          break;
+        }
+      }
+      if (src != null && v != null) values[src] = v.toString();
+    });
+    AiSource? chosen;
+    final chosenName = j['chosen'] as String?;
+    if (chosenName != null) {
+      for (final s in AiSource.values) {
+        if (s.name == chosenName) {
+          chosen = s;
+          break;
+        }
+      }
+    }
+    return FieldDisagreement(
+      fieldKey: j['fieldKey'] ?? '',
+      label: j['label'] ?? '',
+      values: values,
+      chosen: chosen,
+    );
+  }
 }
 
 class CrossCheckResult {
@@ -44,6 +83,56 @@ class CrossCheckResult {
     required this.sources,
     required this.errors,
   });
+
+  Map<String, dynamic> toJson() => {
+        'merged': merged.toJson(),
+        'disagreements': disagreements.map((d) => d.toJson()).toList(),
+        'sources': {
+          for (final e in sources.entries) e.key.name: e.value.toJson(),
+        },
+        'errors': {
+          for (final e in errors.entries) e.key.name: e.value,
+        },
+      };
+
+  factory CrossCheckResult.fromJson(Map<String, dynamic> j) {
+    final mergedMap =
+        (j['merged'] as Map?)?.cast<String, dynamic>() ?? {};
+    final dList = (j['disagreements'] as List?) ?? const [];
+    final sourcesRaw = (j['sources'] as Map?) ?? const {};
+    final errorsRaw = (j['errors'] as Map?) ?? const {};
+    AiSource? findSrc(String name) {
+      for (final s in AiSource.values) {
+        if (s.name == name) return s;
+      }
+      return null;
+    }
+
+    final sources = <AiSource, GeminiResult>{};
+    sourcesRaw.forEach((k, v) {
+      if (k is! String) return;
+      final src = findSrc(k);
+      if (src == null || v is! Map) return;
+      sources[src] = GeminiResult.fromJson(v.cast<String, dynamic>());
+    });
+    final errors = <AiSource, String>{};
+    errorsRaw.forEach((k, v) {
+      if (k is! String) return;
+      final src = findSrc(k);
+      if (src == null) return;
+      errors[src] = v?.toString() ?? '';
+    });
+    return CrossCheckResult(
+      merged: GeminiResult.fromJson(mergedMap),
+      disagreements: dList
+          .whereType<Map>()
+          .map((m) =>
+              FieldDisagreement.fromJson(m.cast<String, dynamic>()))
+          .toList(),
+      sources: sources,
+      errors: errors,
+    );
+  }
 }
 
 class AiCrossCheck {
@@ -74,6 +163,7 @@ class AiCrossCheck {
   static Future<CrossCheckResult> searchByPhoto(
     Uint8List bytes, {
     Future<String?>? ocrFuture,
+    String? vintageHint,
   }) async {
     // Bound le temps d'attente OCR pour ne pas bloquer trop longtemps.
     // Si déjà fini (ocrFuture lancé tôt), on récupère instantanément.
@@ -86,14 +176,14 @@ class AiCrossCheck {
     }
 
     final futures = <AiSource, Future<GeminiResult>>{
-      AiSource.gemini:
-          GeminiService.searchByPhoto(bytes, ocrHint: ocrHint),
+      AiSource.gemini: GeminiService.searchByPhoto(bytes,
+          ocrHint: ocrHint, vintageHint: vintageHint),
       if (GroqService.isConfigured)
-        AiSource.groq:
-            GroqService.searchByPhoto(bytes, ocrHint: ocrHint),
+        AiSource.groq: GroqService.searchByPhoto(bytes,
+            ocrHint: ocrHint, vintageHint: vintageHint),
       if (MistralService.isConfigured)
-        AiSource.mistral:
-            MistralService.searchByPhoto(bytes, ocrHint: ocrHint),
+        AiSource.mistral: MistralService.searchByPhoto(bytes,
+            ocrHint: ocrHint, vintageHint: vintageHint),
     };
     return _runAndMerge(futures);
   }
@@ -104,6 +194,10 @@ class AiCrossCheck {
     final entries = futures.entries.toList();
     final results = await Future.wait(
       entries.map((e) => e.value
+          .timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw Exception('Délai dépassé (90s).'),
+          )
           .then<Object>((v) => v)
           .catchError((err) => err as Object)),
     );

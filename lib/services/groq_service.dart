@@ -114,6 +114,7 @@ Toutes les valeurs textuelles EN FRANÇAIS. marketValue = valeur marchande en CA
   static Future<GeminiResult> searchByPhoto(
     Uint8List imageBytes, {
     String? ocrHint,
+    String? vintageHint,
   }) async {
     if (!isConfigured) {
       throw Exception('Clé API Groq non configurée. Va dans Paramètres.');
@@ -121,8 +122,11 @@ Toutes les valeurs textuelles EN FRANÇAIS. marketValue = valeur marchande en CA
     final ocrSection = (ocrHint != null && ocrHint.trim().isNotEmpty)
         ? '\n\nTexte OCR extrait de l\'étiquette (utilise-le pour confirmer l\'orthographe exacte des noms et chiffres) :\n---\n${ocrHint.trim()}\n---'
         : '';
+    final vintageSection = (vintageHint != null && vintageHint.trim().isNotEmpty)
+        ? '\n\nMILLÉSIME CONFIRMÉ par l\'utilisateur : ${vintageHint.trim()}. Utilise impérativement cette année comme valeur du champ "vintage", même si l\'étiquette ne l\'affiche pas.'
+        : '';
     final prompt =
-        'Tu es un expert sommelier francophone. Analyse cette photo d\'étiquette de vin et identifie le vin.$ocrSection '
+        'Tu es un expert sommelier francophone. Analyse cette photo d\'étiquette de vin et identifie le vin.$vintageSection$ocrSection '
         'Réponds UNIQUEMENT avec un JSON valide EN FRANÇAIS (toutes les valeurs textuelles en français même si l\'étiquette est dans une autre langue), '
         'sans aucun texte avant ou après, dans ce format exact :\n$_jsonFormat';
 

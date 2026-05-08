@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/bottle.dart';
+import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import '../services/cellar_service.dart';
 import '../theme/app_colors.dart';
@@ -33,7 +34,7 @@ class EditBottleDialogState extends State<EditBottleDialog> {
   late final TextEditingController _giftFrom;
   late final TextEditingController _giftOccasion;
   late BottleFormat _format;
-  late BottleSource? _source;
+  String? _source;
   late bool _isGift;
   DateTime? _giftDate;
   bool _saving = false;
@@ -48,7 +49,9 @@ class EditBottleDialogState extends State<EditBottleDialog> {
       text: b.purchasePrice != null ? b.purchasePrice!.toStringAsFixed(2) : '',
     );
     _marketValue = TextEditingController(
-      text: b.marketValue != null ? b.marketValue!.toStringAsFixed(2) : '',
+      text: b.marketValue != null
+          ? (b.marketValue! / b.format.marketMultiplier).toStringAsFixed(0)
+          : '',
     );
     _purchaseYear =
         TextEditingController(text: b.purchaseYear?.toString() ?? '');
@@ -148,10 +151,12 @@ class EditBottleDialogState extends State<EditBottleDialog> {
         'format': _format.label,
         'purchasePrice':
             double.tryParse(_price.text.replaceAll(',', '.')),
-        'marketValue':
-            double.tryParse(_marketValue.text.replaceAll(',', '.')),
+        'marketValue': () {
+          final v = double.tryParse(_marketValue.text.replaceAll(',', '.'));
+          return v != null ? (v * _format.marketMultiplier).roundToDouble() : null;
+        }(),
         'purchaseYear': int.tryParse(_purchaseYear.text),
-        'source': _source?.label,
+        'source': _source,
         'isGift': _isGift,
         'giftFrom': _isGift ? _giftFrom.text.trim() : '',
         'giftOccasion': _isGift ? _giftOccasion.text.trim() : '',
@@ -371,7 +376,7 @@ class EditBottleDialogState extends State<EditBottleDialog> {
             ),
           ),
           _labeledField(
-            'Valeur marché (\$)',
+            'Valeur marché 750mL (\$)',
             TextFormField(
               controller: _marketValue,
               keyboardType: TextInputType.number,
@@ -393,28 +398,37 @@ class EditBottleDialogState extends State<EditBottleDialog> {
           ),
           _labeledField(
             'Provenance',
-            _editDropdownContainer(
-              DropdownButton<BottleSource?>(
-                value: _source,
-                isExpanded: true,
-                dropdownColor: AppColors.bg2,
-                hint: Text('Choisir…',
-                    style:
-                        AppText.sans(color: AppColors.text3, fontSize: 13)),
-                style: AppText.sans(color: AppColors.text, fontSize: 13),
-                items: [
-                  DropdownMenuItem<BottleSource?>(
-                    value: null,
-                    child: Text('—',
+            ValueListenableBuilder<List<String>>(
+              valueListenable: CavePreferencesService.customSources,
+              builder: (context, _, __) {
+                final labels = CavePreferencesService.allSourceLabels;
+                final hasCurrent =
+                    _source == null || labels.contains(_source);
+                return _editDropdownContainer(
+                  DropdownButton<String?>(
+                    value: hasCurrent ? _source : null,
+                    isExpanded: true,
+                    dropdownColor: AppColors.bg2,
+                    hint: Text('Choisir…',
                         style: AppText.sans(
                             color: AppColors.text3, fontSize: 13)),
+                    style:
+                        AppText.sans(color: AppColors.text, fontSize: 13),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('—',
+                            style: AppText.sans(
+                                color: AppColors.text3, fontSize: 13)),
+                      ),
+                      ...labels.map(
+                        (s) => DropdownMenuItem(value: s, child: Text(s)),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _source = v),
                   ),
-                  ...BottleSource.values.map(
-                    (s) => DropdownMenuItem(value: s, child: Text(s.label)),
-                  ),
-                ],
-                onChanged: (v) => setState(() => _source = v),
-              ),
+                );
+              },
             ),
           ),
         ]),

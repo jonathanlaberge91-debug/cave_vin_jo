@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/bottle.dart' show BottleFormat;
 import '../models/wine.dart';
 import '../models/market_history.dart';
 import '../models/garde_history.dart';
@@ -77,16 +76,6 @@ class ActualisationService {
 
   // --- Refresh market value for one wine ---
 
-  static double _formatMultiplier(BottleFormat format) {
-    switch (format) {
-      case BottleFormat.ml375:  return 0.55;
-      case BottleFormat.ml750:  return 1.0;
-      case BottleFormat.ml1500: return 2.5;
-      case BottleFormat.ml3000: return 6.0;
-      case BottleFormat.ml6000: return 14.0;
-    }
-  }
-
   static Future<double?> refreshMarketValue(Wine wine) async {
     final base750 = await GeminiService.estimateMarketValue(
       name: wine.name,
@@ -105,7 +94,7 @@ class ActualisationService {
 
       final bottles = await CaveService.bottlesByWine(wine.id).first;
       for (final b in bottles) {
-        final adjusted = (base750 * _formatMultiplier(b.format)).roundToDouble();
+        final adjusted = (base750 * b.format.marketMultiplier).roundToDouble();
         await CaveService.updateBottle(b.id, {'marketValue': adjusted});
       }
     }

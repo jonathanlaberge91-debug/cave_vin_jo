@@ -43,10 +43,14 @@ class CellierWidgetProvider : HomeWidgetProvider() {
         val prefix = if (isCellD) "celld" else "cellg"
 
         val name      = data.getString("${prefix}_name", if (isCellD) "CellR D" else "CellR G") ?: ""
-        val topTemp   = data.getFloat("${prefix}_top_temp", Float.NaN)
-        val topHum    = data.getFloat("${prefix}_top_hum", Float.NaN)
-        val botTemp   = data.getFloat("${prefix}_bot_temp", Float.NaN)
-        val botHum    = data.getFloat("${prefix}_bot_hum", Float.NaN)
+        fun readDouble(key: String): Float {
+            val raw = data.getLong(key, java.lang.Double.doubleToRawLongBits(Double.NaN))
+            return java.lang.Double.longBitsToDouble(raw).toFloat()
+        }
+        val topTemp   = readDouble("${prefix}_top_temp")
+        val topHum    = readDouble("${prefix}_top_hum")
+        val botTemp   = readDouble("${prefix}_bot_temp")
+        val botHum    = readDouble("${prefix}_bot_hum")
         val doorOpen  = data.getBoolean("${prefix}_door_open", false)
         val sideLight = data.getInt("${prefix}_side_light", 0)
         val isBlue    = data.getBoolean("${prefix}_side_blue", false)

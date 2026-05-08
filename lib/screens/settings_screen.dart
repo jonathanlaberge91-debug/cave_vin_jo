@@ -22,12 +22,17 @@ import '../services/gemini_service.dart';
 import '../services/govee_service.dart';
 import '../services/groq_service.dart';
 import '../services/history_service.dart';
+import '../services/ai_search_job.dart';
+import '../services/ai_search_job_service.dart';
 import '../services/mistral_service.dart';
 import '../services/maps_service.dart';
 import '../services/wine_pdf_service.dart';
 import '../dialogs/cellar_form_dialog.dart';
+import '../dialogs/print_picker_dialog.dart';
 import '../theme/app_text.dart';
 import '../theme/app_colors.dart';
+import 'add_wine_dialog.dart';
+import 'cave_spreadsheet_screen.dart';
 import 'govee_sensors_screen.dart';
 import 'wine_cellar_screen.dart';
 
@@ -37,8 +42,8 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (section == 6) return const GoveeSensorsScreen();
-    if (section == 7) return const WineCellarScreen();
+    if (section == 7) return const GoveeSensorsScreen();
+    if (section == 8) return const WineCellarScreen();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: switch (section) {
@@ -73,33 +78,40 @@ class SettingsScreen extends StatelessWidget {
             child: _StatsSettingsContent(),
           ),
         5 => const _SettingsSection(
+            title: 'Recherches IA',
+            icon: Icons.cloud_sync_outlined,
+            description:
+                'Recherches Gemini + Groq + Mistral en arrière-plan. Lance et continue à utiliser l\'app, viens chercher les résultats ici.',
+            child: _AiSearchJobsContent(),
+          ),
+        6 => const _SettingsSection(
             title: 'Clés API',
             description:
                 'Services tiers utilisés par l\'application (analyse de photos, recherche, etc.).',
             child: _ApiKeysContent(),
           ),
-        9 => const _SettingsSection(
+        10 => const _SettingsSection(
             title: 'Export',
             icon: Icons.download_outlined,
             description:
                 'Exporte l\'inventaire de ta cave en CSV (tableur) ou en PDF (rapport imprimable).',
             child: _ExportContent(),
           ),
-        10 => const _SettingsSection(
+        11 => const _SettingsSection(
             title: 'Historique',
             icon: Icons.history_outlined,
             description:
                 'Annule une suppression ou la mise en « bue » d\'une bouteille. Les actions des 30 derniers jours sont conservées.',
             child: _HistoryContent(),
           ),
-        11 => const _SettingsSection(
+        12 => const _SettingsSection(
             title: 'Sécurité',
             icon: Icons.lock_outline,
             description:
                 'Verrouille l\'app avec ton empreinte ou Face ID au démarrage.',
             child: _SecurityContent(),
           ),
-        12 => const _SettingsSection(
+        13 => const _SettingsSection(
             title: 'Compte',
             icon: Icons.account_circle_outlined,
             description:
@@ -357,6 +369,27 @@ class _ApiKeysContentState extends State<_ApiKeysContent> {
   bool _savedMistral = false;
   bool _savedMaps = false;
   bool _savedGovee = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.wait([
+      GeminiService.init(),
+      GroqService.init(),
+      MistralService.init(),
+      MapsService.init(),
+      GoveeService.init(),
+    ]).then((_) {
+      if (!mounted) return;
+      setState(() {
+        if (GeminiService.apiKey != null) _geminiKey.text = GeminiService.apiKey!;
+        if (GroqService.apiKey != null) _groqKey.text = GroqService.apiKey!;
+        if (MistralService.apiKey != null) _mistralKey.text = MistralService.apiKey!;
+        if (MapsService.apiKey != null) _mapsKey.text = MapsService.apiKey!;
+        if (GoveeService.apiKey != null) _goveeKey.text = GoveeService.apiKey!;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -624,6 +657,8 @@ class _CaveContent extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
+        const _CustomSourcesContent(),
+        const SizedBox(height: 16),
         ValueListenableBuilder<Set<CaveColumn>>(
           valueListenable: CavePreferencesService.visible,
           builder: (context, visible, _) {
@@ -661,7 +696,80 @@ class _CaveContent extends StatelessWidget {
           );
         },
         ),
+        const SizedBox(height: 16),
+        const _TableViewContent(),
       ],
+    );
+  }
+}
+
+class _TableViewContent extends StatelessWidget {
+  const _TableViewContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Set<CaveColumn>>(
+      valueListenable: CavePreferencesService.tableVisible,
+      builder: (context, visible, _) {
+        return _SettingsSubsection(
+          title: 'Voir la cave en tableau',
+          description: 'Choisis les colonnes à afficher, puis ouvre la vue tableau pour modifier les vins directement.',
+          collapsible: true,
+          trailing: [
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CaveSpreadsheetScreen()),
+              ),
+              child: Text(
+                'Ouvrir',
+                style: AppText.sans(color: AppColors.gold2, fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < ColumnGroup.values.length; i++) ...[
+                _ColumnGroupBlock(
+                  group: ColumnGroup.values[i],
+                  visible: visible,
+                  isDisabled: (c) => c == CaveColumn.photo,
+                  onToggle: (col) {
+                    if (col == CaveColumn.photo) return;
+                    final next = {...CavePreferencesService.tableVisible.value};
+                    if (next.contains(col)) {
+                      next.remove(col);
+                    } else {
+                      next.add(col);
+                    }
+                    CavePreferencesService.setTableVisible(next);
+                  },
+                ),
+                if (i < ColumnGroup.values.length - 1) const SizedBox(height: 14),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CaveSpreadsheetScreen()),
+                  ),
+                  icon: const Icon(Icons.table_rows_outlined, size: 16),
+                  label: Text('Ouvrir la cave en tableau', style: AppText.sans(fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: const Color(0xFF1A1408),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -717,8 +825,10 @@ class _ToggleRow extends StatelessWidget {
 class _ColumnGroupBlock extends StatelessWidget {
   final ColumnGroup group;
   final Set<CaveColumn> visible;
+  final ValueChanged<CaveColumn>? onToggle;
+  final bool Function(CaveColumn)? isDisabled;
 
-  const _ColumnGroupBlock({required this.group, required this.visible});
+  const _ColumnGroupBlock({required this.group, required this.visible, this.onToggle, this.isDisabled});
 
   @override
   Widget build(BuildContext context) {
@@ -744,6 +854,8 @@ class _ColumnGroupBlock extends StatelessWidget {
             return _ColumnChip(
               column: c,
               active: visible.contains(c),
+              onToggle: onToggle != null ? () => onToggle!(c) : null,
+              disabled: isDisabled != null ? isDisabled!(c) : c.essential,
             );
           }).toList(),
         ),
@@ -755,12 +867,19 @@ class _ColumnGroupBlock extends StatelessWidget {
 class _ColumnChip extends StatelessWidget {
   final CaveColumn column;
   final bool active;
+  final VoidCallback? onToggle;
+  final bool? _forceDisabled;
 
-  const _ColumnChip({required this.column, required this.active});
+  const _ColumnChip({
+    required this.column,
+    required this.active,
+    this.onToggle,
+    bool? disabled,
+  }) : _forceDisabled = disabled;
 
   @override
   Widget build(BuildContext context) {
-    final disabled = column.essential;
+    final disabled = _forceDisabled ?? column.essential;
     final label = column.label.isEmpty ? 'Photo' : column.label;
     final bg = active
         ? (disabled
@@ -777,7 +896,7 @@ class _ColumnChip extends StatelessWidget {
     return InkWell(
       onTap: disabled
           ? null
-          : () {
+          : onToggle ?? () {
               final next = {...CavePreferencesService.visible.value};
               if (active) {
                 next.remove(column);
@@ -2664,6 +2783,7 @@ class _ExportContent extends StatefulWidget {
 class _ExportContentState extends State<_ExportContent> {
   bool _exportingCsv = false;
   bool _exportingPdf = false;
+  bool _exportingAllSheets = false;
   bool _backingUp = false;
 
   Future<void> _doExportCsv() async {
@@ -2689,6 +2809,15 @@ class _ExportContentState extends State<_ExportContent> {
       exportInventoryPdf(wines, bottles);
     } finally {
       if (mounted) setState(() => _exportingPdf = false);
+    }
+  }
+
+  Future<void> _doExportAllSheets() async {
+    setState(() => _exportingAllSheets = true);
+    try {
+      await showPrintPickerDialog(context);
+    } finally {
+      if (mounted) setState(() => _exportingAllSheets = false);
     }
   }
 
@@ -2757,6 +2886,57 @@ class _ExportContentState extends State<_ExportContent> {
           subtitle: 'Tableau imprimable, format A4 paysage',
           loading: _exportingPdf,
           onTap: _doExportPdf,
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.fromLTRB(2, 4, 2, 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.menu_book_outlined,
+                  size: 16, color: AppColors.gold),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'FICHES IMPRIMABLES',
+                      style: AppText.sans(
+                        color: AppColors.text3,
+                        fontSize: 11,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Génère une fiche détaillée par vin (A4 portrait), '
+                      'toutes regroupées dans un seul document. Le navigateur '
+                      'lance la boîte d\'impression — choisis '
+                      '« Enregistrer en PDF » pour archiver.',
+                      style: AppText.sans(
+                        color: AppColors.text3,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _exportButton(
+          icon: Icons.print_outlined,
+          title: 'Choisir des fiches à imprimer',
+          subtitle:
+              'Filtre par pays/région/appellation, puis sélectionne les vins. Une page A4 par vin.',
+          loading: _exportingAllSheets,
+          onTap: _doExportAllSheets,
         ),
         const SizedBox(height: 24),
         Container(
@@ -3561,17 +3741,23 @@ class _SecurityContentState extends State<_SecurityContent> {
 
   Future<void> _onChange(bool value) async {
     setState(() => _busy = true);
-    if (value) {
-      final auth = await BiometricService.authenticate(
-        reason: 'Active le verrouillage biométrique',
+    final ok = await BiometricService.setEnabled(value);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (value && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFB23A48),
+          content: Text(
+            'Activation annulée ou refusée par le navigateur.',
+            style: AppText.sans(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       );
-      if (auth) {
-        await BiometricService.setEnabled(true);
-      }
-    } else {
-      await BiometricService.setEnabled(false);
     }
-    if (mounted) setState(() => _busy = false);
   }
 
   @override
@@ -3606,17 +3792,272 @@ class _SecurityContentState extends State<_SecurityContent> {
         ),
       );
     }
-    return ValueListenableBuilder<bool>(
-      valueListenable: BiometricService.enabled,
-      builder: (context, enabled, _) {
-        return _ToggleRow(
-          label: 'Verrouiller l\'app au démarrage',
-          subtitle:
-              'Demande Face ID ou ton empreinte avant d\'afficher la cave.',
-          value: enabled,
-          onChanged: _busy ? (_) {} : _onChange,
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ValueListenableBuilder<bool>(
+          valueListenable: BiometricService.enabled,
+          builder: (context, enabled, _) {
+            return _ToggleRow(
+              label: 'Verrouiller l\'app au démarrage',
+              subtitle:
+                  'Demande Face ID, empreinte ou Windows Hello avant d\'afficher la cave. '
+                  'Les passkeys sont synchronisées via Firebase pour fonctionner sur tes autres appareils.',
+              value: enabled,
+              onChanged: _busy ? (_) {} : _onChange,
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: _busy ? null : _reset,
+            icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+            label: Text(
+              'Supprimer toutes mes passkeys',
+              style: AppText.sans(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFE07060),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _reset() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border2),
+        ),
+        title: Text(
+          'Supprimer toutes les passkeys ?',
+          style: AppText.serif(color: AppColors.gold2, fontSize: 18),
+        ),
+        content: Text(
+          'Toutes les passkeys enregistrées (sur cet appareil et les autres) seront supprimées de Firebase. '
+          'Tu devras réactiver le verrouillage et enregistrer une nouvelle passkey.',
+          style: AppText.sans(color: AppColors.text2, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annuler',
+                style: AppText.sans(color: AppColors.text2, fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Supprimer',
+              style: AppText.sans(
+                color: const Color(0xFFE07060),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    await BiometricService.clearAllPasskeys();
+    await BiometricService.setEnabled(false);
+    if (mounted) setState(() => _busy = false);
+  }
+}
+
+class _CustomSourcesContent extends StatefulWidget {
+  const _CustomSourcesContent();
+
+  @override
+  State<_CustomSourcesContent> createState() =>
+      _CustomSourcesContentState();
+}
+
+class _CustomSourcesContentState extends State<_CustomSourcesContent> {
+  final _ctrl = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final clean = _ctrl.text.trim();
+    if (clean.isEmpty) {
+      setState(() => _error = 'Entre un nom.');
+      return;
+    }
+    final defaults = BottleSource.defaultLabels;
+    if (defaults.contains(clean) ||
+        CavePreferencesService.customSources.value.contains(clean)) {
+      setState(() => _error = 'Cette provenance existe déjà.');
+      return;
+    }
+    await CavePreferencesService.addCustomSource(clean);
+    _ctrl.clear();
+    setState(() => _error = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsSubsection(
+      title: 'Provenances personnalisées',
+      description:
+          'Ajoute tes propres provenances en plus des défauts (SAQ, Importation privée, Cadeau, Particulier, Autre).',
+      collapsible: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _ctrl,
+                  onSubmitted: (_) => _add(),
+                  style: AppText.sans(color: AppColors.text, fontSize: 13),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.bg3,
+                    hintText: 'Ex: LCBO, Cellier privé, Vinous Club…',
+                    hintStyle:
+                        AppText.sans(color: AppColors.text3, fontSize: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.gold),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: _add,
+                icon: const Icon(Icons.add, size: 16),
+                label: Text(
+                  'Ajouter',
+                  style: AppText.sans(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: const Color(0xFF1A1408),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _error!,
+              style: AppText.sans(
+                color: const Color(0xFFE07060),
+                fontSize: 12,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Text(
+            'PROVENANCES ACTIVES',
+            style: AppText.sans(
+              color: AppColors.text3,
+              fontSize: 10,
+              letterSpacing: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ValueListenableBuilder<List<String>>(
+            valueListenable: CavePreferencesService.customSources,
+            builder: (context, custom, _) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final label in BottleSource.defaultLabels)
+                    _sourceChip(label, removable: false),
+                  for (final label in custom)
+                    _sourceChip(label, removable: true),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceChip(String label, {required bool removable}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: removable
+            ? AppColors.gold.withValues(alpha: 0.15)
+            : AppColors.bg3,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: removable
+              ? AppColors.gold.withValues(alpha: 0.5)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AppText.sans(
+              color: removable ? AppColors.gold2 : AppColors.text2,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (removable) ...[
+            const SizedBox(width: 6),
+            InkWell(
+              onTap: () =>
+                  CavePreferencesService.removeCustomSource(label),
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(2),
+                child: Icon(Icons.close, size: 12, color: AppColors.text3),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.lock_outline,
+                size: 11, color: AppColors.text3),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -3767,5 +4208,280 @@ class _AccountContentState extends State<_AccountContent> {
         ),
       ],
     );
+  }
+}
+
+class _AiSearchJobsContent extends StatelessWidget {
+  const _AiSearchJobsContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<AiSearchJob>>(
+      valueListenable: AiSearchJobService.jobs,
+      builder: (context, jobs, _) {
+        if (jobs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.cloud_outlined,
+                      size: 36, color: AppColors.text3),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Aucune recherche en cours',
+                    style: AppText.sans(
+                        color: AppColors.text2, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Lance une recherche depuis « Ajouter » pour la voir ici.',
+                    textAlign: TextAlign.center,
+                    style: AppText.sans(
+                        color: AppColors.text3, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return Column(
+          children: [
+            for (final job in jobs)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _AiJobTile(job: job),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AiJobTile extends StatelessWidget {
+  final AiSearchJob job;
+  const _AiJobTile({required this.job});
+
+  @override
+  Widget build(BuildContext context) {
+    final retrySuffix =
+        job.retryCount > 0 ? ' (tentative ${job.retryCount + 1}/10)' : '';
+    final (icon, label, color) = switch (job.status) {
+      AiSearchJobStatus.queued => (
+          Icons.schedule,
+          job.retryCount > 0
+              ? 'Réessai dans quelques sec…'
+              : 'En attente',
+          job.retryCount > 0
+              ? const Color(0xFFE8C97A)
+              : AppColors.text3
+        ),
+      AiSearchJobStatus.running => (
+          Icons.autorenew,
+          'En cours$retrySuffix…',
+          AppColors.gold
+        ),
+      AiSearchJobStatus.success => (
+          Icons.check_circle,
+          'Terminée',
+          const Color(0xFF7CD492)
+        ),
+      AiSearchJobStatus.failed => (
+          Icons.error_outline,
+          'Échec après 10 tentatives',
+          const Color(0xFFE8667A)
+        ),
+    };
+    final isRunning = job.status == AiSearchJobStatus.running;
+    final canOpen = job.status == AiSearchJobStatus.success;
+    final canRetry = job.status == AiSearchJobStatus.failed;
+
+    return InkWell(
+      onTap: canOpen ? () => _openJob(context) : null,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (isRunning)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.gold),
+                  )
+                else
+                  Icon(icon, size: 16, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        job.displayLabel,
+                        style: AppText.sans(
+                          color: AppColors.text,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            job.type == AiSearchJobType.photo
+                                ? Icons.photo_camera_outlined
+                                : Icons.text_fields,
+                            size: 11,
+                            color: AppColors.text3,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            label,
+                            style: AppText.sans(
+                                color: color, fontSize: 11),
+                          ),
+                          const SizedBox(width: 6),
+                          Text('· ${_relTime(job.createdAt)}',
+                              style: AppText.sans(
+                                  color: AppColors.text3,
+                                  fontSize: 11)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (canOpen)
+                  _smallBtn(
+                    icon: Icons.open_in_new,
+                    color: AppColors.gold,
+                    label: 'Ouvrir',
+                    onTap: () => _openJob(context),
+                  ),
+                if (canRetry) ...[
+                  _smallBtn(
+                    icon: Icons.refresh,
+                    color: AppColors.gold,
+                    label: 'Relancer',
+                    onTap: () => AiSearchJobService.retry(job.id),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                if (!isRunning)
+                  IconButton(
+                    onPressed: () => AiSearchJobService.remove(job.id),
+                    icon: const Icon(Icons.close,
+                        color: AppColors.text3, size: 18),
+                    tooltip: 'Supprimer',
+                  ),
+              ],
+            ),
+            if (job.errorMessage != null) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8667A).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: const Color(0xFFE8667A)
+                          .withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  job.errorMessage!,
+                  style: AppText.sans(
+                      color: const Color(0xFFE8667A), fontSize: 11),
+                ),
+              ),
+            ],
+            if (canOpen && job.result != null) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (job.result!.disagreements.isNotEmpty)
+                    _miniChip(
+                        '${job.result!.disagreements.length} désaccord${job.result!.disagreements.length > 1 ? "s" : ""}',
+                        AppColors.gold),
+                  for (final src in job.result!.sources.keys)
+                    _miniChip(src.label, AppColors.text2),
+                  if (job.result!.errors.isNotEmpty)
+                    for (final src in job.result!.errors.keys)
+                      _miniChip('${src.label} ✗',
+                          const Color(0xFFE8667A)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _smallBtn({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 3),
+          Text(label,
+              style: AppText.sans(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _miniChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(text,
+          style: AppText.sans(
+              color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  String _relTime(DateTime t) {
+    final diff = DateTime.now().difference(t);
+    if (diff.inMinutes < 1) return 'à l\'instant';
+    if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
+    return 'il y a ${diff.inDays} j';
+  }
+
+  void _openJob(BuildContext context) {
+    showAddWineDialog(context, job: job);
   }
 }

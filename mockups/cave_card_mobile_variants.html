@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cave Card Mobile — 5 variantes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0E0C0A;
+    --bg2: #171410;
+    --bg3: #221C16;
+    --border: #2A2520;
+    --border2: #3A332B;
+    --text: #E8E0D0;
+    --text2: #B5A88F;
+    --text3: #807660;
+    --gold: #C9A84C;
+    --gold2: #E8C97A;
+    --gold-deep: #B8860B;
+    --gold-mid: #D4A843;
+    --gold-light: #F5E6A3;
+    --green: #2E7D32;
+    --red: #C62828;
+    --grey: #546E7A;
+    --rouge: #B23A48;
+    --blanc: #E6D27A;
+    --rose: #E89DA6;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+    padding: 20px 12px 60px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  h1 {
+    color: var(--gold);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .label {
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    margin: 26px 0 10px 4px;
+    font-weight: 700;
+  }
+
+  /* Base card */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .photo {
+    width: 48px; height: 64px;
+    border-radius: 6px;
+    background: var(--bg3);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: linear-gradient(135deg, #4a2a1a 0%, #2a1010 100%);
+  }
+  .photo svg { color: var(--rouge); opacity: 0.5; }
+  .info { flex: 1; min-width: 0; }
+  .name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .sub {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chips {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    padding: 2px 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text2);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .chip.icon::before {
+    content: '';
+    display: inline-block;
+    width: 11px; height: 11px;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+  .rating {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--gold);
+    font-size: 16px;
+    font-weight: 700;
+    margin-left: auto;
+  }
+  .garde {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  .garde.apogee {
+    background: linear-gradient(90deg, var(--gold-deep), var(--gold-mid), var(--gold-light));
+    color: #1A1408;
+    border: 1px solid rgba(212, 168, 67, 0.7);
+  }
+  .garde.aboire {
+    background: rgba(46, 125, 50, 0.18);
+    color: var(--green);
+    border: 1px solid rgba(46, 125, 50, 0.3);
+  }
+  .garde.garde {
+    background: rgba(84, 110, 122, 0.18);
+    color: var(--grey);
+    border: 1px solid rgba(84, 110, 122, 0.3);
+  }
+  .garde.passe {
+    background: rgba(198, 40, 40, 0.15);
+    color: var(--red);
+    border: 1px solid rgba(198, 40, 40, 0.3);
+  }
+
+  /* Helpers */
+  .row { display: flex; align-items: center; gap: 6px; }
+  .icon-tiny {
+    width: 11px; height: 11px;
+    fill: currentColor;
+    opacity: 0.7;
+  }
+  .meta {
+    color: var(--text2);
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* === MODÈLE A : Producteur + cépages === */
+  .v-a .producer {
+    font-size: 11px;
+    color: var(--gold2);
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .v-a .grapes {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 4px;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* === MODÈLE B : Carte enrichie 2 lignes meta === */
+  .v-b .name { font-size: 14px; }
+  .v-b .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 12px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .v-b .meta-item {
+    font-size: 10px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .v-b .meta-item .key {
+    color: var(--text3);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* === MODÈLE C : Photo plus grande + barre garde === */
+  .v-c .photo { width: 60px; height: 80px; }
+  .v-c .producer {
+    font-size: 11px;
+    color: var(--gold2);
+    margin-bottom: 2px;
+  }
+  .v-c .progress-wrap {
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .v-c .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text3);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .v-c .progress-bar {
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .v-c .progress-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-deep), var(--gold-mid));
+    border-radius: 2px;
+  }
+  .v-c .progress-now {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: var(--gold-light);
+    box-shadow: 0 0 4px var(--gold-light);
+  }
+
+  /* === MODÈLE D : Critique mise en avant === */
+  .v-d .producer-line {
+    font-size: 10px;
+    color: var(--text2);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .v-d .producer-line .producer { color: var(--gold2); font-weight: 500; }
+  .v-d .critique-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: rgba(201, 168, 76, 0.08);
+    border-left: 2px solid var(--gold);
+    border-radius: 0 4px 4px 0;
+  }
+  .v-d .critique-source {
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .v-d .critique-score {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* === MODÈLE E : Layout vertical compact + tout visible === */
+  .v-e .name-row { margin-bottom: 2px; }
+  .v-e .producer {
+    font-size: 11px;
+    color: var(--gold2);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .v-e .geo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .v-e .geo .sep { opacity: 0.5; }
+  .v-e .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .v-e .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .v-e .stat .v {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .v-e .stat .v.gold { color: var(--gold); }
+  .v-e .stat .k {
+    font-size: 8px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  .note {
+    text-align: center;
+    color: var(--text3);
+    font-size: 10px;
+    margin: 24px 0 4px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<h1>5 modèles de carte vin (mobile)</h1>
+<div class="note">Style identique à l'actuel · plus d'infos visibles d'un coup</div>
+
+<!-- ========================== ACTUEL POUR RÉFÉRENCE ========================== -->
+<div class="label">⊙ ACTUEL (pour comparaison)</div>
+<div class="card">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+    </div>
+    <div class="sub">2015 · Bordeaux · Margaux</div>
+    <div class="chips">
+      <div class="chip icon">📦 3</div>
+      <div class="chip">750 ML</div>
+      <div class="chip">450 $</div>
+      <div class="garde apogee">Apogée</div>
+      <div class="rating">95</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================== MODÈLE A ========================== -->
+<div class="label">A · Producteur + cépages</div>
+<div class="card v-a">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+    </div>
+    <div class="producer">Famille Mentzelopoulos</div>
+    <div class="sub">2015 · Bordeaux · Margaux</div>
+    <div class="grapes">Cabernet Sauvignon 87%, Merlot 13%</div>
+    <div class="chips">
+      <div class="chip">📦 3 × 750 ML</div>
+      <div class="chip">450 $</div>
+      <div class="chip">13.5%</div>
+      <div class="garde apogee">Apogée</div>
+      <div class="rating">95</div>
+    </div>
+  </div>
+</div>
+
+<div class="card v-a">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--blanc)"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--blanc)"></div>
+      <div class="name">Meursault Charmes 1er Cru</div>
+    </div>
+    <div class="producer">Domaine Coche-Dury</div>
+    <div class="sub">2018 · Bourgogne · Meursault</div>
+    <div class="grapes">Chardonnay 100%</div>
+    <div class="chips">
+      <div class="chip">📦 2 × 750 ML</div>
+      <div class="chip">320 $</div>
+      <div class="chip">13%</div>
+      <div class="garde aboire">À boire</div>
+      <div class="rating">93</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================== MODÈLE B ========================== -->
+<div class="label">B · Grille 2 colonnes (key/value)</div>
+<div class="card v-b">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+      <div class="rating" style="margin: 0">95</div>
+    </div>
+    <div class="sub">2015 · Margaux</div>
+    <div class="meta-grid">
+      <div class="meta-item"><span class="key">DOMAINE</span> Mentzelopoulos</div>
+      <div class="meta-item"><span class="key">CÉPAGES</span> CS, Mer.</div>
+      <div class="meta-item"><span class="key">GARDE</span> 2025-2050</div>
+      <div class="meta-item"><span class="key">ALC</span> 13.5%</div>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 3 × 750 ML</div>
+      <div class="chip">450 $</div>
+      <div class="garde apogee">Apogée</div>
+    </div>
+  </div>
+</div>
+
+<div class="card v-b">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--blanc)"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--blanc)"></div>
+      <div class="name">Meursault Charmes 1er Cru</div>
+      <div class="rating" style="margin: 0">93</div>
+    </div>
+    <div class="sub">2018 · Meursault</div>
+    <div class="meta-grid">
+      <div class="meta-item"><span class="key">DOMAINE</span> Coche-Dury</div>
+      <div class="meta-item"><span class="key">CÉPAGES</span> Chardonnay</div>
+      <div class="meta-item"><span class="key">GARDE</span> 2024-2035</div>
+      <div class="meta-item"><span class="key">ALC</span> 13%</div>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 2 × 750 ML</div>
+      <div class="chip">320 $</div>
+      <div class="garde aboire">À boire</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================== MODÈLE C ========================== -->
+<div class="label">C · Photo plus grande + barre de garde visuelle</div>
+<div class="card v-c">
+  <div class="photo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+    </div>
+    <div class="producer">Famille Mentzelopoulos · Margaux</div>
+    <div class="sub">2015 · Cab. Sauvignon 87%, Merlot 13%</div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>2020</span><span>Apogée 2030</span><span>2050</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="left: 16%; width: 33%"></div>
+        <div class="progress-now" style="left: 18%"></div>
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 3 × 750 ML</div>
+      <div class="chip">450 $</div>
+      <div class="rating">95</div>
+    </div>
+  </div>
+</div>
+
+<div class="card v-c">
+  <div class="photo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="color: var(--blanc)"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--blanc)"></div>
+      <div class="name">Meursault Charmes</div>
+    </div>
+    <div class="producer">Domaine Coche-Dury · Meursault</div>
+    <div class="sub">2018 · Chardonnay 100%</div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>2024</span><span>Apogée 2028</span><span>2035</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="left: 25%; width: 30%"></div>
+        <div class="progress-now" style="left: 65%"></div>
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 2 × 750 ML</div>
+      <div class="chip">320 $</div>
+      <div class="rating">93</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================== MODÈLE D ========================== -->
+<div class="label">D · Critique de pro mise en avant</div>
+<div class="card v-d">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+    </div>
+    <div class="producer-line">
+      <span class="producer">Mentzelopoulos</span> · 2015 · Margaux
+    </div>
+    <div class="critique-row">
+      <span class="critique-source">Wine Advocate</span>
+      <span class="critique-score">98/100</span>
+      <span class="critique-source">· Suckling 99/100</span>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 3 × 750 ML</div>
+      <div class="chip">450 $</div>
+      <div class="garde apogee">Apogée</div>
+      <div class="rating">95</div>
+    </div>
+  </div>
+</div>
+
+<div class="card v-d">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--blanc)"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--blanc)"></div>
+      <div class="name">Meursault Charmes 1er Cru</div>
+    </div>
+    <div class="producer-line">
+      <span class="producer">Coche-Dury</span> · 2018 · Bourgogne
+    </div>
+    <div class="critique-row">
+      <span class="critique-source">Allen Meadows</span>
+      <span class="critique-score">94/100</span>
+    </div>
+    <div class="chips">
+      <div class="chip">📦 2 × 750 ML</div>
+      <div class="chip">320 $</div>
+      <div class="garde aboire">À boire</div>
+      <div class="rating">93</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================== MODÈLE E ========================== -->
+<div class="label">E · Stats en pied de carte (max info)</div>
+<div class="card v-e">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--rouge)"></div>
+      <div class="name">Château Margaux</div>
+    </div>
+    <div class="producer">Famille Mentzelopoulos</div>
+    <div class="geo">
+      <span>🇫🇷 France</span>
+      <span class="sep">·</span>
+      <span>Bordeaux</span>
+      <span class="sep">·</span>
+      <span>Margaux</span>
+    </div>
+    <div class="row">
+      <div class="garde apogee">Apogée 2025-2030</div>
+      <span style="margin-left: auto; font-family: serif; color: var(--gold); font-size: 16px; font-weight: 700;">95</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><span class="v">3</span><span class="k">Bouteilles</span></div>
+      <div class="stat"><span class="v">750</span><span class="k">Format ML</span></div>
+      <div class="stat"><span class="v gold">450 $</span><span class="k">Prix unité</span></div>
+      <div class="stat"><span class="v gold">1350 $</span><span class="k">Total</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card v-e">
+  <div class="photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--blanc)"><path d="M8 22h8v-1H13.5v-3.5c2.5-.5 4.5-2.7 4.5-5.5V2H6v10c0 2.8 2 5 4.5 5.5V21H8v1zM8 4h8v3H8V4z"/></svg>
+  </div>
+  <div class="info">
+    <div class="name-row">
+      <div class="dot" style="background: var(--blanc)"></div>
+      <div class="name">Meursault Charmes</div>
+    </div>
+    <div class="producer">Domaine Coche-Dury</div>
+    <div class="geo">
+      <span>🇫🇷 France</span>
+      <span class="sep">·</span>
+      <span>Bourgogne</span>
+      <span class="sep">·</span>
+      <span>Meursault</span>
+    </div>
+    <div class="row">
+      <div class="garde aboire">À boire 2024-2035</div>
+      <span style="margin-left: auto; font-family: serif; color: var(--gold); font-size: 16px; font-weight: 700;">93</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><span class="v">2</span><span class="k">Bouteilles</span></div>
+      <div class="stat"><span class="v">750</span><span class="k">Format ML</span></div>
+      <div class="stat"><span class="v gold">320 $</span><span class="k">Prix unité</span></div>
+      <div class="stat"><span class="v gold">640 $</span><span class="k">Total</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">Dis-moi laquelle tu veux : A, B, C, D ou E (ou un mix)</div>
+
+</body>
+</html>

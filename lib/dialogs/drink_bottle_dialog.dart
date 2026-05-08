@@ -5,18 +5,30 @@ import '../services/cave_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 
-Future<bool> showDrinkBottleDialog(BuildContext context, Bottle bottle) async {
+Future<bool> showDrinkBottleDialog(
+  BuildContext context,
+  Bottle bottle, {
+  List<Bottle>? candidates,
+}) async {
+  // Filtre : ne propose que les bouteilles encore en cave (pas déjà bues)
+  final inCave = (candidates ?? const <Bottle>[])
+      .where((b) => b.status == BottleStatus.inCave)
+      .toList();
   final result = await showDialog<bool>(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (_) => _DrinkBottleDialog(bottle: bottle),
+    builder: (_) => _DrinkBottleDialog(
+      bottle: bottle,
+      candidates: inCave.length > 1 ? inCave : null,
+    ),
   );
   return result ?? false;
 }
 
 class _DrinkBottleDialog extends StatefulWidget {
   final Bottle bottle;
-  const _DrinkBottleDialog({required this.bottle});
+  final List<Bottle>? candidates;
+  const _DrinkBottleDialog({required this.bottle, this.candidates});
 
   @override
   State<_DrinkBottleDialog> createState() => _DrinkBottleDialogState();
@@ -27,18 +39,27 @@ class _DrinkBottleDialogState extends State<_DrinkBottleDialog> {
   late final TextEditingController _rating;
   late final TextEditingController _location;
   late final TextEditingController _note;
+  late Bottle _selectedBottle;
   bool _saving = false;
 
-  bool get _editing => widget.bottle.status == BottleStatus.drunk;
+  bool get _editing => _selectedBottle.status == BottleStatus.drunk;
+  bool get _hasMultiple =>
+      widget.candidates != null && widget.candidates!.length > 1;
 
   @override
   void initState() {
     super.initState();
-    final b = widget.bottle;
+    _selectedBottle = widget.bottle;
+    final b = _selectedBottle;
     _date = b.drunkAt ?? DateTime.now();
     _rating = TextEditingController(text: b.drunkRating?.toString() ?? '');
     _location = TextEditingController(text: b.drunkLocation ?? '');
     _note = TextEditingController(text: b.drunkNote ?? '');
+  }
+
+  void _onBottleChanged(Bottle b) {
+    if (b.id == _selectedBottle.id) return;
+    setState(() => _selectedBottle = b);
   }
 
   @override
@@ -64,7 +85,7 @@ class _DrinkBottleDialogState extends State<_DrinkBottleDialog> {
     setState(() => _saving = true);
     try {
       if (_editing) {
-        await CaveService.updateBottle(widget.bottle.id, {
+        await CaveService.updateBottle(_selectedBottle.id, {
           'drunkAt': Timestamp.fromDate(_date),
           'drunkRating': int.tryParse(_rating.text),
           'drunkNote': _note.text.trim().isNotEmpty ? _note.text.trim() : null,
@@ -72,7 +93,7 @@ class _DrinkBottleDialogState extends State<_DrinkBottleDialog> {
         });
       } else {
         await CaveService.markBottleDrunk(
-          bottleId: widget.bottle.id,
+          bottleId: _selectedBottle.id,
           drunkAt: _date,
           rating: int.tryParse(_rating.text),
           note: _note.text.trim().isNotEmpty ? _note.text.trim() : null,
@@ -110,6 +131,12 @@ class _DrinkBottleDialogState extends State<_DrinkBottleDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_hasMultiple) ...[
+                      _sectionLabel(
+                          'QUELLE BOUTEILLE ? (${widget.candidates!.length} disponibles)'),
+                      _bottlePicker(),
+                      const SizedBox(height: 16),
+                    ],
                     _sectionLabel('DATE DE DÉGUSTATION'),
                     InkWell(
                       onTap: _pickDate,
@@ -236,6 +263,128 @@ class _DrinkBottleDialogState extends State<_DrinkBottleDialog> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _bottlePicker() {
+    final bottles = widget.candidates!;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg3,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        children: [
+          for (var i = 0; i < bottles.length; i++)
+            _bottleOption(bottles[i], i + 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottleOption(Bottle b, int index) {
+    final selected = b.id == _selectedBottle.id;
+    final loc = b.location.isNotEmpty
+        ? b.location
+        : 'Non placée';
+    final extras = <String>[];
+    if (b.purchaseYear != null) extras.add('achat ${b.purchaseYear}');
+    if (b.purchasePrice != null) {
+      extras.add('${b.purchasePrice!.toStringAsFixed(0)} \$');
+    }
+
+    return InkWell(
+      onTap: () => _onBottleChanged(b),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 130),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.gold.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.gold : AppColors.border2,
+            width: selected ? 1.2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? AppColors.gold : AppColors.text3,
+                  width: 1.5,
+                ),
+                color: selected ? AppColors.gold : Colors.transparent,
+              ),
+              child: selected
+                  ? const Icon(Icons.check,
+                      size: 11, color: Color(0xFF1A1408))
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.bg2,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                '#$index',
+                style: AppText.sans(
+                  color: AppColors.text3,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    loc,
+                    style: AppText.sans(
+                      color: selected ? AppColors.gold : AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (extras.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      extras.join(' · '),
+                      style: AppText.sans(
+                          color: AppColors.text3, fontSize: 11),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Text(
+              b.format.label,
+              style: AppText.sans(
+                color: AppColors.text3,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

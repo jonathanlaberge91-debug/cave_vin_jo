@@ -193,9 +193,18 @@ class _AddWishDialogState extends State<AddWishDialog> {
       _error = null;
     });
     try {
-      final result = await GeminiService.searchByPhoto(bytes);
+      final manualVintage = _aiVintage.text.trim().isNotEmpty
+          ? _aiVintage.text.trim()
+          : (_vintage.text.trim().isNotEmpty ? _vintage.text.trim() : null);
+      final result = await GeminiService.searchByPhoto(
+        bytes,
+        vintageHint: manualVintage,
+      );
       if (!mounted) return;
       _applyGeminiResult(result);
+      if (manualVintage != null && manualVintage.isNotEmpty) {
+        setState(() => _vintage.text = manualVintage);
+      }
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
