@@ -75,6 +75,7 @@ class _AddWishDialogState extends State<AddWishDialog> {
   Uint8List? _photoBytes;
   String? _photoFileName;
   String? _existingPhotoUrl;
+  String? _existingThumbUrl;
   String? _photoBlobUrl;
   int _photoViewId = 0;
   bool _saving = false;
@@ -111,6 +112,7 @@ class _AddWishDialogState extends State<AddWishDialog> {
     if (w.marketValue != null) _marketValue.text = w.marketValue!.toStringAsFixed(0);
     _critiques.addAll(w.critiques);
     _existingPhotoUrl = w.photoUrl;
+    _existingThumbUrl = w.thumbUrl;
   }
 
   void _updateBlobUrl(Uint8List? bytes) {
@@ -167,6 +169,7 @@ class _AddWishDialogState extends State<AddWishDialog> {
         _photoBytes = cropped;
         _photoFileName = fileName;
         _existingPhotoUrl = null;
+        _existingThumbUrl = null;
         _error = 'Photo cadrée : ${(cropped.length / 1024).toStringAsFixed(0)} Ko';
       });
     } catch (e) {
@@ -296,14 +299,17 @@ class _AddWishDialogState extends State<AddWishDialog> {
       );
 
       String? photoUrl;
+      String? thumbUrl;
       String? photoUploadError;
       if (_photoBytes != null) {
         try {
-          photoUrl = await StorageService.uploadWinePhoto(
+          final urls = await StorageService.uploadWinePhoto(
             bytes: _photoBytes!,
             fileName: _photoFileName ?? 'wine.jpg',
           );
-          developer.log('[SaveWish] photoUrl=$photoUrl', name: 'cave_vin_jo');
+          photoUrl = urls.photoUrl;
+          thumbUrl = urls.thumbUrl;
+          developer.log('[SaveWish] photoUrl=$photoUrl thumbUrl=$thumbUrl', name: 'cave_vin_jo');
         } catch (e) {
           photoUploadError = e.toString().replaceAll('Exception: ', '');
           developer.log('[SaveWish] upload FAILED: $photoUploadError', name: 'cave_vin_jo');
@@ -337,6 +343,7 @@ class _AddWishDialogState extends State<AddWishDialog> {
         wineDescription: _wineDescription.text.trim(),
         domaineDescription: _domaineDescription.text.trim(),
         photoUrl: photoUrl,
+        thumbUrl: thumbUrl,
         critiques: List.unmodifiable(_critiques),
         marketValue: market,
         personalNote: _personalNote.text.trim(),
@@ -389,15 +396,19 @@ class _AddWishDialogState extends State<AddWishDialog> {
     });
     try {
       String? photoUrl = _existingPhotoUrl;
+      String? thumbUrl = _existingThumbUrl;
       String? photoUploadError;
       if (_photoBytes != null) {
         try {
-          photoUrl = await StorageService.uploadWinePhoto(
+          final urls = await StorageService.uploadWinePhoto(
             bytes: _photoBytes!,
             fileName: _photoFileName ?? 'wine.jpg',
           );
+          photoUrl = urls.photoUrl;
+          thumbUrl = urls.thumbUrl;
         } catch (e) {
           photoUrl = _existingPhotoUrl;
+          thumbUrl = _existingThumbUrl;
           photoUploadError = e.toString().replaceAll('Exception: ', '');
         }
       }
@@ -425,6 +436,7 @@ class _AddWishDialogState extends State<AddWishDialog> {
         'wineDescription': _wineDescription.text.trim(),
         'domaineDescription': _domaineDescription.text.trim(),
         'photoUrl': photoUrl,
+        'thumbUrl': thumbUrl,
         'critiques': _critiques.map((c) => c.toMap()).toList(),
         'marketValue': market,
         'personalNote': _personalNote.text.trim(),
@@ -836,7 +848,10 @@ class _AddWishDialogState extends State<AddWishDialog> {
                       _photoFileName = null;
                     });
                   } else if (hasExisting) {
-                    setState(() => _existingPhotoUrl = null);
+                    setState(() {
+                      _existingPhotoUrl = null;
+                      _existingThumbUrl = null;
+                    });
                   }
                 },
                 borderRadius: BorderRadius.circular(20),

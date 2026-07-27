@@ -134,9 +134,9 @@ class _CaveCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: w.photoUrl != null
+                    child: w.thumbOrFull != null
                         ? NativeNetworkImage(
-                            url: w.photoUrl!,
+                            url: w.thumbOrFull!,
                             width: 64,
                             height: 90,
                           )

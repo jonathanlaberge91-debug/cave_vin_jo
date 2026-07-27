@@ -1877,8 +1877,8 @@ class _WishCard extends StatelessWidget {
               // Photo
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: w.photoUrl != null
-                    ? Image.network(w.photoUrl!, width: 38, height: 50, fit: BoxFit.cover)
+                child: w.thumbOrFull != null
+                    ? Image.network(w.thumbOrFull!, width: 38, height: 50, fit: BoxFit.cover, cacheWidth: 120)
                     : Container(
                         width: 38, height: 50,
                         decoration: BoxDecoration(
@@ -2082,10 +2082,10 @@ class _WishRowState extends State<_WishRow> {
         child: SizedBox(
           width: 50,
           height: 50,
-          child: w.photoUrl != null
+          child: w.thumbOrFull != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Image.network(w.photoUrl!, fit: BoxFit.cover),
+                  child: Image.network(w.thumbOrFull!, fit: BoxFit.cover, cacheWidth: 150),
                 )
               : Container(
                   decoration: BoxDecoration(
@@ -2317,10 +2317,10 @@ class _DrunkRowState extends State<_DrunkRow> {
       child: SizedBox(
         width: 42,
         height: 42,
-        child: w?.photoUrl != null
+        child: w?.thumbOrFull != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.network(w!.photoUrl!, fit: BoxFit.cover),
+                child: Image.network(w!.thumbOrFull!, fit: BoxFit.cover, cacheWidth: 130),
               )
             : Container(
                 decoration: BoxDecoration(

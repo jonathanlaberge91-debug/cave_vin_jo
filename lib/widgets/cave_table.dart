@@ -347,15 +347,16 @@ class _CaveDataRowState extends State<CaveDataRow> {
     final thumb = Center(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
-        child: w.photoUrl == null
+        child: w.thumbOrFull == null
             ? _ph()
             : NativeNetworkImage(
-                url: w.photoUrl!,
+                url: w.thumbOrFull!,
                 width: 42,
                 height: 56,
               ),
       ),
     );
+    // L'aperçu flottant agrandi utilise l'originale HD, pas la miniature.
     if (w.photoUrl == null) return thumb;
     return _PhotoHoverPreview(photoUrl: w.photoUrl!, child: thumb);
   }

@@ -28,6 +28,14 @@ class NativeNetworkImage extends StatelessWidget {
         fit: fit,
       );
     }
+    // Décode l'image à la taille réellement affichée (× densité de pixels)
+    // au lieu de la pleine résolution : une vignette de 64 px n'a pas besoin
+    // de décoder une photo de 3000 px, ce qui économise énormément de
+    // mémoire et supprime les saccades quand la liste contient beaucoup de
+    // bouteilles.
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final cacheW = width.isFinite ? (width * dpr).ceil() : null;
+    final cacheH = height.isFinite ? (height * dpr).ceil() : null;
     return SizedBox(
       width: width,
       height: height,
@@ -36,6 +44,10 @@ class NativeNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        cacheWidth: cacheW,
+        cacheHeight: cacheW == null ? cacheH : null,
+        filterQuality: FilterQuality.low,
+        gaplessPlayback: true,
         errorBuilder: (_, __, ___) => Container(
           color: const Color(0xFF1A1814),
           child: const Icon(Icons.broken_image, color: Color(0xFF555555)),

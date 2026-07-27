@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -22,6 +24,36 @@ import 'services/maps_service.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text.dart';
 
+/// Délai max accordé à une initialisation avant de l'abandonner.
+/// Sans ça, une lecture Firestore qui ne répond jamais (pas encore connecté,
+/// cache vide, réseau lent) bloque `runApp()` et le splash reste à l'écran.
+const _initTimeout = Duration(seconds: 5);
+
+Future<void> _guard(String name, Future<void> Function() task) async {
+  try {
+    await task().timeout(_initTimeout);
+  } catch (e) {
+    debugPrint('Init « $name » ignorée : $e');
+  }
+}
+
+bool _remoteSettingsSynced = false;
+
+/// Services dont l'init lit Firestore (clés API stockées dans `settings/app`).
+/// Les règles exigent `request.auth != null` : au tout premier démarrage on
+/// n'est pas encore connecté, donc ces lectures ne doivent jamais bloquer
+/// l'affichage. Elles sont rejouées une fois la connexion Google faite.
+Future<void> _initRemoteSettings() async {
+  await Future.wait([
+    _guard('Gemini', GeminiService.init),
+    _guard('Groq', GroqService.init),
+    _guard('Mistral', MistralService.init),
+    _guard('Maps', MapsService.init),
+    _guard('Govee', GoveeService.init),
+    _guard('Drive', DriveBackupService.init),
+  ]);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -34,19 +66,18 @@ void main() async {
   // Sur web, finalise la connexion Google après un signInWithRedirect.
   if (kIsWeb) {
     try {
-      await FirebaseAuth.instance.getRedirectResult();
+      await FirebaseAuth.instance.getRedirectResult().timeout(_initTimeout);
     } catch (_) {}
   }
-  await GeminiService.init();
-  await GroqService.init();
-  await MistralService.init();
-  await MapsService.init();
-  await GoveeService.init();
-  await CavePreferencesService.init();
-  await BackupService.init();
-  await DriveBackupService.init();
-  await BiometricService.init();
-  await AiSearchJobService.init();
+  // Inits locales (SharedPreferences / IndexedDB) : rapides et hors réseau.
+  await Future.wait([
+    _guard('Préférences cave', CavePreferencesService.init),
+    _guard('Sauvegarde', BackupService.init),
+    _guard('Biométrie', BiometricService.init),
+    _guard('Jobs IA', AiSearchJobService.init),
+  ]);
+  // Inits réseau : lancées en arrière-plan, jamais bloquantes.
+  unawaited(_initRemoteSettings());
   runApp(const MyApp());
 
   // Background auto-refresh: ne tourne que si déjà signé en Google
@@ -109,6 +140,12 @@ class _AuthGate extends StatelessWidget {
         final user = snapshot.data;
         if (user == null || user.isAnonymous) {
           return const _SignInScreen();
+        }
+        // Connecté : on rejoue les lectures Firestore qui avaient pu échouer
+        // au démarrage (règles = auth requise), une seule fois.
+        if (!_remoteSettingsSynced) {
+          _remoteSettingsSynced = true;
+          unawaited(_initRemoteSettings());
         }
         return const _BiometricGate(
             child: _JobSnackbarHost(child: HomeScreen()));

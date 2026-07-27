@@ -23,10 +23,14 @@ class WishWine {
   final String wineDescription;
   final String domaineDescription;
   final String? photoUrl;
+  final String? thumbUrl;
   final List<Critique> critiques;
   final double? marketValue;
   final String personalNote;
   final DateTime createdAt;
+
+  /// Miniature légère pour les grilles ; repli sur l'originale.
+  String? get thumbOrFull => thumbUrl ?? photoUrl;
 
   WishWine({
     required this.id,
@@ -50,6 +54,7 @@ class WishWine {
     this.wineDescription = '',
     this.domaineDescription = '',
     this.photoUrl,
+    this.thumbUrl,
     this.critiques = const [],
     this.marketValue,
     this.personalNote = '',
@@ -77,6 +82,7 @@ class WishWine {
         'wineDescription': wineDescription,
         'domaineDescription': domaineDescription,
         'photoUrl': photoUrl,
+        'thumbUrl': thumbUrl,
         'critiques': critiques.map((c) => c.toMap()).toList(),
         'marketValue': marketValue,
         'personalNote': personalNote,
@@ -110,6 +116,7 @@ class WishWine {
       wineDescription: data['wineDescription'] ?? '',
       domaineDescription: data['domaineDescription'] ?? '',
       photoUrl: data['photoUrl'],
+      thumbUrl: data['thumbUrl'],
       critiques: (data['critiques'] as List?)
               ?.map((c) => Critique.fromMap(Map<String, dynamic>.from(c)))
               .toList() ??

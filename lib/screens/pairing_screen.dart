@@ -558,15 +558,16 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                       ],
                     ),
                   ),
-                  if (wine.photoUrl != null) ...[
+                  if (wine.thumbOrFull != null) ...[
                     const SizedBox(width: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
-                        wine.photoUrl!,
+                        wine.thumbOrFull!,
                         width: 52,
                         height: 68,
                         fit: BoxFit.cover,
+                        cacheWidth: 160,
                       ),
                     ),
                   ],

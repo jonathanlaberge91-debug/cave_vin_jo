@@ -29,6 +29,10 @@ Widget buildWebImage({
   final objectFit = _objectFitCss(fit);
   ui_web.platformViewRegistry.registerViewFactory(viewType, (int id) {
     final img = web.document.createElement('img') as web.HTMLImageElement;
+    // Décodage hors du fil principal + chargement différé : évite les
+    // saccades quand plusieurs vignettes s'affichent d'un coup.
+    img.loading = 'lazy';
+    img.decoding = 'async';
     img.src = url;
     img.style
       ..width = '100%'

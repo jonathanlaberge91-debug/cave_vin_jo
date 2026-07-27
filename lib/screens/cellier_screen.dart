@@ -2092,9 +2092,9 @@ class _UnplacedRow extends StatelessWidget {
             child: Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(3),
-                child: w?.photoUrl != null
+                child: w?.thumbOrFull != null
                     ? NativeNetworkImage(
-                        url: w!.photoUrl!,
+                        url: w!.thumbOrFull!,
                         width: 27,
                         height: 36,
                       )
@@ -2214,11 +2214,11 @@ class _UnplacedRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (w?.photoUrl != null)
+          if (w?.thumbOrFull != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: NativeNetworkImage(
-                url: w!.photoUrl!,
+                url: w!.thumbOrFull!,
                 width: 24,
                 height: 32,
               ),
