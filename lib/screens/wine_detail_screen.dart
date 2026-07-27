@@ -476,13 +476,24 @@ class _HeroPhoto extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (wine.photoUrl != null)
+          if (wine.photoUrl != null) ...[
+            // Miniature d'abord (instantanée, déjà en cache depuis la grille),
+            // l'originale HD la recouvre dès qu'elle est chargée.
+            if (wine.thumbUrl != null && wine.thumbUrl != wine.photoUrl)
+              NativeNetworkImage(
+                url: wine.thumbUrl!,
+                width: double.infinity,
+                height: 400,
+                fit: BoxFit.contain,
+              ),
             NativeNetworkImage(
               url: wine.photoUrl!,
               width: double.infinity,
               height: 400,
               fit: BoxFit.contain,
-            )
+              eager: true,
+            ),
+          ]
           else
             Container(
               decoration: const BoxDecoration(

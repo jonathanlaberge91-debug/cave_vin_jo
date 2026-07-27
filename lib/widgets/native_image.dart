@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 import 'native_image_web.dart' if (dart.library.io) 'native_image_mobile.dart'
     as platform;
 
+/// Précharge une image dans le cache du navigateur (web uniquement).
+void precacheNetworkImage(String url) => platform.precacheWebImage(url);
+
 class NativeNetworkImage extends StatelessWidget {
   final String url;
   final double width;
   final double height;
   final BoxFit fit;
+
+  /// `true` pour une image demandée explicitement (aperçu agrandi, fiche) :
+  /// le navigateur la télécharge tout de suite au lieu de la différer.
+  final bool eager;
 
   const NativeNetworkImage({
     super.key,
@@ -16,6 +23,7 @@ class NativeNetworkImage extends StatelessWidget {
     required this.width,
     required this.height,
     this.fit = BoxFit.cover,
+    this.eager = false,
   });
 
   @override
@@ -26,6 +34,7 @@ class NativeNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        eager: eager,
       );
     }
     // Décode l'image à la taille réellement affichée (× densité de pixels)

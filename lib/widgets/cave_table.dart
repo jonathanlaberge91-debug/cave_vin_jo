@@ -358,7 +358,11 @@ class _CaveDataRowState extends State<CaveDataRow> {
     );
     // L'aperçu flottant agrandi utilise l'originale HD, pas la miniature.
     if (w.photoUrl == null) return thumb;
-    return _PhotoHoverPreview(photoUrl: w.photoUrl!, child: thumb);
+    return _PhotoHoverPreview(
+      photoUrl: w.photoUrl!,
+      thumbUrl: w.thumbUrl,
+      child: thumb,
+    );
   }
 
   Widget _ph() => Container(
@@ -896,65 +900,105 @@ class _CaveDataRowState extends State<CaveDataRow> {
 
 class _PhotoHoverPreview extends StatefulWidget {
   final String photoUrl;
+  final String? thumbUrl;
   final Widget child;
-  const _PhotoHoverPreview({required this.photoUrl, required this.child});
+  const _PhotoHoverPreview({
+    required this.photoUrl,
+    required this.thumbUrl,
+    required this.child,
+  });
 
   @override
   State<_PhotoHoverPreview> createState() => _PhotoHoverPreviewState();
 }
 
 class _PhotoHoverPreviewState extends State<_PhotoHoverPreview> {
+  static const _previewW = 240.0;
+  static const _previewH = 320.0;
+
   OverlayEntry? _overlay;
-  Offset _cursor = Offset.zero;
+  final ValueNotifier<Offset> _cursor = ValueNotifier(Offset.zero);
+  bool _precached = false;
 
-  void _show() {
-    _overlay = OverlayEntry(builder: (_) {
-      final screenH = MediaQuery.of(context).size.height;
-      const previewW = 240.0;
-      const previewH = 320.0;
-      var top = _cursor.dy - previewH / 2;
-      if (top < 8) top = 8;
-      if (top + previewH > screenH - 8) top = screenH - previewH - 8;
-      final left = _cursor.dx - previewW - 20;
+  /// Construit une seule fois : le contenu de la bulle ne doit surtout pas
+  /// être reconstruit quand la souris bouge, sinon l'élément <img> est
+  /// recréé et le téléchargement de l'originale HD repart de zéro.
+  Widget? _content;
 
-      return Positioned(
-        left: left,
-        top: top,
-        child: IgnorePointer(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: previewW,
-              height: previewH,
-              decoration: BoxDecoration(
-                color: AppColors.bg2,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+  Widget _buildContent() {
+    // La miniature (quelques dizaines de Ko, déjà en cache car affichée dans
+    // la grille) s'affiche instantanément derrière ; l'originale HD la
+    // recouvre dès qu'elle est arrivée. L'image finale reste la HD.
+    return IgnorePointer(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: _previewW,
+          height: _previewH,
+          decoration: BoxDecoration(
+            color: AppColors.bg2,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.gold.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.6),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(9),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (widget.thumbUrl != null &&
+                    widget.thumbUrl != widget.photoUrl)
+                  NativeNetworkImage(
+                    url: widget.thumbUrl!,
+                    width: _previewW,
+                    height: _previewH,
+                    fit: BoxFit.contain,
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(9),
-                child: NativeNetworkImage(
+                NativeNetworkImage(
                   url: widget.photoUrl,
-                  width: previewW,
-                  height: previewH,
+                  width: _previewW,
+                  height: _previewH,
                   fit: BoxFit.contain,
+                  eager: true,
                 ),
-              ),
+              ],
             ),
           ),
         ),
-      );
-    });
+      ),
+    );
+  }
+
+  void _show() {
+    _content ??= _buildContent();
+    _overlay = OverlayEntry(
+      builder: (_) => ValueListenableBuilder<Offset>(
+        valueListenable: _cursor,
+        // `child` est construit une fois et passé tel quel à chaque
+        // repositionnement : seul le Positioned est recalculé.
+        child: _content,
+        builder: (_, cursor, child) {
+          final screenH = MediaQuery.of(context).size.height;
+          var top = cursor.dy - _previewH / 2;
+          if (top < 8) top = 8;
+          if (top + _previewH > screenH - 8) top = screenH - _previewH - 8;
+          return Positioned(
+            left: cursor.dx - _previewW - 20,
+            top: top,
+            child: child!,
+          );
+        },
+      ),
+    );
     Overlay.of(context).insert(_overlay!);
   }
 
@@ -963,25 +1007,27 @@ class _PhotoHoverPreviewState extends State<_PhotoHoverPreview> {
     _overlay = null;
   }
 
-  void _updatePosition(PointerEvent event) {
-    _cursor = event.position;
-    _overlay?.markNeedsBuild();
-  }
-
   @override
   void dispose() {
     _hide();
+    _cursor.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      // Dès que la souris approche de la ligne, on lance le téléchargement de
+      // l'originale HD : elle est souvent déjà prête quand la bulle s'ouvre.
       onEnter: (e) {
-        _cursor = e.position;
+        if (!_precached) {
+          _precached = true;
+          precacheNetworkImage(widget.photoUrl);
+        }
+        _cursor.value = e.position;
         _show();
       },
-      onHover: _updatePosition,
+      onHover: (e) => _cursor.value = e.position,
       onExit: (_) => _hide(),
       child: widget.child,
     );
