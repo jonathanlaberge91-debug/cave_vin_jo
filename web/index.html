@@ -72,7 +72,10 @@
   </script>
 
   <!-- Tesseract.js — OCR pour pré-traiter les étiquettes de vin -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <!-- defer : ne bloque plus l'analyse de la page (donc le demarrage de
+       l'app) le temps d'aller chercher le script sur le CDN. L'OCR ne sert
+       qu'au moment de photographier une etiquette, bien plus tard. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <script>
     window.cvOcrRecognize = async function(base64) {
       try {
@@ -219,7 +222,7 @@
 </head>
 <body>
   <div id="splash">
-    <img src="splash-logo.png" alt="">
+    <img src="splash-logo.jpg" alt="">
   </div>
   <script>
     if ('serviceWorker' in navigator) {

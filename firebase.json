@@ -1,18 +1,60 @@
 {
   "hosting": {
     "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "headers": [
       {
+        "//": "Par defaut : pas de cache. index.html et flutter_bootstrap.js sont petits et portent le numero de version.",
         "source": "**",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
+        ]
+      },
+      {
+        "//": "Polices et moteur graphique : ne changent quasi jamais -> cache 7 jours.",
+        "source": "**/*.@(ttf|otf|woff|woff2|wasm)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
+        ]
+      },
+      {
+        "//": "UNIQUEMENT les fichiers dont le nom contient une empreinte (tool/fingerprint_web.js) : main.<empreinte>.dart.js et splash-logo.<empreinte>.jpg. Leur nom change a chaque build, donc un cache d'un an ne peut pas servir une vieille version. Le motif '?*' impose au moins un caractere entre les points : un 'main.dart.js' non empreinte ne matche PAS.",
+        "source": "/@(main.?*.dart.js|splash-logo.?*.jpg)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
         ]
       }
     ],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   },
   "functions": {

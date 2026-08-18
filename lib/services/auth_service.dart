@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'cave_service.dart';
 
 class AuthService {
   static Stream<User?> userChanges() =>
@@ -62,5 +63,7 @@ class AuthService {
       } catch (_) {}
     }
     await FirebaseAuth.instance.signOut();
+    // Oublie les donnees gardees en memoire par les flux partages.
+    CaveService.resetCaches();
   }
 }

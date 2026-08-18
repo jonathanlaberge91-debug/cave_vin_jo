@@ -64,6 +64,14 @@ class WineDetailDialog extends StatefulWidget {
 }
 
 class _WineDetailDialogState extends State<WineDetailDialog> {
+  // Abonnements crees UNE fois : un rebuild de la fiche (agrandissement de la
+  // photo, edition d'un champ) ne rouvre plus d'ecoute Firestore.
+  late final Stream<Wine?> _wineStream = CaveService.wine(widget.wine.id);
+  late final Stream<List<Bottle>> _bottlesStream =
+      CaveService.bottlesByWine(widget.wine.id).map(
+    (list) => list.where((b) => b.format == widget.format).toList(),
+  );
+
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
@@ -95,18 +103,14 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
           ],
         ),
         child: StreamBuilder<Wine?>(
-          stream: CaveService.wine(widget.wine.id),
+          stream: _wineStream,
           initialData: widget.wine,
           builder: (context, wineSnap) {
             final wine = wineSnap.data ?? widget.wine;
             return ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: StreamBuilder<List<Bottle>>(
-                stream: CaveService.bottlesByWine(widget.wine.id).map(
-                  (list) => list
-                      .where((b) => b.format == widget.format)
-                      .toList(),
-                ),
+                stream: _bottlesStream,
                 initialData: widget.bottles,
                 builder: (context, snap) {
                   final mine = snap.data ?? const <Bottle>[];

@@ -12,19 +12,29 @@ import '../theme/country_helpers.dart';
 import '../theme/wine_type_helpers.dart';
 import '../widgets/cave_table.dart' show GardeInfo;
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  // Abonnements crees UNE fois : un rebuild ne relance plus les 3 requetes.
+  late final Stream<List<Wine>> _wines = CaveService.wines();
+  late final Stream<List<Bottle>> _cave = CaveService.bottlesInCave();
+  late final Stream<List<Bottle>> _drunk = CaveService.bottlesDrunk();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Wine>>(
-      stream: CaveService.wines(),
+      stream: _wines,
       builder: (context, wineSnap) {
         return StreamBuilder<List<Bottle>>(
-          stream: CaveService.bottlesInCave(),
+          stream: _cave,
           builder: (context, caveSnap) {
             return StreamBuilder<List<Bottle>>(
-              stream: CaveService.bottlesDrunk(),
+              stream: _drunk,
               builder: (context, drunkSnap) {
                 if (!wineSnap.hasData || !caveSnap.hasData || !drunkSnap.hasData) {
                   return const Center(

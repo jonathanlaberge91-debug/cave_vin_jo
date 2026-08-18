@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart' show Bottle, BottleFormat, BottleStatus, formatFullSlotLabel;
+import 'cached_stream.dart';
 import 'history_service.dart';
 
 class CaveService {
@@ -14,28 +15,42 @@ class CaveService {
         );
   }
 
-  static Stream<List<Wine>> wines() {
-    return _wines.orderBy('createdAt', descending: true).snapshots().map(
+  /// Flux partage : un seul abonnement Firestore pour toute l'app.
+  static final CachedStream<List<Wine>> _winesStream = CachedStream(
+    () => _wines.orderBy('createdAt', descending: true).snapshots().map(
           (snap) => snap.docs.map(Wine.fromDoc).toList(),
-        );
-  }
+        ),
+  );
 
-  static Stream<List<Bottle>> bottlesInCave() {
-    return _bottles
+  static Stream<List<Wine>> wines() => _winesStream.stream;
+
+  static final CachedStream<List<Bottle>> _inCaveStream = CachedStream(
+    () => _bottles
         .where('status', isEqualTo: BottleStatus.inCave.name)
         .snapshots()
-        .map((snap) => snap.docs.map(Bottle.fromDoc).toList());
-  }
+        .map((snap) => snap.docs.map(Bottle.fromDoc).toList()),
+  );
 
-  static Stream<List<Bottle>> bottlesDrunk() {
-    return _bottles
+  static Stream<List<Bottle>> bottlesInCave() => _inCaveStream.stream;
+
+  static final CachedStream<List<Bottle>> _drunkStream = CachedStream(
+    () => _bottles
         .where('status', isEqualTo: BottleStatus.drunk.name)
         .snapshots()
         .map((snap) {
           final list = snap.docs.map(Bottle.fromDoc).toList();
           list.sort((a, b) => (b.drunkAt ?? b.createdAt).compareTo(a.drunkAt ?? a.createdAt));
           return list;
-        });
+        }),
+  );
+
+  static Stream<List<Bottle>> bottlesDrunk() => _drunkStream.stream;
+
+  /// A appeler a la deconnexion : oublie les donnees en memoire.
+  static void resetCaches() {
+    _winesStream.reset();
+    _inCaveStream.reset();
+    _drunkStream.reset();
   }
 
   static Future<bool> isLocationTaken(

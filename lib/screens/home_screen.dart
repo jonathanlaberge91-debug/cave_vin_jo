@@ -84,6 +84,12 @@ class _HomeScreenState extends State<HomeScreen> {
     showAddWineDialog(context);
   }
 
+  // Flux gardes une seule fois : sans ca, chaque setState (frappe dans la
+  // recherche, changement de filtre) recreait l'abonnement Firestore et
+  // relancait la roulette de chargement.
+  late final Stream<List<Wine>> _cavePageWines = CaveService.wines();
+  late final Stream<List<Bottle>> _cavePageBottles = CaveService.bottlesInCave();
+
   @override
   void initState() {
     super.initState();
@@ -683,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCavePage() {
     return StreamBuilder<List<Wine>>(
-      stream: CaveService.wines(),
+      stream: _cavePageWines,
       builder: (context, wineSnap) {
         if (wineSnap.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -693,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final wines = wineSnap.data ?? [];
 
         return StreamBuilder<List<Bottle>>(
-          stream: CaveService.bottlesInCave(),
+          stream: _cavePageBottles,
           builder: (context, bottleSnap) {
             final bottles = bottleSnap.data ?? [];
 
@@ -2708,7 +2714,10 @@ class _AppBranding extends StatelessWidget {
     final logo = SizedBox(
       height: compact ? 36.0 : 48.0,
       child: Image.asset(
-        'assets/images/logo.png',
+        // Version 144 px de haut pour un logo affiche a 36-48 px : nettement
+        // plus net que necessaire meme sur ecran retina, mais 13 Ko au lieu
+        // de 398 Ko. L'original reste dans assets/images/logo.png.
+        'assets/images/logo_small.png',
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
         isAntiAlias: true,

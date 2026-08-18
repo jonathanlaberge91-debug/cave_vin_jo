@@ -69,15 +69,19 @@ class _PairingScreenState extends State<PairingScreen> {
     });
   }
 
+  // Abonnements crees UNE fois pour la duree de l'ecran.
+  late final Stream<List<Wine>> _winesStream = CaveService.wines();
+  late final Stream<List<Bottle>> _bottlesStream = CaveService.bottlesInCave();
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Wine>>(
-      stream: CaveService.wines(),
+      stream: _winesStream,
       builder: (context, wineSnap) {
         final allWines = wineSnap.data ?? [];
 
         return StreamBuilder<List<Bottle>>(
-          stream: CaveService.bottlesInCave(),
+          stream: _bottlesStream,
           builder: (context, bottleSnap) {
             final bottles = bottleSnap.data ?? [];
             final wineIdsInCave = bottles.map((b) => b.wineId).toSet();

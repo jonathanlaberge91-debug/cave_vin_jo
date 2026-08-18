@@ -266,6 +266,11 @@ class _CaveSpreadsheetScreenState extends State<CaveSpreadsheetScreen> {
 
   final _horizContent = ScrollController();
 
+  // Abonnements crees UNE fois : editer une cellule ou taper dans la
+  // recherche ne relance plus la requete Firestore.
+  late final Stream<List<Wine>> _winesStream = CaveService.wines();
+  late final Stream<List<Bottle>> _bottlesStream = CaveService.bottlesInCave();
+
   @override
   void initState() {
     super.initState();
@@ -630,10 +635,10 @@ class _CaveSpreadsheetScreenState extends State<CaveSpreadsheetScreen> {
         ),
       ),
       body: StreamBuilder<List<Wine>>(
-        stream: CaveService.wines(),
+        stream: _winesStream,
         builder: (ctx, wineSnap) {
           return StreamBuilder<List<Bottle>>(
-            stream: CaveService.bottlesInCave(),
+            stream: _bottlesStream,
             builder: (ctx, bottleSnap) {
               final wines = wineSnap.data ?? [];
               final bottles = bottleSnap.data ?? [];

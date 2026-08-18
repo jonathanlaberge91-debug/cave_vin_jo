@@ -235,9 +235,16 @@ class _SlotPickerDialogState extends State<_SlotPickerDialog> {
     );
   }
 
+  // Un flux par cellier, cree une seule fois (et non a chaque rebuild).
+  final Map<String, Stream<List<Bottle>>> _cellarStreams = {};
+
   Widget _grid(Cellar c) {
+    final stream = _cellarStreams.putIfAbsent(
+      c.id,
+      () => CaveService.bottlesByCellar(c.id),
+    );
     return StreamBuilder<List<Bottle>>(
-      stream: CaveService.bottlesByCellar(c.id),
+      stream: stream,
       builder: (context, snap) {
         final bottles = snap.data ?? [];
         final occupied = <String, Bottle>{};
