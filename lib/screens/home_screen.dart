@@ -86,8 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showAddWineDialog(context);
   }
 
-  /// Sur mobile, « Ajouter » propose d'abord l'entrée rapide : c'est le geste
-  /// courant quand on rentre une caisse, le téléphone à la main.
+  /// « Ajouter » ne saute plus directement dans la fiche complète : il
+  /// demande d'abord une bouteille ou un lot. Un seul bouton dans l'interface,
+  /// donc rien qui déborde sur téléphone.
   void _openAddChoice() {
     showModalBottomSheet(
       context: context,
@@ -108,11 +109,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
+            Text(
+              'Ajouter…',
+              style: AppText.serif(color: AppColors.gold2, fontSize: 18),
+            ),
+            const SizedBox(height: 6),
             ListTile(
-              leading: const Icon(Icons.bolt, color: AppColors.gold2),
+              leading: const Icon(Icons.wine_bar, color: AppColors.gold2),
               title: Text(
-                'Entrée rapide',
+                '1 bouteille',
                 style: AppText.sans(
                   color: AppColors.text,
                   fontSize: 15,
@@ -120,27 +126,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               subtitle: Text(
-                'Photo, quantité, emplacement. L\'IA passera plus tard.',
-                style: AppText.sans(color: AppColors.text2, fontSize: 12),
-              ),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                showQuickAddDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_note, color: AppColors.text2),
-              title: Text(
-                'Fiche complète',
-                style: AppText.sans(color: AppColors.text, fontSize: 15),
-              ),
-              subtitle: Text(
-                'Tous les champs, analyse IA tout de suite.',
+                'Fiche complète, analyse IA tout de suite.',
                 style: AppText.sans(color: AppColors.text2, fontSize: 12),
               ),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _openAddWine();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bolt, color: AppColors.gold2),
+              title: Text(
+                'Ajout rapide en lot',
+                style: AppText.sans(
+                  color: AppColors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'Photo, quantité, emplacement, puis la suivante. '
+                'L\'IA passera plus tard, sur tout le lot.',
+                style: AppText.sans(color: AppColors.text2, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                showQuickAddDialog(context);
               },
             ),
             const SizedBox(height: 8),
@@ -699,53 +710,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 16),
           ] else
             const Spacer(),
-          // Seulement sur grand écran : en dessous, la barre du bas propose
-          // déjà « Ajouter » (qui offre le choix entrée rapide / fiche
-          // complète), et deux boutons ici débordaient de la barre.
-          if (MediaQuery.of(context).size.width > 900) ...[
-            _quickAddButton(),
-            const SizedBox(width: 8),
-          ],
-          _ctaButton('+ Ajouter', onTap: _openAddWine),
+          // Un seul bouton, partout : c'est lui qui demande ensuite s'il
+          // s'agit d'une bouteille ou d'un ajout en lot.
+          _ctaButton('+ Ajouter', onTap: _openAddChoice),
         ],
-      ),
-    );
-  }
-
-  /// Entrée rapide : photo + quantité + emplacement, sans lancer l'IA.
-  Widget _quickAddButton() {
-    return Tooltip(
-      message: 'Entrée rapide : photo, quantité, emplacement.\n'
-          'L\'analyse IA se lance plus tard, en lot.',
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: () => showQuickAddDialog(context),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.gold),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.bolt, size: 15, color: AppColors.gold2),
-                const SizedBox(width: 6),
-                Text(
-                  'Entrée rapide',
-                  style: AppText.sans(
-                    color: AppColors.gold2,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
