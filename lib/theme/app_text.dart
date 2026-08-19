@@ -16,6 +16,7 @@ class AppText {
     FontWeight? fontWeight,
     double? height,
     double? letterSpacing,
+    FontStyle? fontStyle,
   }) =>
       TextStyle(
         fontFamily: serifFamily,
@@ -25,6 +26,7 @@ class AppText {
         fontWeight: fontWeight,
         height: height,
         letterSpacing: letterSpacing,
+        fontStyle: fontStyle,
       );
 
   static TextStyle sans({
@@ -33,6 +35,7 @@ class AppText {
     FontWeight? fontWeight,
     double? height,
     double? letterSpacing,
+    FontStyle? fontStyle,
   }) =>
       TextStyle(
         fontFamily: sansFamily,
@@ -42,6 +45,7 @@ class AppText {
         fontWeight: fontWeight,
         height: height,
         letterSpacing: letterSpacing,
+        fontStyle: fontStyle,
       );
 
   static TextStyle emoji({double fontSize = 16}) => TextStyle(

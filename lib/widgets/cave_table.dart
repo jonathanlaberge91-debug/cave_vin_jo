@@ -5,6 +5,7 @@ import '../models/bottle.dart';
 import '../models/cave_column.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import 'ai_status_badge.dart';
 import '../theme/wine_type_helpers.dart';
 import 'native_image.dart';
 
@@ -396,16 +397,25 @@ class _CaveDataRowState extends State<CaveDataRow> {
                 children: [
                   Expanded(
                     child: Text(
-                      w.name,
+                      w.displayName,
                       style: AppText.serif(
-                        color: AppColors.text,
+                        color: w.isUnidentified
+                            ? AppColors.text2
+                            : AppColors.text,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
+                        fontStyle: w.isUnidentified
+                            ? FontStyle.italic
+                            : FontStyle.normal,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (w.aiPending || w.aiNeedsReview) ...[
+                    const SizedBox(width: 5),
+                    AiStatusBadge(wine: w, compact: true),
+                  ],
                   if (isGift) const Text('🎁', style: TextStyle(fontSize: 11)),
                 ],
               ),

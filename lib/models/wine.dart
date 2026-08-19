@@ -57,6 +57,32 @@ class Wine {
   final DateTime createdAt;
   final DateTime? lastAutoRefreshed;
 
+  /// Bouteille entrée en vitesse (photo + quantité + emplacement), dont
+  /// l'analyse IA n'a pas encore été lancée. Pastille « à identifier ».
+  final bool aiPending;
+
+  /// L'IA a rempli la fiche toute seule et personne ne l'a encore relue.
+  /// Pastille « à vérifier », effacée dès l'ouverture de la fiche.
+  final bool aiNeedsReview;
+
+  /// Raison du dernier échec d'analyse (reste « à identifier »).
+  final String? aiError;
+
+  /// Aide-mémoire tapé à l'entrée rapide (« caisse de la SAQ », « cadeau de
+  /// Marc »…). Sert à reconnaître la bouteille en attendant l'identification;
+  /// l'IA n'y touche jamais.
+  final String quickNote;
+
+  /// Vrai tant que le vin n'a pas de nom : entré en vitesse, pas identifié.
+  bool get isUnidentified => aiPending || name.trim().isEmpty;
+
+  /// Nom à afficher partout : les bouteilles entrées en vitesse n'ont pas
+  /// encore de nom tant que l'IA n'est pas passée.
+  String get displayName {
+    final n = name.trim();
+    return n.isEmpty ? 'À identifier' : n;
+  }
+
   /// URL à utiliser dans les grilles/listes (miniature légère si disponible,
   /// sinon l'originale). La fiche et l'agrandissement utilisent [photoUrl].
   String? get thumbOrFull => thumbUrl ?? photoUrl;
@@ -87,6 +113,10 @@ class Wine {
     this.critiques = const [],
     required this.createdAt,
     this.lastAutoRefreshed,
+    this.aiPending = false,
+    this.aiNeedsReview = false,
+    this.aiError,
+    this.quickNote = '',
   });
 
   Map<String, dynamic> toMap() => {
@@ -113,6 +143,10 @@ class Wine {
         'thumbUrl': thumbUrl,
         'critiques': critiques.map((c) => c.toMap()).toList(),
         'createdAt': Timestamp.fromDate(createdAt),
+        'aiPending': aiPending,
+        'aiNeedsReview': aiNeedsReview,
+        'aiError': aiError,
+        'quickNote': quickNote,
       };
 
   factory Wine.fromDoc(DocumentSnapshot doc) {
@@ -149,6 +183,10 @@ class Wine {
           const [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastAutoRefreshed: (data['lastAutoRefreshed'] as Timestamp?)?.toDate(),
+      aiPending: data['aiPending'] == true,
+      aiNeedsReview: data['aiNeedsReview'] == true,
+      aiError: data['aiError'] as String?,
+      quickNote: data['quickNote'] ?? '',
     );
   }
 }

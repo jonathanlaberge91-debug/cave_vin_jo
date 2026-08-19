@@ -3,6 +3,7 @@ import '../models/wine.dart';
 import '../models/bottle.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import 'ai_status_badge.dart';
 import '../theme/wine_type_helpers.dart';
 import 'cave_table.dart';
 import 'native_image.dart';
@@ -178,15 +179,24 @@ class _CaveCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                w.name,
+                                w.displayName,
                                 style: AppText.serif(
-                                  color: AppColors.text,
+                                  color: w.isUnidentified
+                                      ? AppColors.text2
+                                      : AppColors.text,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   height: 1.25,
+                                  fontStyle: w.isUnidentified
+                                      ? FontStyle.italic
+                                      : FontStyle.normal,
                                 ),
                               ),
                             ),
+                            if (w.aiPending || w.aiNeedsReview) ...[
+                              const SizedBox(width: 6),
+                              AiStatusBadge(wine: w),
+                            ],
                             if (w.vintage != null) ...[
                               const SizedBox(width: 6),
                               Container(

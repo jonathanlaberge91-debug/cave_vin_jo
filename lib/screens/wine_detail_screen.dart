@@ -67,6 +67,17 @@ class _WineDetailDialogState extends State<WineDetailDialog> {
   // Abonnements crees UNE fois : un rebuild de la fiche (agrandissement de la
   // photo, edition d'un champ) ne rouvre plus d'ecoute Firestore.
   late final Stream<Wine?> _wineStream = CaveService.wine(widget.wine.id);
+
+  @override
+  void initState() {
+    super.initState();
+    // Ouvrir la fiche vaut relecture : la pastille « à vérifier » posée par
+    // l'analyse IA différée s'efface ici.
+    if (widget.wine.aiNeedsReview) {
+      CaveService.updateWine(widget.wine.id, {'aiNeedsReview': false})
+          .catchError((_) {});
+    }
+  }
   late final Stream<List<Bottle>> _bottlesStream =
       CaveService.bottlesByWine(widget.wine.id).map(
     (list) => list.where((b) => b.format == widget.format).toList(),
@@ -387,14 +398,30 @@ class _DialogBodyState extends State<_DialogBody> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                wine.name,
+                wine.displayName,
                 style: AppText.serif(
-                  color: AppColors.text,
+                  color: wine.isUnidentified
+                      ? AppColors.text2
+                      : AppColors.text,
                   fontSize: compact ? 26 : 36,
                   fontWeight: FontWeight.w500,
                   height: 1.1,
+                  fontStyle: wine.isUnidentified
+                      ? FontStyle.italic
+                      : FontStyle.normal,
                 ),
               ),
+              if (wine.isUnidentified && wine.quickNote.trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  wine.quickNote.trim(),
+                  style: AppText.sans(
+                    color: AppColors.text2,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
               if (wine.producer.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(

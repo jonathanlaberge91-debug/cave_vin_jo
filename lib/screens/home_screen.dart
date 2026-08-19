@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import '../widgets/cave_table.dart';
 import '../widgets/cave_card.dart';
+import '../widgets/pending_ai_banner.dart';
 import '../models/cave_column.dart';
 import '../models/wine.dart';
 import '../models/bottle.dart';
@@ -10,6 +11,7 @@ import '../services/ai_search_job_service.dart';
 import '../services/cave_preferences_service.dart';
 import '../services/cave_service.dart';
 import 'add_wine_dialog.dart';
+import 'quick_add_dialog.dart';
 import 'cellier_screen.dart';
 import 'settings_screen.dart';
 import 'wine_detail_screen.dart';
@@ -84,6 +86,70 @@ class _HomeScreenState extends State<HomeScreen> {
     showAddWineDialog(context);
   }
 
+  /// Sur mobile, « Ajouter » propose d'abord l'entrée rapide : c'est le geste
+  /// courant quand on rentre une caisse, le téléphone à la main.
+  void _openAddChoice() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bg2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border2,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              leading: const Icon(Icons.bolt, color: AppColors.gold2),
+              title: Text(
+                'Entrée rapide',
+                style: AppText.sans(
+                  color: AppColors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'Photo, quantité, emplacement. L\'IA passera plus tard.',
+                style: AppText.sans(color: AppColors.text2, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                showQuickAddDialog(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_note, color: AppColors.text2),
+              title: Text(
+                'Fiche complète',
+                style: AppText.sans(color: AppColors.text, fontSize: 15),
+              ),
+              subtitle: Text(
+                'Tous les champs, analyse IA tout de suite.',
+                style: AppText.sans(color: AppColors.text2, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                _openAddWine();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Flux gardes une seule fois : sans ca, chaque setState (frappe dans la
   // recherche, changement de filtre) recreait l'abonnement Firestore et
   // relancait la roulette de chargement.
@@ -130,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pop(context);
           }
           if (entry.label == 'Ajouter') {
-            _openAddWine();
+            _openAddChoice();
           } else {
             setState(() {
               _selectedIndex = currentItemIndex;
@@ -332,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         final action = _bottomNavItems[i].$3;
                         if (action == -1) {
-                          _openAddWine();
+                          _openAddChoice();
                         } else if (action == -2) {
                           _showMoreSheet();
                         } else {
@@ -633,8 +699,48 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 16),
           ] else
             const Spacer(),
+          _quickAddButton(),
+          const SizedBox(width: 8),
           _ctaButton('+ Ajouter', onTap: _openAddWine),
         ],
+      ),
+    );
+  }
+
+  /// Entrée rapide : photo + quantité + emplacement, sans lancer l'IA.
+  Widget _quickAddButton() {
+    return Tooltip(
+      message: 'Entrée rapide : photo, quantité, emplacement.\n'
+          'L\'analyse IA se lance plus tard, en lot.',
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => showQuickAddDialog(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.gold),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt, size: 15, color: AppColors.gold2),
+                const SizedBox(width: 6),
+                Text(
+                  'Entrée rapide',
+                  style: AppText.sans(
+                    color: AppColors.gold2,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -762,6 +868,10 @@ class _HomeScreenState extends State<HomeScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Bandeau des bouteilles entrées en vitesse : compte les vins
+                // en attente sur la liste COMPLÈTE, pas sur les lignes filtrées,
+                // sinon un filtre actif le ferait disparaître.
+                PendingAiBanner(wines: wines),
                 if (hasFilterData)
                   Container(
                     decoration: const BoxDecoration(

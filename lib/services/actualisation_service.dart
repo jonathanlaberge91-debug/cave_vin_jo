@@ -188,6 +188,11 @@ class ActualisationService {
 
   static Future<void> runAutoRefreshIfDue(List<Wine> wines) async {
     if (!CavePreferencesService.autoRefreshEnabled.value) return;
+    // Les bouteilles entrées en vitesse n'ont pas encore de nom : les
+    // actualiser ne donnerait rien et gaspillerait des appels IA.
+    wines = wines
+        .where((w) => !w.aiPending && w.name.trim().isNotEmpty)
+        .toList();
     if (wines.isEmpty) return;
 
     final period = CavePreferencesService.autoRefreshPeriod.value;
