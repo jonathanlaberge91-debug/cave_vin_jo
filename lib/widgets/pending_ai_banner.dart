@@ -24,83 +24,106 @@ class PendingAiBanner extends StatelessWidget {
         if (pending.isEmpty && !p.running) return const SizedBox.shrink();
 
         final failed = pending.where((w) => w.aiError != null).length;
+        final titre = p.running
+            ? 'Analyse IA en cours — ${p.done + 1}/${p.total}'
+            : '${pending.length} bouteille${pending.length > 1 ? 's' : ''} '
+                'à identifier';
+        final detail = p.running
+            ? (p.currentLabel ?? 'Lecture de l\'étiquette…')
+            : failed > 0
+                ? 'Dont $failed en échec — réessaie quand tu veux.'
+                : 'Photos enregistrées, fiches à remplir.';
 
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: AppColors.gold.withValues(alpha: 0.10),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.border),
-            ),
+            border: const Border(bottom: BorderSide(color: AppColors.border)),
           ),
-          child: Row(
-            children: [
-              Icon(
-                p.running ? Icons.auto_awesome : Icons.hourglass_empty,
-                size: 17,
-                color: AppColors.gold2,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Sur téléphone, texte et bouton ne tiennent pas sur une ligne :
+          // le bouton passe alors dessous, sur toute la largeur.
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final etroit = c.maxWidth < 460;
+              final texte = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    p.running ? Icons.auto_awesome : Icons.hourglass_empty,
+                    size: 17,
+                    color: AppColors.gold2,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titre,
+                          style: AppText.sans(
+                            color: AppColors.gold2,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          detail,
+                          style: AppText.sans(
+                              color: AppColors.text2, fontSize: 11),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final action = p.running
+                  ? TextButton(
+                      onPressed: PendingAiService.cancel,
+                      style:
+                          TextButton.styleFrom(foregroundColor: AppColors.text2),
+                      child: const Text('Arrêter'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: () => PendingAiService.runAll(wines),
+                      icon: const Icon(Icons.auto_awesome, size: 15),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: const Color(0xFF1A1408),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                      ),
+                      label: Text(
+                        etroit ? 'Lancer l\'analyse' : 'Lancer l\'analyse IA',
+                        style: AppText.sans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+
+              if (etroit) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      p.running
-                          ? 'Analyse IA en cours — ${p.done + 1}/${p.total}'
-                          : '${pending.length} bouteille'
-                              '${pending.length > 1 ? 's' : ''} à identifier',
-                      style: AppText.sans(
-                        color: AppColors.gold2,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      p.running
-                          ? (p.currentLabel ?? 'Lecture de l\'étiquette…')
-                          : failed > 0
-                              ? 'Dont $failed en échec — réessaie quand tu veux.'
-                              : 'Photos enregistrées, fiches à remplir.',
-                      style: AppText.sans(
-                        color: AppColors.text2,
-                        fontSize: 11,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    texte,
+                    const SizedBox(height: 10),
+                    action,
                   ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (p.running)
-                TextButton(
-                  onPressed: PendingAiService.cancel,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.text2,
-                  ),
-                  child: const Text('Arrêter'),
-                )
-              else
-                FilledButton.icon(
-                  onPressed: () => PendingAiService.runAll(wines),
-                  icon: const Icon(Icons.auto_awesome, size: 15),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.gold,
-                    foregroundColor: const Color(0xFF1A1408),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                  ),
-                  label: Text(
-                    'Lancer l\'analyse IA',
-                    style: AppText.sans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: texte),
+                  const SizedBox(width: 12),
+                  action,
+                ],
+              );
+            },
           ),
         );
       },

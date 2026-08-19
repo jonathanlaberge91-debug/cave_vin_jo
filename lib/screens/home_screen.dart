@@ -699,8 +699,13 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 16),
           ] else
             const Spacer(),
-          _quickAddButton(),
-          const SizedBox(width: 8),
+          // Seulement sur grand écran : en dessous, la barre du bas propose
+          // déjà « Ajouter » (qui offre le choix entrée rapide / fiche
+          // complète), et deux boutons ici débordaient de la barre.
+          if (MediaQuery.of(context).size.width > 900) ...[
+            _quickAddButton(),
+            const SizedBox(width: 8),
+          ],
           _ctaButton('+ Ajouter', onTap: _openAddWine),
         ],
       ),
