@@ -20,6 +20,7 @@ class MapsService {
 
   // In-memory cache — persists across navigations within the same session
   static final Map<String, GeoCoord> _memCache = {};
+  static bool _preloaded = false;
 
   static String? get apiKey => _apiKey;
   static bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
@@ -63,6 +64,26 @@ class MapsService {
     }
   }
 
+  /// Charge tout le cache de géocodage en UNE requête Firestore.
+  /// Après cet appel, geocode() répond instantanément pour toute adresse
+  /// déjà connue — plus de lecture Firestore par domaine.
+  static Future<void> preloadAll() async {
+    if (_preloaded) return;
+    try {
+      final snap = await _geocache.get();
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final lat = d['lat'] as num?;
+        final lng = d['lng'] as num?;
+        if (lat == null || lng == null) continue;
+        _memCache[doc.id] = GeoCoord(lat.toDouble(), lng.toDouble());
+      }
+      _preloaded = true;
+    } catch (_) {
+      // Hors ligne : geocode() retombera sur les caches locaux.
+    }
+  }
+
   static Future<GeoCoord?> geocode(String address) async {
     if (!isConfigured) return null;
 
@@ -87,8 +108,9 @@ class MapsService {
       } catch (_) {}
     }
 
-    // 3. Firestore cache
+    // 3. Firestore cache (inutile si preloadAll a déjà tout chargé)
     try {
+      if (_preloaded) throw StateError('cache déjà chargé');
       final doc = await _geocache.doc(cacheId).get();
       if (doc.exists) {
         final d = doc.data()!;

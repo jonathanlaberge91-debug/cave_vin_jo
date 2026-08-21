@@ -162,10 +162,16 @@ class _CarteScreenState extends State<CarteScreen> {
 
       // Start loading Maps API immediately — runs in parallel with data fetching
       final mapsApiReady = _ensureMapsApiLoaded(apiKey);
+      // Précharge tout le cache de géocodage en une seule requête, en
+      // parallèle des vins — geocode() devient alors instantané.
+      final geocacheReady = MapsService.preloadAll();
 
       setState(() => _loadingStatus = 'Chargement des vins…');
-      final wines = await CaveService.wines().first;
-      final bottles = await CaveService.bottlesInCave().first;
+      final winesFuture = CaveService.wines().first;
+      final bottlesFuture = CaveService.bottlesInCave().first;
+      final wines = await winesFuture;
+      final bottles = await bottlesFuture;
+      await geocacheReady;
 
       _winesById = {for (final w in wines) w.id: w};
 
@@ -213,15 +219,12 @@ class _CarteScreenState extends State<CarteScreen> {
         return;
       }
 
-      // Geocode all addresses in parallel
+      // Geocode all addresses in parallel (quasi instantané grâce au préchargement)
       final total = addressGroups.length;
-      var completed = 0;
       if (mounted) setState(() => _loadingStatus = 'Géolocalisation $total domaine${total > 1 ? "s" : ""}…');
 
       final pinFutures = addressGroups.entries.map((entry) async {
         final coord = await MapsService.geocode(entry.key);
-        completed++;
-        if (mounted) setState(() => _loadingStatus = 'Géolocalisation $completed/$total…');
 
         final formatEntries = <_WineFormatEntry>[];
         int tot = 0;
@@ -260,7 +263,30 @@ class _CarteScreenState extends State<CarteScreen> {
       }).toList();
 
       final results = await Future.wait(pinFutures);
-      final pins = results.whereType<_DomainPin>().toList();
+      final rawPins = results.whereType<_DomainPin>().toList();
+
+      // Fusionne les pins aux mêmes coordonnées (~11 m). Deux variantes
+      // d'adresse d'un même domaine géocodent au même point : sans fusion,
+      // les marqueurs s'empilent et les bouteilles du dessous deviennent
+      // introuvables sur la carte.
+      final byCoord = <String, _DomainPin>{};
+      for (final p in rawPins) {
+        final key = '${p.coord.lat.toStringAsFixed(4)},${p.coord.lng.toStringAsFixed(4)}';
+        final existing = byCoord[key];
+        if (existing == null) {
+          byCoord[key] = p;
+          continue;
+        }
+        final names = <String>{existing.domaine, p.domaine};
+        byCoord[key] = _DomainPin(
+          coord: existing.coord,
+          address: existing.address,
+          domaine: names.join(' · '),
+          entries: [...existing.entries, ...p.entries],
+          totalBottles: existing.totalBottles + p.totalBottles,
+        );
+      }
+      final pins = byCoord.values.toList();
 
       _missing = missing;
 
@@ -286,7 +312,9 @@ class _CarteScreenState extends State<CarteScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
 
-      await Future.delayed(const Duration(milliseconds: 200));
+      // Un court délai pour laisser la platform view s'attacher au DOM;
+      // le JS réessaie de son côté si le div n'existe pas encore.
+      await Future.delayed(const Duration(milliseconds: 50));
       if (mounted) _initializeMap();
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = 'Erreur : $e'; });
@@ -299,11 +327,16 @@ class _CarteScreenState extends State<CarteScreen> {
     final script =
         web.document.createElement('script') as web.HTMLScriptElement;
     script.src = 'https://maps.googleapis.com/maps/api/js?key=$apiKey';
+    final loaded = Completer<void>();
+    script.onload = ((JSAny? _) {
+      if (!loaded.isCompleted) loaded.complete();
+    }).toJS;
     web.document.head!.append(script);
 
-    for (int i = 0; i < 60; i++) {
-      await Future.delayed(const Duration(milliseconds: 250));
-      if (_hasMapsApi()) return;
+    // onload est le signal principal; le sondage reste en filet de sécurité.
+    for (int i = 0; i < 300; i++) {
+      if (loaded.isCompleted || _hasMapsApi()) return;
+      await Future.delayed(const Duration(milliseconds: 50));
     }
 
     throw Exception(
@@ -378,10 +411,17 @@ class _CarteScreenState extends State<CarteScreen> {
       _cascadeFilter = f;
       _pins = _filteredPins;
     });
-    _initializeMap();
+    // La carte existe déjà : on remplace seulement les marqueurs,
+    // sans jamais recréer la carte (beaucoup plus fluide).
+    _updateMarkers();
   }
 
-  void _initializeMap() {
+  void _updateMarkers() {
+    final json = _markersJson();
+    _evalJs('if(window._caveSetMarkers){window._caveSetMarkers($json);}');
+  }
+
+  String _markersJson() {
     final markersJson = _pins.map((p) {
       final wineItems = p.entries.map((e) {
         final w = e.wine;
@@ -409,7 +449,11 @@ class _CarteScreenState extends State<CarteScreen> {
       };
     }).toList();
 
-    final json = jsonEncode(markersJson).replaceAll('</', '<\\/');
+    return jsonEncode(markersJson).replaceAll('</', '<\\/');
+  }
+
+  void _initializeMap() {
+    final json = _markersJson();
 
     final mapStyle = jsonEncode([
       {"elementType": "geometry", "stylers": [{"color": "#1a1510"}]},
@@ -484,10 +528,10 @@ class _CarteScreenState extends State<CarteScreen> {
     anchor: new google.maps.Point(16, 44),
   };
 
-  var bounds = new google.maps.LatLngBounds();
   var openIW = null;
   var closeTimer = null;
   var pinnedIW = null;
+  var markers = [];
 
   function buildBubble(m) {
     var html = '<div style="font-family:-apple-system,BlinkMacSystemFont,\\'Segoe UI\\',sans-serif;' +
@@ -526,7 +570,9 @@ class _CarteScreenState extends State<CarteScreen> {
     return html;
   }
 
-  // Style the InfoWindow to remove default chrome
+  // Style the InfoWindow to remove default chrome (injecté une seule fois)
+  if (!window._caveIwStyled) {
+  window._caveIwStyled = true;
   var iwStyle = document.createElement('style');
   iwStyle.textContent = '.gm-style-iw-c{padding:0!important;background:transparent!important;border-radius:12px!important;box-shadow:none!important;overflow:visible!important}' +
     '.gm-style-iw-d{overflow:visible!important;max-height:none!important}' +
@@ -535,16 +581,24 @@ class _CarteScreenState extends State<CarteScreen> {
     '.gm-ui-hover-effect>span{background-color:#C9A84C!important;width:12px!important;height:12px!important;margin:5px!important}' +
     '.gm-style-iw-chr{position:absolute;top:8px;right:8px;z-index:1}';
   document.head.appendChild(iwStyle);
+  }
 
-  data.forEach(function(m) {
+  window._caveSetMarkers = function(newData) {
+  markers.forEach(function(mk) { mk.setMap(null); });
+  markers.length = 0;
+  if (openIW) { openIW.close(); openIW = null; }
+  pinnedIW = null;
+  var bounds = new google.maps.LatLngBounds();
+
+  newData.forEach(function(m) {
     var pos = new google.maps.LatLng(m.lat, m.lng);
     var mk = new google.maps.Marker({
       position: pos,
       map: map,
       title: m.domaine,
       icon: pinIcon,
-      optimized: false,
     });
+    markers.push(mk);
 
     var iw = new google.maps.InfoWindow({
       content: buildBubble(m),
@@ -589,9 +643,15 @@ class _CarteScreenState extends State<CarteScreen> {
     bounds.extend(pos);
   });
 
-  if (data.length > 1) {
+  if (newData.length > 1) {
     map.fitBounds(bounds, 60);
+  } else if (newData.length === 1) {
+    map.setCenter({lat: newData[0].lat, lng: newData[0].lng});
+    map.setZoom(12);
   }
+  };
+
+  window._caveSetMarkers(data);
 })(1);
 ''');
   }
