@@ -68,6 +68,10 @@ class GeminiResult {
             score: (m['score'] ?? '').toString(),
             note: (m['note'] ?? '').toString(),
             date: date,
+            // verifie reste false tant que la passe de vérification web
+            // n'a pas confirmé la note (verrou anti-invention).
+            verifie: m['verified'] == true,
+            sourceUrl: (m['sourceUrl'] ?? '').toString(),
           );
         })
         .where((c) => c.source.isNotEmpty || c.score.isNotEmpty || c.note.isNotEmpty)
@@ -115,6 +119,29 @@ class GeminiResult {
       critiques: critiques,
     );
   }
+
+  GeminiResult copyWithCritiques(List<Critique> critiques) => GeminiResult(
+        name: name,
+        producer: producer,
+        vintage: vintage,
+        appellation: appellation,
+        country: country,
+        region: region,
+        climat: climat,
+        domaine: domaine,
+        village: village,
+        domainAddress: domainAddress,
+        grapes: grapes,
+        alcohol: alcohol,
+        type: type,
+        drinkFrom: drinkFrom,
+        drinkPeak: drinkPeak,
+        drinkTo: drinkTo,
+        marketValue: marketValue,
+        wineDescription: wineDescription,
+        domaineDescription: domaineDescription,
+        critiques: critiques,
+      );
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -294,7 +321,8 @@ class GeminiService {
       "source": "Nom du critique ou de la publication (ex: Robert Parker / Wine Advocate, James Suckling, Jancis Robinson, Decanter, Vinous, Wine Spectator, La Revue du Vin de France)",
       "score": "Note exacte attribuée avec son barème (ex: 98/100, 19/20, 5/5)",
       "note": "Citation textuelle ou résumé de la note de dégustation du critique en 2 à 4 phrases",
-      "date": "AAAA-MM-JJ ou AAAA-MM-01 si seul le mois est connu, ou null"
+      "date": "AAAA-MM-JJ ou AAAA-MM-01 si seul le mois est connu, ou null",
+      "sourceUrl": "URL exacte de la page web où tu as trouvé cette note (résultat de ta recherche). null si tu n'as pas d'URL."
     }
   ]
 }
@@ -303,7 +331,12 @@ Pour le champ "vintage" : extrais l'année du millésime (4 chiffres, ex: 2015) 
 
 Pour le champ "marketValue" : estime la valeur marchande actuelle en dollars canadiens (CAD) pour une bouteille 750 ML de ce vin et ce millésime. Base-toi sur les prix moyens observés en SAQ, enchères, ou marchés en ligne. Si aucune estimation fiable n'est possible, retourne null.
 
-Pour le champ "critiques" : retourne 3 à 6 critiques RÉELLES de critiques reconnus pour ce vin et ce millésime spécifique. Si aucune critique vérifiable n'existe, retourne un tableau vide []. N'invente JAMAIS de notes ou de citations.
+Pour le champ "critiques" : retourne 3 à 6 critiques RÉELLES de critiques reconnus pour ce vin et ce millésime spécifique. Si aucune critique vérifiable n'existe, retourne un tableau vide []. N'invente JAMAIS de notes ou de citations. RÈGLES STRICTES :
+- Une note en primeur publiée en FOURCHETTE (ex: 91-93) doit rester une fourchette — ne la convertis JAMAIS en score sec.
+- Ne mélange JAMAIS le score d'une dégustation avec le texte d'une autre dégustation (même critique, dates différentes) ni avec le texte d'un autre critique.
+- Attribue chaque note à la bonne personne (ex: une note de Julia Harding MW n'est PAS une note de Jancis Robinson).
+- Vérifie que la note concerne CE millésime exact, pas un millésime voisin.
+- Respecte le barème du critique (JancisRobinson.com note sur 20, jamais sur 100).
 
 LANGUE OBLIGATOIRE — TRÈS IMPORTANT : Toutes les valeurs textuelles du JSON doivent être rédigées EXCLUSIVEMENT EN FRANÇAIS, peu importe la langue de l'étiquette ou la nationalité du vin. Cela inclut wineDescription, domaineDescription, country (ex: "Italie" et non "Italy"), region, appellation, grapes (ex: "Sangiovese, Cabernet Sauvignon" — noms de cépages en français), type, et les citations de critiques (note) qui doivent être traduites en français si la source originale est en anglais ou autre langue. JAMAIS UN SEUL MOT EN ANGLAIS dans la réponse.''';
 
@@ -504,6 +537,78 @@ Toutes les valeurs textuelles EN FRANÇAIS.
       return result;
     } catch (_) {
       return const {};
+    }
+  }
+
+  /// Verrou anti-invention : vérifie chaque critique contre le web.
+  /// Retourne la liste avec `verifie: true` UNIQUEMENT pour les notes dont
+  /// la source, le score et le millésime sont confirmés par une page
+  /// publiée. En cas d'échec de l'appel, les critiques restent non
+  /// vérifiées (« à confirmer ») — jamais l'inverse. Ne JAMAIS affaiblir.
+  static Future<List<Critique>> verifyCritiques({
+    required String wineIdentity,
+    required List<Critique> critiques,
+  }) async {
+    if (!isConfigured || critiques.isEmpty || wineIdentity.trim().isEmpty) {
+      return critiques;
+    }
+
+    final listJson = jsonEncode([
+      for (var i = 0; i < critiques.length; i++)
+        {
+          'index': i,
+          'source': critiques[i].source,
+          'score': critiques[i].score,
+          'extrait': critiques[i].note.length > 160
+              ? critiques[i].note.substring(0, 160)
+              : critiques[i].note,
+        }
+    ]);
+
+    final prompt = '''
+Tu es un fact-checker de notes de dégustation. Pour le vin "$wineIdentity", voici des critiques à vérifier :
+
+$listJson
+
+UTILISE TES OUTILS DE RECHERCHE WEB pour vérifier chaque critique : le critique nommé a-t-il RÉELLEMENT publié cette note (ce score, ce barème) pour ce vin et CE millésime exact ?
+
+Règles STRICTES :
+- "confirmee": true SEULEMENT si tu trouves une page publiée qui confirme la note (même score, même critique, même millésime). Fournis alors l'URL dans "url".
+- Un score de fourchette primeur (ex: 91-93) ne confirme PAS un score sec (ex: 93), et inversement.
+- Si tu ne trouves pas de preuve : "confirmee": false. Ne devine JAMAIS. En cas de doute, false.
+- "scoreCorrige": si la note existe mais avec un score différent publié, donne le score publié exact; sinon null.
+
+Réponds UNIQUEMENT avec ce JSON :
+{"verdicts": [{"index": 0, "confirmee": true, "url": "https://…", "scoreCorrige": null}]}
+''';
+
+    try {
+      final json = await _callGeminiJson([
+        {'text': prompt}
+      ], useGrounding: true);
+      final raw = json['verdicts'];
+      if (raw is! List) return critiques;
+
+      final updated = List<Critique>.from(critiques);
+      for (final v in raw) {
+        if (v is! Map) continue;
+        final idx = (v['index'] as num?)?.toInt();
+        if (idx == null || idx < 0 || idx >= updated.length) continue;
+        final confirmed = v['confirmee'] == true;
+        final url = (v['url'] ?? '').toString();
+        final fixedScore = v['scoreCorrige'];
+        updated[idx] = updated[idx].copyWith(
+          verifie: confirmed || updated[idx].verifie,
+          sourceUrl: url.startsWith('http') ? url : null,
+          score: (confirmed && fixedScore is String && fixedScore.trim().isNotEmpty)
+              ? fixedScore.trim()
+              : null,
+        );
+      }
+      return updated;
+    } catch (_) {
+      // Fail-safe : on ne promeut rien sans preuve.
+      return critiques;
     }
   }
 

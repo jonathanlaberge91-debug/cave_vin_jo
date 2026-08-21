@@ -8,18 +8,41 @@ class Critique {
   final String note;
   final DateTime? date;
 
+  /// Verrou anti-invention : true seulement si la note a été confirmée
+  /// contre une source publiée (passe de vérification web) ou saisie à la
+  /// main par l'utilisateur. Une critique non vérifiée s'affiche
+  /// « à confirmer » et ne doit JAMAIS être promue sans preuve.
+  final bool verifie;
+
+  /// URL de la page où la note est publiée (fournie par la recherche web).
+  final String sourceUrl;
+
   const Critique({
     required this.source,
     this.score = '',
     this.note = '',
     this.date,
+    this.verifie = false,
+    this.sourceUrl = '',
   });
+
+  Critique copyWith({bool? verifie, String? sourceUrl, String? score}) =>
+      Critique(
+        source: source,
+        score: score ?? this.score,
+        note: note,
+        date: date,
+        verifie: verifie ?? this.verifie,
+        sourceUrl: sourceUrl ?? this.sourceUrl,
+      );
 
   Map<String, dynamic> toMap() => {
         'source': source,
         'score': score,
         'note': note,
         'date': date != null ? Timestamp.fromDate(date!) : null,
+        'verified': verifie,
+        'sourceUrl': sourceUrl,
       };
 
   factory Critique.fromMap(Map<String, dynamic> data) => Critique(
@@ -27,6 +50,8 @@ class Critique {
         score: data['score'] ?? '',
         note: data['note'] ?? '',
         date: (data['date'] as Timestamp?)?.toDate(),
+        verifie: data['verified'] == true,
+        sourceUrl: data['sourceUrl'] ?? '',
       );
 }
 

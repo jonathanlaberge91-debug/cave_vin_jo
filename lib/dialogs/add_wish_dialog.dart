@@ -203,8 +203,9 @@ class _AddWishDialogState extends State<AddWishDialog> {
         bytes,
         vintageHint: manualVintage,
       );
+      final checked = await _verifyCritiques(result);
       if (!mounted) return;
-      _applyGeminiResult(result);
+      _applyGeminiResult(checked);
       if (manualVintage != null && manualVintage.isNotEmpty) {
         setState(() => _vintage.text = manualVintage);
       }
@@ -213,6 +214,22 @@ class _AddWishDialogState extends State<AddWishDialog> {
     } finally {
       if (mounted) setState(() => _aiLoading = false);
     }
+  }
+
+  /// Verrou anti-invention : vérifie les critiques contre le web avant de
+  /// les appliquer au formulaire (celles sans preuve restent « à confirmer »).
+  Future<GeminiResult> _verifyCritiques(GeminiResult r) async {
+    if (r.critiques.isEmpty) return r;
+    final identity = <String>[
+      if (r.producer.isNotEmpty) r.producer,
+      if (r.name.isNotEmpty) r.name,
+      if (r.vintage != null) r.vintage.toString(),
+    ].join(' ');
+    final verified = await GeminiService.verifyCritiques(
+      wineIdentity: identity,
+      critiques: r.critiques,
+    );
+    return r.copyWithCritiques(verified);
   }
 
   Future<void> _searchWithGemini() async {
@@ -230,8 +247,9 @@ class _AddWishDialogState extends State<AddWishDialog> {
         domaine: _aiDomaine.text.trim(),
         vintage: _aiVintage.text.trim(),
       );
+      final checked = await _verifyCritiques(result);
       if (!mounted) return;
-      _applyGeminiResult(result);
+      _applyGeminiResult(checked);
       if (_aiVintage.text.isNotEmpty) {
         setState(() => _vintage.text = _aiVintage.text.trim());
       }
@@ -1438,6 +1456,8 @@ class _AddWishDialogState extends State<AddWishDialog> {
           score: scoreCtrl.text.trim(),
           note: noteCtrl.text.trim(),
           date: date,
+          // Saisie manuelle par l'utilisateur : pas soumise au verrou IA.
+          verifie: true,
         ));
       });
     }

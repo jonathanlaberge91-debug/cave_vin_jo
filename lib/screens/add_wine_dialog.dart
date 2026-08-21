@@ -2064,6 +2064,8 @@ class _AddWineDialogState extends State<AddWineDialog> {
           score: scoreCtrl.text.trim(),
           note: noteCtrl.text.trim(),
           date: date,
+          // Saisie manuelle par l'utilisateur : pas soumise au verrou IA.
+          verifie: true,
         ));
       });
     }

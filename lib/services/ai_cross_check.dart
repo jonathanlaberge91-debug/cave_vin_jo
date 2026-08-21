@@ -226,7 +226,34 @@ class AiCrossCheck {
     }
 
     final cc = _merge(sources, errors);
-    return _crossCheckPass(cc);
+    final checked = await _crossCheckPass(cc);
+    return _verifyCritiquesPass(checked);
+  }
+
+  /// Verrou anti-invention : passe de vérification web des critiques.
+  /// Seules les notes confirmées par une source publiée passent
+  /// `verifie: true`; les autres restent « à confirmer » dans l'app.
+  static Future<CrossCheckResult> _verifyCritiquesPass(
+      CrossCheckResult cc) async {
+    final m = cc.merged;
+    if (m.critiques.isEmpty) return cc;
+    final identity = <String>[
+      if (m.producer.isNotEmpty) m.producer,
+      if (m.name.isNotEmpty) m.name,
+      if (m.vintage != null) m.vintage.toString(),
+    ].join(' ');
+
+    final verified = await GeminiService.verifyCritiques(
+      wineIdentity: identity,
+      critiques: m.critiques,
+    );
+
+    return CrossCheckResult(
+      merged: m.copyWithCritiques(verified),
+      disagreements: cc.disagreements,
+      sources: cc.sources,
+      errors: cc.errors,
+    );
   }
 
   /// Pass unifié : un seul appel Gemini grounded qui à la fois

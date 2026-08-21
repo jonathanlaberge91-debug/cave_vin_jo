@@ -1212,7 +1212,12 @@ class _CritiqueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasScore = critique.score.isNotEmpty;
     final hasNote = critique.note.isNotEmpty;
-    return Container(
+    // Verrou anti-invention : une critique non confirmée par une source
+    // publiée s'affiche atténuée avec un badge « À confirmer ».
+    final unverified = !critique.verifie;
+    return Opacity(
+      opacity: unverified ? 0.62 : 1.0,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.bg3,
@@ -1247,6 +1252,28 @@ class _CritiqueCard extends StatelessWidget {
                           color: AppColors.text3,
                           fontSize: 10,
                           letterSpacing: 0.5,
+                        ),
+                      ),
+                    if (unverified)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.bg2,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.border2),
+                          ),
+                          child: Text(
+                            'À CONFIRMER — note non retrouvée en ligne',
+                            style: AppText.sans(
+                              color: AppColors.text3,
+                              fontSize: 9,
+                              letterSpacing: 0.6,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -1284,6 +1311,7 @@ class _CritiqueCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }
